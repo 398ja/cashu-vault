@@ -42,6 +42,25 @@ public class VaultClient<T extends BaseEntity> {
         this(entityType, entityType.getAnnotation(Entity.class).name(), baseUrl);
     }
 
+    private static String loadBaseUrl() {
+        String env = System.getenv("VAULT_BASE_URL");
+        if (env != null && !env.isBlank()) {
+            return removeTrailingSlash(env);
+        }
+        String property = System.getProperty("vault.baseUrl");
+        if (property != null && !property.isBlank()) {
+            return removeTrailingSlash(property);
+        }
+        return DEFAULT_BASE_URL;
+    }
+
+    private static String removeTrailingSlash(String url) {
+        if (url.endsWith("/")) {
+            return url.substring(0, url.length() - 1);
+        }
+        return url;
+    }
+
     public T store(T entity) {
         log.info("POST {}/vault/{}/", baseUrl, pathSegment);
         T response = restTemplate.postForObject(baseUrl + "/vault/" + pathSegment, entity, entityType);
