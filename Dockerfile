@@ -8,6 +8,6 @@ RUN mvn -q -pl cashu-vault-jpa -am package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /build/cashu-vault-jpa/target/cashu-vault-jpa-*.jar app.jar
-EXPOSE 8080
+EXPOSE 3333
 ENTRYPOINT ["java","-jar","app.jar"]
 
