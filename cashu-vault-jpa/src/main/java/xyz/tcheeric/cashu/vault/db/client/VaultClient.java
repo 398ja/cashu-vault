@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
@@ -21,24 +20,26 @@ import java.util.List;
 public class VaultClient<T extends BaseEntity> {
     protected final RestTemplate restTemplate;
 
-    //@Value("${vault.baseUrl:http://localhost:8080}")
-    private String baseUrl = "http://localhost:3333";
+    private String baseUrl;
+    private static final String DEFAULT_BASE_URL = "http://localhost:3333";
 
     private final Class<T> entityType;
 
     private final String pathSegment;
 
     public VaultClient(Class<T> entityType) {
-        this(
-                entityType,
-                entityType.getAnnotation(Entity.class).name()
-        );
+        this(entityType, entityType.getAnnotation(Entity.class).name(), loadBaseUrl());
     }
 
-    private VaultClient(Class<T> entityType, String pathSegment) {
+    private VaultClient(Class<T> entityType, String pathSegment, String baseUrl) {
         this.restTemplate = new RestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
+        this.baseUrl = baseUrl;
+    }
+
+    public VaultClient(Class<T> entityType, String baseUrl) {
+        this(entityType, entityType.getAnnotation(Entity.class).name(), baseUrl);
     }
 
     public T store(T entity) {
