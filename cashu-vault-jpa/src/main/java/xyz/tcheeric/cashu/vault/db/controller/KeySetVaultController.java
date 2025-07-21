@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
@@ -20,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/vault/keyset")
+@Slf4j
 public class KeySetVaultController {
 
     @Autowired
@@ -27,14 +29,18 @@ public class KeySetVaultController {
 
     @PostMapping
     public ResponseEntity<KeySetEntity> store(@RequestBody KeySetEntity keySet) throws CashuErrorException {
+        log.info("Storing KeySetEntity {}", keySet.getId());
         KeySetEntity newKeySet = keySetRepository.save(keySet);
+        log.debug("Stored KeySetEntity {}", newKeySet.getId());
         return ResponseEntity.ok(newKeySet);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<KeySetEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Retrieving KeySetEntity {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findById(UUID.fromString(id));
         if (keySet.isPresent()) {
+            log.debug("Retrieved KeySetEntity {}", keySet.get().getId());
             return ResponseEntity.ok(keySet.get());
         } else {
             throw new CashuErrorException("KeySetEntity not found");
@@ -43,6 +49,7 @@ public class KeySetVaultController {
 
     @GetMapping("/id/{id}")
     public ResponseEntity<KeySetEntity> retrieveByKeySetId(@PathVariable("id") String id) throws CashuErrorException, ExecutionException, InterruptedException {
+        log.info("Retrieving KeySetEntity by keySetId {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findByKeySetId(id);
         if (keySet.isPresent()) {
             return ResponseEntity.ok(keySet.get());
@@ -53,6 +60,7 @@ public class KeySetVaultController {
 
     @GetMapping("/unit/{unit}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException, InterruptedException {
+        log.info("Retrieving KeySetEntities for unit {}", unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
         if (keySets.isEmpty()) {
             throw new CashuErrorException("No KeySetEntity found for the specified unit");
@@ -62,6 +70,7 @@ public class KeySetVaultController {
 
     @GetMapping("/mint/{mintId}/unit/{unit}/keyset/{keySetId}")
     public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException, InterruptedException {
+        log.info("Retrieving KeySetEntity for mint {} unit {}", mintId, unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_IdAndUnit(UUID.fromString(mintId), unit);
         if (keySets.isEmpty()) {
             throw new CashuErrorException("No KeySetEntity found for the specified mintId and unit");
@@ -75,6 +84,7 @@ public class KeySetVaultController {
 
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException, ExecutionException, InterruptedException {
+        log.info("Retrieving KeySetEntities for mint {}", mintId);
         var keySets = keySetRepository.findByMint_Id(UUID.fromString(mintId));
         if (keySets.isEmpty()) {
             throw new CashuErrorException("No KeySetEntity found for the specified mintId");
@@ -84,11 +94,13 @@ public class KeySetVaultController {
 
     @PostMapping("/archive/{id}")
     public ResponseEntity<KeySetEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Archiving KeySetEntity {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findById(UUID.fromString(id));
         if (keySet.isPresent()) {
             KeySetEntity archivedKeySet = keySet.get();
             archivedKeySet.setArchived(true); // Assuming there's an 'archived' field
             keySetRepository.save(archivedKeySet);
+            log.debug("Archived KeySetEntity {}", archivedKeySet.getId());
             return ResponseEntity.ok(archivedKeySet);
         } else {
             throw new CashuErrorException("KeySetEntity not found");
@@ -97,9 +109,11 @@ public class KeySetVaultController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Deleting KeySetEntity {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findById(UUID.fromString(id));
         if (keySet.isPresent()) {
             keySetRepository.delete(keySet.get());
+            log.debug("Deleted KeySetEntity {}", keySet.get().getId());
             return ResponseEntity.noContent().build();
         } else {
             throw new CashuErrorException("KeySetEntity not found");
