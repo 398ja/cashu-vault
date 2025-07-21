@@ -21,7 +21,7 @@ import java.util.Set;
 
 @Entity(name = "keyset")
 @Table(name = "t_keyset", indexes = {
-        @Index(name = "idx_keyset_sat_mint_unq", columnList = "sat, mint_id", unique = true)
+        @Index(name = "idx_keyset_sat_mint_unq", columnList = "unit, mint_id", unique = true)
 })
 @Data
 @Audited
