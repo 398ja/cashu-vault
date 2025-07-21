@@ -1,6 +1,7 @@
 package xyz.tcheeric.cashu.vault.db.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 @RestController
 @RequestMapping("/vault/key")
 @RequiredArgsConstructor
+@Slf4j
 public class KeyVaultController {
 
     @Autowired
@@ -30,14 +32,18 @@ public class KeyVaultController {
 
     @PostMapping
     public ResponseEntity<KeyEntity> store(@RequestBody KeyEntity key) throws CashuErrorException {
+        log.info("Storing KeyEntity {}", key.getId());
         var savedKey = keyRepository.save(key);
+        log.debug("Stored KeyEntity {}", savedKey.getId());
         return ResponseEntity.ok(savedKey);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<KeyEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Retrieving KeyEntity {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
+            log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.ok(keyOpt.get());
         } else {
             throw new CashuErrorException("KeyEntity not found");
@@ -46,6 +52,7 @@ public class KeyVaultController {
 
     @GetMapping("/unit/{unit}")
     public ResponseEntity<Set<KeyEntity>> getKeysByUnit(@PathVariable("unit") String unit) throws CashuErrorException, ExecutionException, InterruptedException {
+        log.info("Retrieving keys for unit {}", unit);
         Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_UnitIgnoreCase(unit);
         if (keys.get().isEmpty()) {
             throw new CashuErrorException("No keys found for the specified unit");
@@ -55,8 +62,10 @@ public class KeyVaultController {
 
     @GetMapping("/privatekey/{privateKey}")
     public ResponseEntity<KeyEntity> getKeyByPrivateKey(@PathVariable("privateKey") String privateKey) throws CashuErrorException, ExecutionException, InterruptedException {
+        log.info("Retrieving KeyEntity by private key");
         Optional<KeyEntity> keyOpt = keyRepository.findByPrivateKey(privateKey);
         if (keyOpt.isPresent()) {
+            log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.ok(keyOpt.get());
         } else {
             throw new CashuErrorException("KeyEntity not found for the specified private key");
@@ -65,6 +74,7 @@ public class KeyVaultController {
 
     @GetMapping("/keyset/{id}")
     public ResponseEntity<Set<KeyEntity>> getKeysByKeySetId(@PathVariable("id") String id) throws CashuErrorException, ExecutionException, InterruptedException {
+        log.info("Retrieving keys for keySet {}", id);
         Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_Id(UUID.fromString(id));
         if (keys.isPresent()) {
             return ResponseEntity.ok(keys.get());
@@ -74,11 +84,13 @@ public class KeyVaultController {
 
     @PostMapping("/archive/{id}")
     public ResponseEntity<KeyEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Archiving KeyEntity {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
             KeyEntity archivedKey = keyOpt.get();
             archivedKey.setArchived(true); // Assumes an 'archived' field
             var updatedKey = keyRepository.save(archivedKey);
+            log.debug("Archived KeyEntity {}", updatedKey.getId());
             return ResponseEntity.ok(updatedKey);
         } else {
             throw new CashuErrorException("KeyEntity not found");
@@ -87,9 +99,11 @@ public class KeyVaultController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
+        log.info("Deleting KeyEntity {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
             keyRepository.delete(keyOpt.get());
+            log.debug("Deleted KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.noContent().build();
         } else {
             throw new CashuErrorException("KeyEntity not found");
