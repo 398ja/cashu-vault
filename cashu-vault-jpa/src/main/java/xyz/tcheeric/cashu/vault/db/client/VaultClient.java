@@ -42,18 +42,6 @@ public class VaultClient<T extends BaseEntity> {
         this(entityType, entityType.getAnnotation(Entity.class).name(), baseUrl);
     }
 
-    private static String loadBaseUrl() {
-        String env = System.getenv("VAULT_BASE_URL");
-        if (env != null && !env.isBlank()) {
-            return env;
-        }
-        String property = System.getProperty("vault.baseUrl");
-        if (property != null && !property.isBlank()) {
-            return property;
-        }
-        return DEFAULT_BASE_URL;
-    }
-
     public T store(T entity) {
         log.info("POST {}/vault/{}/", baseUrl, pathSegment);
         T response = restTemplate.postForObject(baseUrl + "/vault/" + pathSegment, entity, entityType);
