@@ -19,7 +19,7 @@ class DBProofVaultUnitTest {
             this.entity = entity;
         }
         @Override
-        protected ProofEntity retrieveEntity() { return entity; }
+        public ProofEntity retrieveEntity() { return entity; }
     }
 
     @Test
