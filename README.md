@@ -14,6 +14,13 @@ Java 21 and Maven 3.8+ are required. Compile all modules with:
 mvn package
 ```
 
+If Maven is not installed globally, use the provided wrapper in
+`cashu-vault-jpa/`:
+
+```bash
+./cashu-vault-jpa/mvnw package
+```
+
 This creates the runnable JAR `cashu-vault-jpa/target/cashu-vault-jpa-*.jar` used in the Docker image.
 
 ## Running with Docker Compose
@@ -30,7 +37,7 @@ settings can be customised with the environment variables defined in
 
 ## Running Tests
 
-Unit tests are executed with:
+Unit tests run against an in-memory H2 database and can be executed with:
 
 ```bash
 mvn test
