@@ -18,7 +18,7 @@ public class ProofConfiguration implements EntityConfiguration {
     private String witness;
 
     public ProofConfiguration(@NonNull MintConfiguration mint, @NonNull String hashToCurveSecret) {
-        this(mint, null, hashToCurveSecret);
+        this(mint, hashToCurveSecret, null);
     }
 
     public ProofConfiguration(@NonNull MintConfiguration mint, @NonNull String hashToCurveSecret, String witness) {
