@@ -82,8 +82,9 @@ The service exposes the following endpoints (all relative to `/vault`):
 ## Configuration
 
 `VaultClient` reads the base URL of the service from the `VAULT_BASE_URL`
-environment variable or the `vault.baseUrl` system property. When running via
-the provided Docker setup the default `http://localhost:3333` is used.
+environment variable or the `vault.base.url` system property. The provided
+Docker image defines `VAULT_BASE_URL` so the service defaults to
+`http://localhost:3333` when started with Docker Compose.
 
 ## License
 
