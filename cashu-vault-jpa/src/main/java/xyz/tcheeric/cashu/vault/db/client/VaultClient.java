@@ -19,8 +19,8 @@ import java.util.List;
 public class VaultClient<T extends BaseEntity> {
     protected final RestTemplate restTemplate;
 
-    //@Value("${vault.baseUrl:http://localhost:8080}")
-    private String baseUrl = "http://localhost:3333";
+    @Value("${VAULT_BASE_URL:${vault.baseUrl:http://localhost:3333}}")
+    private String baseUrl;
 
     private final Class<T> entityType;
 
