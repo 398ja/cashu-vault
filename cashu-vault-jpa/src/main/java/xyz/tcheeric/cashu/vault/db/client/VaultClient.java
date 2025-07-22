@@ -19,8 +19,11 @@ import java.util.List;
 public class VaultClient<T extends BaseEntity> {
     protected final RestTemplate restTemplate;
 
-    //@Value("${vault.baseUrl:http://localhost:8080}")
-    private String baseUrl = "http://localhost:3333";
+    // Base URL for the vault service resolved from environment or system
+    // properties. Environment variable `VAULT_BASE_URL` takes precedence over
+    // the `vault.base.url` system property. If neither are present a sensible
+    // default is used.
+    private final String baseUrl;
 
     private final Class<T> entityType;
 
@@ -37,6 +40,19 @@ public class VaultClient<T extends BaseEntity> {
         this.restTemplate = new RestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
+        this.baseUrl = resolveBaseUrl();
+    }
+
+    private String resolveBaseUrl() {
+        String envUrl = System.getenv("VAULT_BASE_URL");
+        if (envUrl != null && !envUrl.isBlank()) {
+            return envUrl;
+        }
+        String propUrl = System.getProperty("vault.base.url");
+        if (propUrl != null && !propUrl.isBlank()) {
+            return propUrl;
+        }
+        return "http://localhost:3333";
     }
 
     public T store(T entity) {
