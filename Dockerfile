@@ -6,6 +6,6 @@ RUN mvn -pl cashu-vault-jpa -am package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /build/cashu-vault-jpa/target/cashu-vault-jpa-1.0-SNAPSHOT.jar app.jar
+COPY --from=build /build/cashu-vault-jpa/target/cashu-vault-jpa-*.jar app.jar
 ENV VAULT_BASE_URL=http://localhost:3333
 ENTRYPOINT ["java","-jar","/app/app.jar"]
