@@ -2,8 +2,9 @@ package xyz.tcheeric.cashu.vault.db;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
@@ -11,10 +12,10 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 @SpringBootApplication
+@RequiredArgsConstructor
 public class CashuVaultApplication {
 
-    @Value("${vault.baseUrl:http://localhost:3333}")
-    private String baseUrl;
+    private final VaultBaseProperties vaultBaseProperties;
 
     public static void main(String[] args) {
 		SpringApplication.run(CashuVaultApplication.class, args);
@@ -22,21 +23,21 @@ public class CashuVaultApplication {
 
 	@Bean
         public VaultClient<MintEntity> vaultMintClient() {
-                return new VaultClient<>(MintEntity.class, baseUrl);
+                return new VaultClient<>(MintEntity.class, vaultBaseProperties.getUrl());
         }
 
 	@Bean
         public VaultClient<KeySetEntity> vaultKeySetClient() {
-                return new VaultClient<>(KeySetEntity.class, baseUrl);
+                return new VaultClient<>(KeySetEntity.class, vaultBaseProperties.getUrl());
         }
 
 	@Bean
         public VaultClient<ProofEntity> vaultProofClient() {
-                return new VaultClient<>(ProofEntity.class, baseUrl);
+                return new VaultClient<>(ProofEntity.class, vaultBaseProperties.getUrl());
         }
 
 	@Bean
         public VaultClient<KeyEntity> vaultKeyClient() {
-                return new VaultClient<>(KeyEntity.class, baseUrl);
+                return new VaultClient<>(KeyEntity.class, vaultBaseProperties.getUrl());
         }
 }

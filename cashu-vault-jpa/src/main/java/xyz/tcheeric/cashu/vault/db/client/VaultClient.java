@@ -47,7 +47,7 @@ public class VaultClient<T extends BaseEntity> {
         if (env != null && !env.isBlank()) {
             return removeTrailingSlash(env);
         }
-        String property = System.getProperty("vault.baseUrl");
+        String property = System.getProperty("vault.base.url");
         if (property != null && !property.isBlank()) {
             return removeTrailingSlash(property);
         }
