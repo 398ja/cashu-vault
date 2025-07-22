@@ -5,9 +5,11 @@ import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
@@ -17,45 +19,24 @@ import java.util.List;
 public class VaultClient<T extends BaseEntity> {
     protected final RestTemplate restTemplate;
 
-    // Base URL for the vault service resolved from environment or system
-    // properties. Environment variable `VAULT_BASE_URL` takes precedence over
-    // the `vault.base.url` system property. If neither are present a sensible
-    // default is used.
-    private final String baseUrl;
+    //@Value("${vault.baseUrl:http://localhost:8080}")
+    private String baseUrl = "http://localhost:3333";
 
     private final Class<T> entityType;
 
     private final String pathSegment;
 
     public VaultClient(Class<T> entityType) {
-        this(entityType, resolveBaseUrl());
-    }
-
-    public VaultClient(Class<T> entityType, String baseUrl) {
         this(
                 entityType,
-                entityType.getAnnotation(Entity.class).name(),
-                baseUrl
+                entityType.getAnnotation(Entity.class).name()
         );
     }
 
-    private VaultClient(Class<T> entityType, String pathSegment, String baseUrl) {
+    private VaultClient(Class<T> entityType, String pathSegment) {
         this.restTemplate = new RestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
-        this.baseUrl = baseUrl;
-    }
-
-    private static String resolveBaseUrl() {
-        String envUrl = System.getenv("VAULT_BASE_URL");
-        if (envUrl != null && !envUrl.isBlank()) {
-            return envUrl;
-        }
-        String propUrl = System.getProperty("vault.base.url");
-        if (propUrl != null && !propUrl.isBlank()) {
-            return propUrl;
-        }
-        return "http://localhost:3333";
     }
 
     public T store(T entity) {
