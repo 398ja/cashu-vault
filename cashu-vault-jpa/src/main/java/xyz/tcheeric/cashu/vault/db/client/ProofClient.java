@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.Set;
@@ -8,6 +9,10 @@ public class ProofClient extends VaultClient<ProofEntity> {
 
     public ProofClient() {
         super(ProofEntity.class);
+    }
+
+    public ProofClient(VaultBaseProperties properties) {
+        super(ProofEntity.class, properties);
     }
 
     public ProofEntity getByMintIdAndSecret(String mintId, String secret) {

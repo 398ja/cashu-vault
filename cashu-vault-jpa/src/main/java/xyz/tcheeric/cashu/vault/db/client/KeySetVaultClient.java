@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
 import java.util.Set;
@@ -8,6 +9,10 @@ public class KeySetVaultClient extends VaultClient<KeySetEntity> {
 
     public KeySetVaultClient() {
         super(KeySetEntity.class);
+    }
+
+    public KeySetVaultClient(VaultBaseProperties properties) {
+        super(KeySetEntity.class, properties);
     }
 
     public KeySetEntity getByKeySetId(String keySetId) {

@@ -4,6 +4,7 @@ import xyz.tcheeric.cashu.common.Keys;
 import xyz.tcheeric.cashu.common.PublicKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.config.KeyConfiguration;
 import xyz.tcheeric.cashu.vault.api.config.KeysetConfiguration;
@@ -16,7 +17,7 @@ import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 public class DBKeyVault extends DBVault<KeyConfiguration, KeyEntity> {
 
     public DBKeyVault(KeyConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultKeyClient());
+        super(configuration, new CashuVaultApplication().vaultKeyClient(new VaultBaseProperties()));
     }
 
     public static Keys load(KeyConfiguration keyConfiguration, boolean archive) throws CashuErrorException {

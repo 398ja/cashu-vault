@@ -8,6 +8,7 @@ import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.config.KeyConfiguration;
 import xyz.tcheeric.cashu.vault.api.config.KeysetConfiguration;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
@@ -19,7 +20,7 @@ import java.util.Set;
 public class DBKeySetVault extends DBVault<KeysetConfiguration, KeySetEntity> {
 
     public DBKeySetVault(KeysetConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultKeySetClient());
+        super(configuration, new CashuVaultApplication().vaultKeySetClient(new VaultBaseProperties()));
     }
 
     @Override

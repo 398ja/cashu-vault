@@ -1,16 +1,12 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
 import jakarta.persistence.Entity;
-import jakarta.transaction.Transactional;
 import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
 import java.util.List;
@@ -19,24 +15,38 @@ import java.util.List;
 public class VaultClient<T extends BaseEntity> {
     protected final RestTemplate restTemplate;
 
-    //@Value("${vault.baseUrl:http://localhost:8080}")
-    private String baseUrl = "http://localhost:3333";
+    private final String baseUrl;
 
     private final Class<T> entityType;
 
     private final String pathSegment;
 
-    public VaultClient(Class<T> entityType) {
+    public VaultClient(Class<T> entityType, VaultBaseProperties properties) {
         this(
                 entityType,
-                entityType.getAnnotation(Entity.class).name()
+                entityType.getAnnotation(Entity.class).name(),
+                properties
         );
     }
 
-    private VaultClient(Class<T> entityType, String pathSegment) {
+    public VaultClient(Class<T> entityType) {
+        this(entityType, defaultProperties());
+    }
+
+    private VaultClient(Class<T> entityType, String pathSegment, VaultBaseProperties properties) {
         this.restTemplate = new RestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
+        this.baseUrl = properties.getUrl();
+    }
+
+    private static VaultBaseProperties defaultProperties() {
+        VaultBaseProperties properties = new VaultBaseProperties();
+        String env = System.getenv("VAULT_BASE_URL");
+        if (env != null && !env.isBlank()) {
+            properties.setUrl(env);
+        }
+        return properties;
     }
 
     public T store(T entity) {

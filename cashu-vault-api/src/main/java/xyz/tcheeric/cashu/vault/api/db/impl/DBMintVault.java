@@ -10,6 +10,7 @@ import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.config.KeysetConfiguration;
 import xyz.tcheeric.cashu.vault.api.config.MintConfiguration;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -25,7 +26,7 @@ import java.util.UUID;
 public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
 
     public DBMintVault(MintConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultMintClient());
+        super(configuration, new CashuVaultApplication().vaultMintClient(new VaultBaseProperties()));
     }
 
     @Override

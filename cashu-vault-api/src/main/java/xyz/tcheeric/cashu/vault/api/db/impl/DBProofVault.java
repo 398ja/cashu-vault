@@ -6,6 +6,7 @@ import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.config.ProofConfiguration;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -19,7 +20,7 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
     public DBProofVault(ProofConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultProofClient());
+        super(configuration, new CashuVaultApplication().vaultProofClient(new VaultBaseProperties()));
     }
 
     @Override
