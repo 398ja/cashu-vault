@@ -5,11 +5,9 @@ import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
@@ -30,20 +28,25 @@ public class VaultClient<T extends BaseEntity> {
     private final String pathSegment;
 
     public VaultClient(Class<T> entityType) {
+        this(entityType, resolveBaseUrl());
+    }
+
+    public VaultClient(Class<T> entityType, String baseUrl) {
         this(
                 entityType,
-                entityType.getAnnotation(Entity.class).name()
+                entityType.getAnnotation(Entity.class).name(),
+                baseUrl
         );
     }
 
-    private VaultClient(Class<T> entityType, String pathSegment) {
+    private VaultClient(Class<T> entityType, String pathSegment, String baseUrl) {
         this.restTemplate = new RestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
-        this.baseUrl = resolveBaseUrl();
+        this.baseUrl = baseUrl;
     }
 
-    private String resolveBaseUrl() {
+    private static String resolveBaseUrl() {
         String envUrl = System.getenv("VAULT_BASE_URL");
         if (envUrl != null && !envUrl.isBlank()) {
             return envUrl;
