@@ -115,15 +115,14 @@ CREATE TABLE t_proof_a
     CONSTRAINT pk_t_proof_a PRIMARY KEY (rev, id)
 );
 
-ALTER TABLE t_keyset
-    ADD CONSTRAINT uc_t_keyset_key_set UNIQUE (key_set_id);
-
 ALTER TABLE t_proof
     ADD CONSTRAINT uc_t_proof_witness UNIQUE (witness);
 
 CREATE UNIQUE INDEX idx_key_private_key_unq ON t_key (private_key);
 
-CREATE UNIQUE INDEX idx_keyset_sat_mint_unq ON t_keyset (unit, mint_id);
+CREATE UNIQUE INDEX idx_keyset_key_set_mint_unq ON t_keyset (key_set_id, mint_id);
+
+CREATE UNIQUE INDEX idx_keyset_unit_mint_unq ON t_keyset (unit, mint_id);
 
 ALTER TABLE t_keyset_a
     ADD CONSTRAINT FK_T_KEYSET_A_ON_REV FOREIGN KEY (rev) REFERENCES revinfo (rev);

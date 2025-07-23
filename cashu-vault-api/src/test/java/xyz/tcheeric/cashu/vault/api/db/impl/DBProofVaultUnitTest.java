@@ -2,8 +2,6 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 
 import org.junit.jupiter.api.Test;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
-import xyz.tcheeric.cashu.vault.api.config.MintConfiguration;
-import xyz.tcheeric.cashu.vault.api.config.ProofConfiguration;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
@@ -14,8 +12,8 @@ class DBProofVaultUnitTest {
 
     private static class TestProofVault extends DBProofVault {
         private final ProofEntity entity;
-        TestProofVault(ProofConfiguration cfg, ProofEntity entity) {
-            super(cfg);
+        TestProofVault(ProofEntity entity) {
+            super(entity);
             this.entity = entity;
         }
         @Override
@@ -29,8 +27,7 @@ class DBProofVaultUnitTest {
         proof.setUnblindedSignature("sig");
         proof.setMint(new MintEntity());
 
-        ProofConfiguration cfg = new ProofConfiguration(new MintConfiguration("id"), "sec");
-        TestProofVault vault = new TestProofVault(cfg, proof);
+        TestProofVault vault = new TestProofVault(proof);
 
         String signature = vault.retrieveSignature("sec", false);
         assertThat(signature).isEqualTo("sig");
@@ -43,8 +40,7 @@ class DBProofVaultUnitTest {
         proof.setUnblindedSignature("sig");
         proof.setMint(new MintEntity());
 
-        ProofConfiguration cfg = new ProofConfiguration(new MintConfiguration("id"), "sec");
-        TestProofVault vault = new TestProofVault(cfg, proof);
+        TestProofVault vault = new TestProofVault(proof);
 
         assertThatThrownBy(() -> vault.retrieveSignature("wrong", false))
                 .isInstanceOf(CashuErrorException.class);
