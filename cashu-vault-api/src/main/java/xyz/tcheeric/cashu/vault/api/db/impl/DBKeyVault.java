@@ -25,8 +25,8 @@ public class DBKeyVault extends DBVault<KeyEntity> {
         }
 
         Keys keys = new Keys();
-        keySetEntity.getKeys().forEach(keyEntity -> {
-            keys.put(keyEntity.getAmount(), PublicKey.fromString(keyEntity.getPrivateKey()));
+        keySetEntity.getKeys().forEach(k -> {
+            keys.put(k.getAmount(), PublicKey.fromString(k.getPrivateKey()));
         });
 
         return keys;
