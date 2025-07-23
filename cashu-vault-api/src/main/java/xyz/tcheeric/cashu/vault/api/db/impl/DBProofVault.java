@@ -31,13 +31,18 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 
     @Override
-    public ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
+    protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofClient client = new ProofClient();
         ProofEntity proofEntity = client.retrieve(id);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
         }
         return proofEntity;
+    }
+
+    public static DBProofVault retrieveProof(@NonNull String id) throws CashuErrorException {
+        DBProofVault proofVault = new DBProofVault(null);
+        return new DBProofVault(proofVault.retrieveEntity(id));
     }
 
     public void storePending() {

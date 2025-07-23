@@ -55,6 +55,11 @@ public class DBMintVault extends DBVault<MintEntity> {
         return mintEntity;
     }
 
+    public static DBMintVault retrieveMint(@NonNull String id) throws CashuErrorException {
+        DBMintVault mintVault = new DBMintVault(null);
+        return new DBMintVault(mintVault.retrieveEntity(id));
+    }
+
     @Override
     public void archive() {
         VaultClient<MintEntity> client = getClient();

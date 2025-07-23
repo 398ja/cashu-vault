@@ -57,6 +57,11 @@ public class DBKeyVault extends DBVault<KeyEntity> {
         return keyEntity;
     }
 
+    public static DBKeyVault retrieveKey(@Nonnull String id) throws CashuErrorException {
+        DBKeyVault keyVault = new DBKeyVault(null);
+        return new DBKeyVault(keyVault.retrieveEntity(id));
+    }
+
     @Override
     public void archive() throws CashuErrorException {
         KeyVaultClient keyVaultClient = new KeyVaultClient();

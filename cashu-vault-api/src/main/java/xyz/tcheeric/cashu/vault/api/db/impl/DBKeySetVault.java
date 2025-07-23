@@ -68,6 +68,11 @@ public class DBKeySetVault extends DBVault<KeySetEntity> {
         return keySetEntity;
     }
 
+    public static DBKeySetVault retrieveKeySet(@NonNull String id) throws CashuErrorException {
+        DBKeySetVault keySetVault = new DBKeySetVault(null);
+        return new DBKeySetVault(keySetVault.retrieveEntity(id));
+    }
+
     public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive) throws CashuErrorException {
         Keys keys = new Keys();
         keySetEntity.getKeys().forEach(k -> keys.put(k.getAmount(), PublicKey.fromString(k.getPrivateKey())));
