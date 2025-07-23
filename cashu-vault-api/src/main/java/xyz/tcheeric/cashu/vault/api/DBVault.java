@@ -13,12 +13,6 @@ public abstract class DBVault<T extends BaseEntity> implements Vault<T> {
     private final T entity;
     private final VaultClient<T> client;
 
-    public String retrieve() throws CashuErrorException {
-        return retrieve(false);
-    }
-
-    public abstract String retrieve(boolean archived) throws CashuErrorException;
-
-    protected abstract T retrieveEntity() throws CashuErrorException;
+    protected abstract T retrieveEntity(String id) throws CashuErrorException;
 
 }

@@ -7,7 +7,7 @@ public interface Vault<T extends BaseEntity> {
 
     void store() throws CashuErrorException;
 
-    String retrieve() throws CashuErrorException;
+    //String retrieve() throws CashuErrorException;
 
     void archive() throws CashuErrorException;
 

@@ -31,11 +31,9 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 
     @Override
-    public ProofEntity retrieveEntity() throws CashuErrorException {
-        ProofEntity entity = getEntity();
+    public ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofClient client = new ProofClient();
-
-        ProofEntity proofEntity = client.getByMintIdAndSecret(entity.getMint().getId().toString(), entity.getSecret());
+        ProofEntity proofEntity = client.retrieve(id);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
         }
@@ -57,15 +55,11 @@ public class DBProofVault extends DBVault<ProofEntity> {
         return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 
-    @Override
-    public String retrieve(boolean archived) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
-        return proofEntity.isArchived() != archived ? null : proofEntity.getId().toString();
-    }
 
-
+/*
     public String retrieveSignature(@NonNull String secret, boolean archived) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
+        VaultClient<ProofEntity> client = getClient();
+        client.re
         if (!secret.equals(proofEntity.getSecret())) {
             throw new CashuErrorException("Secret does not match for the proof");
         }
@@ -81,7 +75,9 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
         return proofEntity.getUnblindedSignature();
     }
+*/
 
+/*
     public String retrieveWitness(@NonNull String secret) throws CashuErrorException {
         ProofEntity proofEntity = retrieveEntity();
         if (!secret.equals(proofEntity.getSecret())) {
@@ -90,6 +86,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
         return proofEntity.getWitness();
     }
+*/
 
     @Override
     public void archive() throws CashuErrorException {
@@ -97,7 +94,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
         try {
             ProofClient proofClient = new ProofClient();
-            ProofEntity proofEntity = retrieveEntity();
+            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setArchived(true);
             proofClient.store(proofEntity);
         } finally {
@@ -106,18 +103,16 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 
     @Override
-    public void delete() throws CashuErrorException {
+    public void delete() {
         ProofClient client = new ProofClient();
-
-        ProofEntity proofEntity = retrieveEntity();
-        client.delete(proofEntity.getId().toString());
+        client.delete(getEntity().getId().toString());
     }
 
     public void invalidate() throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
         try {
             ProofClient proofClient = new ProofClient();
-            ProofEntity proofEntity = retrieveEntity();
+            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setState(ProofEntity.STATE_SPENT);
             proofClient.store(proofEntity);
         } finally {

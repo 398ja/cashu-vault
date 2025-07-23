@@ -57,18 +57,11 @@ public class DBKeySetVault extends DBVault<KeySetEntity> {
         return keyVaultClient.getKeysByUnit(keySetEntity.getUnit());
     }
 
-    @Override
-    public String retrieve(boolean archived) throws CashuErrorException {
-        KeySetEntity keySetEntity = retrieveEntity();
-        return keySetEntity.isArchived() != archived ? null : keySetEntity.getId().toString();
-    }
 
     @Override
-    protected KeySetEntity retrieveEntity() throws CashuErrorException {
-        KeySetEntity entity = getEntity();
+    protected KeySetEntity retrieveEntity(String id) throws CashuErrorException {
         VaultClient<KeySetEntity> client = getClient();
-
-        KeySetEntity keySetEntity = client.retrieve(entity.getId().toString());
+        KeySetEntity keySetEntity = client.retrieve(id);
         if (keySetEntity == null) {
             throw new CashuErrorException("Keyset not found");
         }
