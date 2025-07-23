@@ -21,7 +21,8 @@ import java.util.Set;
 
 @Entity(name = "keyset")
 @Table(name = "t_keyset", indexes = {
-        @Index(name = "idx_keyset_sat_mint_unq", columnList = "unit, mint_id", unique = true)
+        @Index(name = "idx_keyset_unit_mint_unq", columnList = "unit, mint_id", unique = true),
+        @Index(name = "idx_keyset_key_set_mint_unq", columnList = "key_set_id, mint_id", unique = true)
 })
 @Data
 @Audited
@@ -35,7 +36,7 @@ public class KeySetEntity extends BaseEntity {
     private Set<KeyEntity> keys = new LinkedHashSet<>();
 
     @JsonProperty
-    @Column(name = "key_set_id", nullable = false, unique = true, length = 16)
+    @Column(name = "key_set_id", nullable = false, length = 16)
     private String keySetId;
 
     @JsonProperty
