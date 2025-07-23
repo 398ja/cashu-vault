@@ -4,7 +4,6 @@ import lombok.NonNull;
 import lombok.extern.java.Log;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.api.config.ProofConfiguration;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -14,34 +13,29 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Log
-public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
+public class DBProofVault extends DBVault<ProofEntity> {
 
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
-    public DBProofVault(ProofConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultProofClient());
+    public DBProofVault(ProofEntity entity) {
+        super(entity, new CashuVaultApplication().vaultProofClient());
     }
 
     @Override
     public void store() {
-        ProofConfiguration proofConfiguration = getConfiguration();
+        ProofEntity proofEntity = getEntity();
         VaultClient<ProofEntity> client = getClient();
 
-        ProofEntity proofEntity = new ProofEntity();
-        proofEntity.setMint(getMint(proofConfiguration));
-        proofEntity.setWitness(proofConfiguration.getWitness());
-        proofEntity.setSecret(proofConfiguration.getHashToCurveSecret());
-        proofEntity.setUnblindedSignature(proofConfiguration.getUnblindedSignature());
-
+        proofEntity.setMint(getMint(proofEntity));
         client.store(proofEntity);
     }
 
     @Override
     public ProofEntity retrieveEntity() throws CashuErrorException {
-        ProofConfiguration proofConfiguration = getConfiguration();
+        ProofEntity entity = getEntity();
         ProofClient client = new ProofClient();
 
-        ProofEntity proofEntity = client.getByMintIdAndSecret(proofConfiguration.getMint().getId(), proofConfiguration.getHashToCurveSecret());
+        ProofEntity proofEntity = client.getByMintIdAndSecret(entity.getMint().getId().toString(), entity.getSecret());
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
         }
@@ -49,22 +43,18 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
     }
 
     public void storePending() {
-        ProofConfiguration proofConfiguration = getConfiguration();
+        ProofEntity proofEntity = getEntity();
         VaultClient<ProofEntity> client = getClient();
 
-        ProofEntity proofEntity = new ProofEntity();
-        proofEntity.setMint(getMint(proofConfiguration));
-        proofEntity.setWitness(proofConfiguration.getWitness());
-        proofEntity.setSecret(proofConfiguration.getHashToCurveSecret());
-        proofEntity.setUnblindedSignature(proofConfiguration.getUnblindedSignature());
+        proofEntity.setMint(getMint(proofEntity));
         proofEntity.setState(ProofEntity.STATE_PENDING);
 
         client.store(proofEntity);
     }
 
-    private MintEntity getMint(ProofConfiguration proofConfiguration) {
+    private MintEntity getMint(ProofEntity proofEntity) {
         VaultClient<MintEntity> mintVaultClient = new VaultClient<>(MintEntity.class);
-        return mintVaultClient.retrieve(proofConfiguration.getMint().getId());
+        return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 
     @Override

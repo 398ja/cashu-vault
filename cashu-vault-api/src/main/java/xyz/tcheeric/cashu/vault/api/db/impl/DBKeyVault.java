@@ -5,24 +5,21 @@ import xyz.tcheeric.cashu.common.PublicKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.api.config.KeyConfiguration;
-import xyz.tcheeric.cashu.vault.api.config.KeysetConfiguration;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
-public class DBKeyVault extends DBVault<KeyConfiguration, KeyEntity> {
+public class DBKeyVault extends DBVault<KeyEntity> {
 
-    public DBKeyVault(KeyConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultKeyClient());
+    public DBKeyVault(KeyEntity entity) {
+        super(entity, new CashuVaultApplication().vaultKeyClient());
     }
 
-    public static Keys load(KeyConfiguration keyConfiguration, boolean archive) throws CashuErrorException {
+    public static Keys load(KeyEntity keyEntity, boolean archive) throws CashuErrorException {
         VaultClient<KeySetEntity> keySetVaultClient = new VaultClient<>(KeySetEntity.class);
-        KeysetConfiguration keysetConfiguration = keyConfiguration.getKeyset();
-        KeySetEntity keySetEntity = keySetVaultClient.retrieve(keysetConfiguration.getId());
+        KeySetEntity keySetEntity = keySetVaultClient.retrieve(keyEntity.getKeySet().getId().toString());
         if (keySetEntity == null) {
             throw new CashuErrorException("Keyset not found");
         }
@@ -37,20 +34,15 @@ public class DBKeyVault extends DBVault<KeyConfiguration, KeyEntity> {
 
     @Override
     public void store() {
-        KeyConfiguration keyConfiguration = getConfiguration();
+        KeyEntity keyEntity = getEntity();
         VaultClient<KeyEntity> client = getClient();
-
-        KeyEntity keyEntity = new KeyEntity();
-        keyEntity.setPrivateKey(keyConfiguration.getPrivateKey());
-        keyEntity.setKeySet(getKeySet(keyConfiguration));
-        keyEntity.setAmount(keyConfiguration.getAmount());
-
+        keyEntity.setKeySet(getKeySet(keyEntity));
         client.store(keyEntity);
     }
 
-    private KeySetEntity getKeySet(KeyConfiguration keyConfiguration) {
+    private KeySetEntity getKeySet(KeyEntity keyEntity) {
         KeySetVaultClient keySetVaultClient = new KeySetVaultClient();
-        return keySetVaultClient.getByKeySetId(keyConfiguration.getKeyset().getId());
+        return keySetVaultClient.getByKeySetId(keyEntity.getKeySet().getKeySetId());
     }
 
     @Override
@@ -61,10 +53,10 @@ public class DBKeyVault extends DBVault<KeyConfiguration, KeyEntity> {
 
     @Override
     protected KeyEntity retrieveEntity() throws CashuErrorException {
-        KeyConfiguration keyConfiguration = getConfiguration();
+        KeyEntity entity = getEntity();
         KeyVaultClient keyVaultClient = new KeyVaultClient();
 
-        KeyEntity keyEntity = keyVaultClient.getByPrivateKey(keyConfiguration.getPrivateKey());
+        KeyEntity keyEntity = keyVaultClient.getByPrivateKey(entity.getPrivateKey());
         if (keyEntity == null) {
             throw new CashuErrorException("Key not found");
         }
