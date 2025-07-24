@@ -66,7 +66,7 @@ public class ProofVaultController {
             log.debug("Retrieved ProofEntity {}", proof.get().getId());
             return ResponseEntity.ok(proof.get());
         }
-        throw new CashuErrorException("No ProofEntities found for the given Mint ID");
+        throw new CashuErrorException("ProofEntity not found for the specified secret");
     }
 
     @PostMapping("/archive/{id}")
