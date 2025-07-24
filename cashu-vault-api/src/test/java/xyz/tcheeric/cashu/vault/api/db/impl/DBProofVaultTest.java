@@ -24,7 +24,8 @@ class DBProofVaultTest {
 
         try (MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class,
                 (m, ctx) -> when(m.retrieve(anyString())).thenReturn(mint));
-             MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class)) {
+             MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
+                     (m, ctx) -> when(m.retrieve(anyString())).thenReturn(entity))) {
             DBProofVault vault = new DBProofVault(entity);
             VaultClient<ProofEntity> client = vaultMock.constructed().get(0);
 
@@ -32,7 +33,7 @@ class DBProofVaultTest {
             verify(client).store(entity);
 
             vault.archive();
-            assertThat(proofMock.constructed()).hasSize(2);
+            assertThat(proofMock.constructed()).hasSize(3);
             verify(proofMock.constructed().get(1)).retrieve(entity.getId().toString());
             verify(proofMock.constructed().get(0)).store(argThat(ProofEntity::isArchived));
 
