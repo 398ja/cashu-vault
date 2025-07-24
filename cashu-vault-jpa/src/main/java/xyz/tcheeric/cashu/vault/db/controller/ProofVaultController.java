@@ -18,7 +18,6 @@ import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -50,11 +49,22 @@ public class ProofVaultController {
     }
 
     @GetMapping("/mint/{mintId}")
-    public ResponseEntity<Set<ProofEntity>> retrieveByMint(@PathVariable("mintId") String mintId) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<Set<ProofEntity>> retrieveByMint(@PathVariable("mintId") String mintId) throws CashuErrorException {
         log.info("Retrieving ProofEntities for mint {}", mintId);
         Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_Id(UUID.fromString(mintId));
         if (proofs.isPresent() && !proofs.get().isEmpty()) {
             return ResponseEntity.ok(proofs.get());
+        }
+        throw new CashuErrorException("No ProofEntities found for the given Mint ID");
+    }
+
+    @GetMapping("/secret/{secret}")
+    public ResponseEntity<ProofEntity> retrieveBySecret(@PathVariable("secret") String secret) throws CashuErrorException {
+        log.info("Retrieving ProofEntity with secret {}", secret);
+        Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
+        if (proof.isPresent()) {
+            log.debug("Retrieved ProofEntity {}", proof.get().getId());
+            return ResponseEntity.ok(proof.get());
         }
         throw new CashuErrorException("No ProofEntities found for the given Mint ID");
     }

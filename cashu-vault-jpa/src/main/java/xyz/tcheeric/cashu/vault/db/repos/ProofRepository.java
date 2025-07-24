@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
+    Optional<ProofEntity> findBySecret(String secret);
+
     Optional<Set<ProofEntity>> findByMint_Id(UUID id);
 
 

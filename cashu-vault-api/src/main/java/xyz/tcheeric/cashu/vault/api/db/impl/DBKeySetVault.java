@@ -7,6 +7,7 @@ import xyz.tcheeric.cashu.common.PublicKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
@@ -71,6 +72,19 @@ public class DBKeySetVault extends DBVault<KeySetEntity> {
     public static DBKeySetVault retrieveKeySet(@NonNull String id) throws CashuErrorException {
         DBKeySetVault keySetVault = new DBKeySetVault(null);
         return new DBKeySetVault(keySetVault.retrieveEntity(id));
+    }
+
+    public static DBKeySetVault retrieveKeySet(@NonNull String mintId, @NonNull String unit) throws CashuErrorException {
+        //VaultClient<KeySetEntity> client = new VaultClient<>(KeySetEntity.class);
+        KeySetVaultClient client = new KeySetVaultClient();
+        KeySetEntity keySetEntity = client.getByMintId(mintId).stream()
+                .filter(k -> k.getUnit().equals(unit))
+                .findFirst()
+                .orElse(null);
+        if (keySetEntity == null) {
+            throw new CashuErrorException("Keyset not found for mintId: " + mintId + " and unit: " + unit);
+        }
+        return new DBKeySetVault(keySetEntity);
     }
 
     public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive) throws CashuErrorException {

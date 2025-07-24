@@ -40,9 +40,38 @@ public class DBProofVault extends DBVault<ProofEntity> {
         return proofEntity;
     }
 
+/*
     public static DBProofVault retrieveProof(@NonNull String id) throws CashuErrorException {
         DBProofVault proofVault = new DBProofVault(null);
         return new DBProofVault(proofVault.retrieveEntity(id));
+    }
+*/
+
+    public static DBProofVault retrieveProof(@NonNull String secret) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getBySecret(secret);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for secret: " + secret);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
+    public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
+    public static DBProofVault retrieveProof(String mintId, Integer amount) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
+        }
+        return new DBProofVault(proofEntity);
     }
 
     public void storePending() {

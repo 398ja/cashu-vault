@@ -38,4 +38,9 @@ public class ProofClient extends VaultClient<ProofEntity> {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature));
     }
+
+    public ProofEntity getBySecret(String secret) {
+        log.info("GET {}/vault/proof/secret/{}", getBaseUrl(), secret);
+        return restTemplate.getForObject(getBaseUrl() + "/vault/proof/secret/" + secret, ProofEntity.class);
+    }
 }
