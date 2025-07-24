@@ -1,6 +1,5 @@
 package xyz.tcheeric.cashu.vault.db.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -23,10 +23,10 @@ import java.util.UUID;
 @RequestMapping("/vault/mint")
 @RestController
 @Slf4j
+@RequiredArgsConstructor
 public class MintVaultController {
 
-    @Autowired
-    private MintRepository mintRepository;
+    private final MintRepository mintRepository;
 
     @PostMapping
     public ResponseEntity<MintEntity> store(@RequestBody MintEntity mint) throws CashuErrorException {

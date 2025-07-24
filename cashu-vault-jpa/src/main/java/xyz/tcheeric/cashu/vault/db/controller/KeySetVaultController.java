@@ -1,6 +1,5 @@
 package xyz.tcheeric.cashu.vault.db.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
@@ -17,15 +17,14 @@ import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/vault/keyset")
 @Slf4j
+@RequiredArgsConstructor
 public class KeySetVaultController {
 
-    @Autowired
-    private KeySetRepository keySetRepository;
+    private final KeySetRepository keySetRepository;
 
     @PostMapping
     public ResponseEntity<KeySetEntity> store(@RequestBody KeySetEntity keySet) throws CashuErrorException {
@@ -48,7 +47,7 @@ public class KeySetVaultController {
     }
 
     @GetMapping("/id/{id}")
-    public ResponseEntity<KeySetEntity> retrieveByKeySetId(@PathVariable("id") String id) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<KeySetEntity> retrieveByKeySetId(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Retrieving KeySetEntity by keySetId {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findByKeySetId(id);
         if (keySet.isPresent()) {
@@ -59,7 +58,7 @@ public class KeySetVaultController {
     }
 
     @GetMapping("/unit/{unit}")
-    public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException, InterruptedException {
+    public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException {
         log.info("Retrieving KeySetEntities for unit {}", unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
         if (keySets.isEmpty()) {
@@ -69,7 +68,7 @@ public class KeySetVaultController {
     }
 
     @GetMapping("/mint/{mintId}/unit/{unit}/keyset/{keySetId}")
-    public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException, InterruptedException {
+    public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException {
         log.info("Retrieving KeySetEntity for mint {} unit {}", mintId, unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_IdAndUnit(UUID.fromString(mintId), unit);
         if (keySets.isEmpty()) {
@@ -83,7 +82,7 @@ public class KeySetVaultController {
     }
 
     @GetMapping("/mint/{mintId}")
-    public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException {
         log.info("Retrieving KeySetEntities for mint {}", mintId);
         var keySets = keySetRepository.findByMint_Id(UUID.fromString(mintId));
         if (keySets.isEmpty()) {

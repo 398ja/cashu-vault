@@ -18,8 +18,7 @@ import xyz.tcheeric.cashu.vault.db.repos.KeyRepository;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+
 
 @RestController
 @RequestMapping("/vault/key")
@@ -27,8 +26,7 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class KeyVaultController {
 
-    @Autowired
-    private KeyRepository keyRepository;
+    private final KeyRepository keyRepository;
 
     @PostMapping
     public ResponseEntity<KeyEntity> store(@RequestBody KeyEntity key) throws CashuErrorException {
@@ -51,7 +49,7 @@ public class KeyVaultController {
     }
 
     @GetMapping("/unit/{unit}")
-    public ResponseEntity<Set<KeyEntity>> getKeysByUnit(@PathVariable("unit") String unit) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<Set<KeyEntity>> getKeysByUnit(@PathVariable("unit") String unit) throws CashuErrorException {
         log.info("Retrieving keys for unit {}", unit);
         Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_UnitIgnoreCase(unit);
         if (keys.get().isEmpty()) {
@@ -61,7 +59,7 @@ public class KeyVaultController {
     }
 
     @GetMapping("/privatekey/{privateKey}")
-    public ResponseEntity<KeyEntity> getKeyByPrivateKey(@PathVariable("privateKey") String privateKey) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<KeyEntity> getKeyByPrivateKey(@PathVariable("privateKey") String privateKey) throws CashuErrorException {
         log.info("Retrieving KeyEntity by private key");
         Optional<KeyEntity> keyOpt = keyRepository.findByPrivateKey(privateKey);
         if (keyOpt.isPresent()) {
@@ -73,7 +71,7 @@ public class KeyVaultController {
     }
 
     @GetMapping("/keyset/{id}")
-    public ResponseEntity<Set<KeyEntity>> getKeysByKeySetId(@PathVariable("id") String id) throws CashuErrorException, ExecutionException, InterruptedException {
+    public ResponseEntity<Set<KeyEntity>> getKeysByKeySetId(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Retrieving keys for keySet {}", id);
         Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_Id(UUID.fromString(id));
         if (keys.isPresent()) {

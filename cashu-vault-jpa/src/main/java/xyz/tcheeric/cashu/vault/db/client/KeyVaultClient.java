@@ -23,7 +23,7 @@ public class KeyVaultClient extends VaultClient<KeyEntity> {
     }
 
     public KeyEntity getByPrivateKey(String privateKey) {
-        log.info("GET {}/vault/key/private/{}", getBaseUrl(), privateKey);
-        return restTemplate.getForObject(getBaseUrl() + "/vault/key/private/" + privateKey, KeyEntity.class);
+        log.info("GET {}/vault/key/privatekey/{}", getBaseUrl(), privateKey);
+        return restTemplate.getForObject(getBaseUrl() + "/vault/key/privatekey/" + privateKey, KeyEntity.class);
     }
 }

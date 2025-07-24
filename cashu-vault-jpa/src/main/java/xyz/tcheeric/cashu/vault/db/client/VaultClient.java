@@ -1,12 +1,8 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
 import jakarta.persistence.Entity;
-import jakarta.transaction.Transactional;
 import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;

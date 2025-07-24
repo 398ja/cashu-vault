@@ -2,7 +2,6 @@ package xyz.tcheeric.cashu.vault.db.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +17,6 @@ import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/vault/proof")
@@ -26,8 +24,7 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class ProofVaultController {
 
-    @Autowired
-    private ProofRepository proofRepository;
+    private final ProofRepository proofRepository;
 
     @PostMapping
     public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof) throws CashuErrorException {
