@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.*;
 class DBKeyVaultTest {
 
     @Test
-    void storeArchiveDeleteUseVaultClient() {
+    void storeArchiveDeleteUseVaultClient() throws CashuErrorException {
         KeySetEntity keySet = new KeySetEntity();
         keySet.setKeySetId("ks");
         KeyEntity entity = new KeyEntity();

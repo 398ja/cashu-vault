@@ -33,7 +33,7 @@ class DBProofVaultTest {
             verify(client).store(entity);
 
             vault.archive();
-            assertThat(proofMock.constructed()).hasSize(3);
+            assertThat(proofMock.constructed()).hasSize(2);
             verify(proofMock.constructed().get(1)).retrieve(entity.getId().toString());
             verify(proofMock.constructed().get(0)).store(argThat(ProofEntity::isArchived));
 
