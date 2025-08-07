@@ -1,10 +1,10 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
-import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
 import java.util.Set;
 
@@ -26,7 +26,8 @@ public class KeySetVaultClient extends VaultClient<KeySetEntity> {
                 getBaseUrl() + "/vault/keyset/unit/" + unit,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<Set<KeySetEntity>>() {}
+                new ParameterizedTypeReference<Set<KeySetEntity>>() {
+                }
         );
         Set<KeySetEntity> keySetEntities = response.getBody();
         if (keySetEntities == null || keySetEntities.isEmpty()) {
@@ -41,7 +42,8 @@ public class KeySetVaultClient extends VaultClient<KeySetEntity> {
                 getBaseUrl() + "/vault/keyset/mint/" + mintId,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<Set<KeySetEntity>>() {}
+                new ParameterizedTypeReference<Set<KeySetEntity>>() {
+                }
         );
         Set<KeySetEntity> keySetEntities = response.getBody();
         if (keySetEntities == null || keySetEntities.isEmpty()) {
