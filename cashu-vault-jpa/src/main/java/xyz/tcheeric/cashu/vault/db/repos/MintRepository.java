@@ -5,5 +5,8 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 
 import java.util.UUID;
 
+/**
+ * Repository interface for {@link MintEntity} persistence operations.
+ */
 public interface MintRepository extends JpaRepository<MintEntity, UUID> {
 }

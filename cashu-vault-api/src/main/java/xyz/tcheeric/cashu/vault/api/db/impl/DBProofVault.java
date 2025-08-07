@@ -4,7 +4,6 @@ import lombok.NonNull;
 import lombok.extern.java.Log;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.api.config.ProofConfiguration;
 import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -14,68 +13,87 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Log
-public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
+public class DBProofVault extends DBVault<ProofEntity> {
 
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
-    public DBProofVault(ProofConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultProofClient());
+    public DBProofVault(ProofEntity entity) {
+        super(entity, new CashuVaultApplication().vaultProofClient());
     }
 
     @Override
     public void store() {
-        ProofConfiguration proofConfiguration = getConfiguration();
+        ProofEntity proofEntity = getEntity();
         VaultClient<ProofEntity> client = getClient();
 
-        ProofEntity proofEntity = new ProofEntity();
-        proofEntity.setMint(getMint(proofConfiguration));
-        proofEntity.setWitness(proofConfiguration.getWitness());
-        proofEntity.setSecret(proofConfiguration.getHashToCurveSecret());
-        proofEntity.setUnblindedSignature(proofConfiguration.getUnblindedSignature());
-
+        proofEntity.setMint(getMint(proofEntity));
         client.store(proofEntity);
     }
 
     @Override
-    public ProofEntity retrieveEntity() throws CashuErrorException {
-        ProofConfiguration proofConfiguration = getConfiguration();
+    protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofClient client = new ProofClient();
-
-        ProofEntity proofEntity = client.getByMintIdAndSecret(proofConfiguration.getMint().getId(), proofConfiguration.getHashToCurveSecret());
+        ProofEntity proofEntity = client.retrieve(id);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
         }
         return proofEntity;
     }
 
+/*
+    public static DBProofVault retrieveProof(@NonNull String id) throws CashuErrorException {
+        DBProofVault proofVault = new DBProofVault(null);
+        return new DBProofVault(proofVault.retrieveEntity(id));
+    }
+*/
+
+    public static DBProofVault retrieveProof(@NonNull String secret) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getBySecret(secret);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for secret: " + secret);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
+    public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
+    public static DBProofVault retrieveProof(String mintId, Integer amount) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
     public void storePending() {
-        ProofConfiguration proofConfiguration = getConfiguration();
+        ProofEntity proofEntity = getEntity();
         VaultClient<ProofEntity> client = getClient();
 
-        ProofEntity proofEntity = new ProofEntity();
-        proofEntity.setMint(getMint(proofConfiguration));
-        proofEntity.setWitness(proofConfiguration.getWitness());
-        proofEntity.setSecret(proofConfiguration.getHashToCurveSecret());
-        proofEntity.setUnblindedSignature(proofConfiguration.getUnblindedSignature());
+        proofEntity.setMint(getMint(proofEntity));
         proofEntity.setState(ProofEntity.STATE_PENDING);
 
         client.store(proofEntity);
     }
 
-    private MintEntity getMint(ProofConfiguration proofConfiguration) {
+    private MintEntity getMint(ProofEntity proofEntity) {
         VaultClient<MintEntity> mintVaultClient = new VaultClient<>(MintEntity.class);
-        return mintVaultClient.retrieve(proofConfiguration.getMint().getId());
-    }
-
-    @Override
-    public String retrieve(boolean archived) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
-        return proofEntity.isArchived() != archived ? null : proofEntity.getId().toString();
+        return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 
 
+/*
     public String retrieveSignature(@NonNull String secret, boolean archived) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
+        VaultClient<ProofEntity> client = getClient();
+        client.re
         if (!secret.equals(proofEntity.getSecret())) {
             throw new CashuErrorException("Secret does not match for the proof");
         }
@@ -91,7 +109,9 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
 
         return proofEntity.getUnblindedSignature();
     }
+*/
 
+/*
     public String retrieveWitness(@NonNull String secret) throws CashuErrorException {
         ProofEntity proofEntity = retrieveEntity();
         if (!secret.equals(proofEntity.getSecret())) {
@@ -100,6 +120,7 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
 
         return proofEntity.getWitness();
     }
+*/
 
     @Override
     public void archive() throws CashuErrorException {
@@ -107,7 +128,7 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
 
         try {
             ProofClient proofClient = new ProofClient();
-            ProofEntity proofEntity = retrieveEntity();
+            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setArchived(true);
             proofClient.store(proofEntity);
         } finally {
@@ -116,18 +137,16 @@ public class DBProofVault extends DBVault<ProofConfiguration, ProofEntity> {
     }
 
     @Override
-    public void delete() throws CashuErrorException {
+    public void delete() {
         ProofClient client = new ProofClient();
-
-        ProofEntity proofEntity = retrieveEntity();
-        client.delete(proofEntity.getId().toString());
+        client.delete(getEntity().getId().toString());
     }
 
     public void invalidate() throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
         try {
             ProofClient proofClient = new ProofClient();
-            ProofEntity proofEntity = retrieveEntity();
+            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setState(ProofEntity.STATE_SPENT);
             proofClient.store(proofEntity);
         } finally {

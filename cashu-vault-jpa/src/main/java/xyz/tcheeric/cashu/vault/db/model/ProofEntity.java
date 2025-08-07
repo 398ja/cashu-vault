@@ -14,6 +14,9 @@ import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
 
+/**
+ * Entity representing a spendable proof issued by a mint.
+ */
 @Entity(name = "proof")
 @Table(name = "t_proof", indexes = {
         @Index(name = "idx_proof_mint_id", columnList = "mint_id")
@@ -25,31 +28,40 @@ import org.hibernate.envers.Audited;
 @ToString(callSuper = true)
 public class ProofEntity extends BaseEntity {
 
+    /** Pending state constant. */
     public static final String STATE_PENDING = "PENDING";
+    /** Unspent state constant. */
     public static final String STATE_UNSPENT = "UNSPENT";
+    /** Spent state constant. */
     public static final String STATE_SPENT = "SPENT";
 
+    /** Mint that issued this proof. */
     @ManyToOne(cascade = CascadeType.ALL, optional = false)
     @JoinColumn(name = "mint_id", nullable = false)
     @JsonProperty
     private MintEntity mint;
 
+    /** Amount represented by the proof. */
     @JsonProperty
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
+    /** Secret value of the proof. */
     @JsonProperty
     @Column(name = "secret", nullable = false)
     private String secret;
 
+    /** Unblinded signature associated with the proof. */
     @JsonProperty
     @Column(name = "C", nullable = false)
     private String unblindedSignature;
 
+    /** Optional witness identifier. */
     @JsonProperty
     @Column(name = "witness", unique = true)
     private String witness;
 
+    /** Current state of the proof. */
     @JsonProperty
     @Column(name = "state", nullable = false)
     private String state = STATE_UNSPENT;

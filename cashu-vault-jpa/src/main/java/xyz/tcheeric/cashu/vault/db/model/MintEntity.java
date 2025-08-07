@@ -15,6 +15,9 @@ import org.hibernate.envers.Audited;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Entity representing a mint which issues proofs and key sets.
+ */
 @Entity(name = "mint")
 @Table(name = "t_mint")
 @Data
@@ -24,10 +27,12 @@ import java.util.Set;
 @ToString(callSuper = true, exclude = {"proofs", "keySets"})
 public class MintEntity extends BaseEntity {
 
+    /** Proofs issued by this mint. */
     @JsonIgnore
     @OneToMany(mappedBy = "mint", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProofEntity> proofs = new LinkedHashSet<>();
 
+    /** Key sets associated with this mint. */
     @JsonIgnore
     @OneToMany(mappedBy = "mint", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<KeySetEntity> keySets = new LinkedHashSet<>();

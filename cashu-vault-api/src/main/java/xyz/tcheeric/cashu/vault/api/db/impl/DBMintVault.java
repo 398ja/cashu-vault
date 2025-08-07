@@ -6,10 +6,8 @@ import xyz.tcheeric.cashu.common.Mint;
 import xyz.tcheeric.cashu.common.PublicKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.crypto.util.KeySetDerivation;
-import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.api.config.KeysetConfiguration;
-import xyz.tcheeric.cashu.vault.api.config.MintConfiguration;
+import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -22,62 +20,56 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
+public class DBMintVault extends DBVault<MintEntity> {
 
-    public DBMintVault(MintConfiguration configuration) {
-        super(configuration, new CashuVaultApplication().vaultMintClient());
+    public DBMintVault(MintEntity entity) {
+        super(entity, new CashuVaultApplication().vaultMintClient());
     }
 
     @Override
     public void store() {
-        MintConfiguration mintConfiguration = getConfiguration();
+        MintEntity mintEntity = getEntity();
         VaultClient<MintEntity> client = getClient();
-
-        MintEntity mintEntity = new MintEntity();
-        mintEntity.setId(UUID.fromString(mintConfiguration.getId()));
         client.store(mintEntity);
     }
 
-    private Set<ProofEntity> getProofs(MintConfiguration mintConfiguration) {
+    private Set<ProofEntity> getProofs(MintEntity mintEntity) {
         VaultClient<MintEntity> mintVaultClient = new VaultClient<>(MintEntity.class);
-        return mintVaultClient.retrieve(mintConfiguration.getId()).getProofs();
+        return mintVaultClient.retrieve(mintEntity.getId().toString()).getProofs();
     }
 
-    private Set<KeySetEntity> getKeySets(MintConfiguration mintConfiguration) {
+    private Set<KeySetEntity> getKeySets(MintEntity mintEntity) {
         VaultClient<MintEntity> mintVaultClient = new VaultClient<>(MintEntity.class);
-        return mintVaultClient.retrieve(mintConfiguration.getId()).getKeySets();
+        return mintVaultClient.retrieve(mintEntity.getId().toString()).getKeySets();
     }
+
 
     @Override
-    public String retrieve(boolean archived) throws CashuErrorException {
-        MintEntity mintEntity = retrieveEntity();
-        return mintEntity.isArchived() != archived ? null : mintEntity.getId().toString();
-    }
-
-    @Override
-    protected MintEntity retrieveEntity() throws CashuErrorException {
-        MintConfiguration mintConfiguration = getConfiguration();
+    protected MintEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         VaultClient<MintEntity> client = getClient();
 
-        MintEntity mintEntity = client.retrieve(mintConfiguration.getId());
+        MintEntity mintEntity = client.retrieve(id);
         if (mintEntity == null) {
             throw new CashuErrorException("Mint not found");
         }
         return mintEntity;
     }
 
-    @Override
-    public void archive() throws CashuErrorException {
-        VaultClient<MintEntity> client = getClient();
-        MintEntity mintEntity = retrieveEntity();
-        client.archive(mintEntity.getId().toString());
+    public static DBMintVault retrieveMint(@NonNull String id) throws CashuErrorException {
+        DBMintVault mintVault = new DBMintVault(null);
+        return new DBMintVault(mintVault.retrieveEntity(id));
     }
 
     @Override
-    public void delete() throws CashuErrorException {
+    public void archive() {
         VaultClient<MintEntity> client = getClient();
-        MintEntity mintEntity = retrieveEntity();
-        client.delete(mintEntity.getId().toString());
+        client.archive(this.getEntity().getId().toString());
+    }
+
+    @Override
+    public void delete() {
+        VaultClient<MintEntity> client = getClient();
+        client.delete(this.getEntity().getId().toString());
     }
 
     public static List<Mint> load(boolean archive) {
@@ -85,9 +77,8 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
         List<MintEntity> mintEntities = vaultClient.retrieveAll();
         return mintEntities.stream()
                 .map(mintEntity -> {
-                    MintConfiguration mintConfiguration = new MintConfiguration(mintEntity.getId().toString());
                     try {
-                        return load(mintConfiguration, archive, false);
+                        return load(mintEntity, archive, false);
                     } catch (CashuErrorException e) {
                         throw new RuntimeException(e);
                     }
@@ -98,12 +89,11 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
     public static Mint load(UUID mintId, boolean archive) throws CashuErrorException {
         VaultClient<MintEntity> vaultClient = new VaultClient<>(MintEntity.class);
         MintEntity mintEntity = vaultClient.retrieve(mintId.toString());
-        if(mintEntity.isArchived() != archive) {
+        if (mintEntity.isArchived() != archive) {
             throw new CashuErrorException("Mint with ID " + mintId + " not found or not archived");
         }
 
-        MintConfiguration mintConfiguration = new MintConfiguration(mintEntity.getId().toString());
-        return load(mintConfiguration, archive, false);
+        return load(mintEntity, archive, false);
     }
 
     public static Mint load(String keySetId, boolean archive) throws CashuErrorException {
@@ -111,9 +101,8 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
         List<MintEntity> mintEntities = vaultClient.retrieveAll();
         return mintEntities.stream()
                 .map(mintEntity -> {
-                    MintConfiguration mintConfiguration = new MintConfiguration(mintEntity.getId().toString());
                     try {
-                        return load(mintConfiguration, archive, false);
+                        return load(mintEntity, archive, false);
                     } catch (CashuErrorException e) {
                         throw new RuntimeException(e);
                     }
@@ -126,24 +115,23 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
 
     }
 
-    public static Mint load(@NonNull MintConfiguration mintConfiguration, boolean archive, boolean lazy) throws CashuErrorException {
-        Mint mint = new Mint(mintConfiguration.getId());
+    public static Mint load(@NonNull MintEntity mintEntity, boolean archive, boolean lazy) throws CashuErrorException {
+        Mint mint = new Mint(mintEntity.getId().toString());
 
         if (lazy) {
             return mint;
         }
 
         VaultClient<MintEntity> vaultClient = new VaultClient<>(MintEntity.class);
-        MintEntity mintEntity = vaultClient.retrieve(mintConfiguration.getId());
-        if (mintEntity == null) {
+        MintEntity loaded = vaultClient.retrieve(mintEntity.getId().toString());
+        if (loaded == null) {
             throw new CashuErrorException("Mint not found");
         }
 
-        mintEntity.getKeySets().forEach(keySetEntity -> {
+        loaded.getKeySets().forEach(keySetEntity -> {
             KeySet keySet = null;
             try {
-                String keySetId = getKeySetId(keySetEntity);
-                keySet = DBKeySetVault.load(new KeysetConfiguration(mintConfiguration, keySetId, keySetEntity.getUnit()), archive);
+                keySet = DBKeySetVault.load(keySetEntity, archive);
             } catch (CashuErrorException e) {
                 throw new RuntimeException(e);
             }
@@ -153,23 +141,23 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
         return mint;
     }
 
-    public static Mint load(@NonNull MintConfiguration mintConfiguration, String keySetId, boolean archive, boolean lazy) throws CashuErrorException {
-        Mint mint = new Mint(mintConfiguration.getId());
+    public static Mint load(@NonNull MintEntity mintEntity, String keySetId, boolean archive, boolean lazy) throws CashuErrorException {
+        Mint mint = new Mint(mintEntity.getId().toString());
 
         if (lazy) {
             return mint;
         }
 
         VaultClient<MintEntity> vaultClient = new VaultClient<>(MintEntity.class);
-        MintEntity mintEntity = vaultClient.retrieve(mintConfiguration.getId());
-        if (mintEntity == null) {
+        MintEntity loaded = vaultClient.retrieve(mintEntity.getId().toString());
+        if (loaded == null) {
             throw new CashuErrorException("Mint not found");
         }
 
-        mintEntity.getKeySets().forEach(keySetEntity -> {
+        loaded.getKeySets().forEach(keySetEntity -> {
             try {
                 if (getKeySetId(keySetEntity).equals(keySetId)) {
-                    KeySet keySet = DBKeySetVault.load(new KeysetConfiguration(mintConfiguration, keySetId, keySetEntity.getUnit()), archive);
+                    KeySet keySet = DBKeySetVault.load(keySetEntity, archive);
                     mint.addKeySet(keySet);
                 }
             } catch (CashuErrorException e) {
@@ -181,9 +169,7 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
     }
 
     public String getUnit(@NonNull String keySetId) throws CashuErrorException {
-        MintEntity mintEntity = retrieveEntity();
-
-        return mintEntity.getKeySets().stream()
+        return this.getEntity().getKeySets().stream()
                 .filter(keySetEntity -> getKeySetId(keySetEntity).equals(keySetId))
                 .map(KeySetEntity::getUnit)
                 .findFirst()
@@ -191,9 +177,7 @@ public class DBMintVault extends DBVault<MintConfiguration, MintEntity> {
     }
 
     public String getPrivateKey(@NonNull String unit, Integer amount) throws CashuErrorException {
-        MintEntity mintEntity = retrieveEntity();
-
-        return mintEntity.getKeySets().stream()
+        return this.getEntity().getKeySets().stream()
                 .filter(keySetEntity -> keySetEntity.getUnit().equals(unit))
                 .flatMap(keySetEntity -> keySetEntity.getKeys().stream())
                 .filter(keyEntity -> keyEntity.getAmount().equals(amount))

@@ -5,11 +5,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.1.1</version>
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1.1</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cashu-lib-common</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>0.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
@@ -60,6 +60,22 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <version>3.5.0</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>6.2.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>6.2.8</version>
         </dependency>
     </dependencies>
 

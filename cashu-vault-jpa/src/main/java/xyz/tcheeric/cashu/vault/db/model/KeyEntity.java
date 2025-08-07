@@ -15,6 +15,9 @@ import org.hibernate.envers.Audited;
 
 import java.math.BigInteger;
 
+/**
+ * Entity representing a single minting key.
+ */
 @Entity(name = "key")
 @Table(name = "t_key", indexes = {
         @Index(name = "idx_key_private_key_unq", columnList = "private_key", unique = true)
@@ -26,14 +29,17 @@ import java.math.BigInteger;
 @ToString(callSuper = true)
 public class KeyEntity extends BaseEntity {
 
+    /** Amount that this key signs. */
     @JsonProperty
     @Column(name = "amount", nullable = false)
     private BigInteger amount;
 
+    /** Private key value. */
     @JsonProperty
     @Column(name = "private_key", nullable = false)
     private String privateKey;
 
+    /** Owning key set. */
     @JsonProperty
     @ManyToOne
     @JoinColumn(name = "key_set_id")
