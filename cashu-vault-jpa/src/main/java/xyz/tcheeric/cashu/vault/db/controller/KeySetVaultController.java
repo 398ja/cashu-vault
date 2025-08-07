@@ -1,6 +1,6 @@
 package xyz.tcheeric.cashu.vault.db.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,11 +20,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/vault/keyset")
+@RequiredArgsConstructor
 @Slf4j
 public class KeySetVaultController {
 
-    @Autowired
-    private KeySetRepository keySetRepository;
+    private final KeySetRepository keySetRepository;
 
     @PostMapping
     public ResponseEntity<KeySetEntity> store(@RequestBody KeySetEntity keySet) throws CashuErrorException {
