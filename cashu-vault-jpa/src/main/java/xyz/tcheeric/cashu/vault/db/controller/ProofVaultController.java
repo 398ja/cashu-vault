@@ -20,6 +20,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * REST controller exposing CRUD-style endpoints for {@link ProofEntity}
+ * resources.
+ */
 @RestController
 @RequestMapping("/vault/proof")
 @RequiredArgsConstructor
@@ -29,6 +33,13 @@ public class ProofVaultController {
     @Autowired
     private ProofRepository proofRepository;
 
+    /**
+     * Stores a new proof entity.
+     *
+     * @param proof proof to persist
+     * @return stored proof entity
+     * @throws CashuErrorException in case the entity cannot be persisted
+     */
     @PostMapping
     public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof) throws CashuErrorException {
         log.info("Storing ProofEntity {}", proof.getId());
@@ -37,6 +48,13 @@ public class ProofVaultController {
         return ResponseEntity.ok(savedProof);
     }
 
+    /**
+     * Retrieves a proof by its identifier.
+     *
+     * @param id proof identifier
+     * @return matching proof entity
+     * @throws CashuErrorException if no proof with the ID exists
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ProofEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Retrieving ProofEntity {}", id);
@@ -48,6 +66,13 @@ public class ProofVaultController {
         throw new CashuErrorException("ProofEntity not found");
     }
 
+    /**
+     * Retrieves all proofs associated with a mint.
+     *
+     * @param mintId mint identifier
+     * @return set of proofs for the mint
+     * @throws CashuErrorException if none are found
+     */
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<ProofEntity>> retrieveByMint(@PathVariable("mintId") String mintId) throws CashuErrorException {
         log.info("Retrieving ProofEntities for mint {}", mintId);
@@ -58,6 +83,13 @@ public class ProofVaultController {
         throw new CashuErrorException("No ProofEntities found for the given Mint ID");
     }
 
+    /**
+     * Retrieves a proof by its secret.
+     *
+     * @param secret secret value
+     * @return matching proof entity
+     * @throws CashuErrorException if no proof exists for the secret
+     */
     @GetMapping("/secret/{secret}")
     public ResponseEntity<ProofEntity> retrieveBySecret(@PathVariable("secret") String secret) throws CashuErrorException {
         log.info("Retrieving ProofEntity with secret {}", secret);
@@ -69,6 +101,13 @@ public class ProofVaultController {
         throw new CashuErrorException("ProofEntity not found for the specified secret");
     }
 
+    /**
+     * Archives a proof by marking it as archived.
+     *
+     * @param id proof identifier
+     * @return archived proof entity
+     * @throws CashuErrorException if the proof does not exist
+     */
     @PostMapping("/archive/{id}")
     public ResponseEntity<ProofEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Archiving ProofEntity {}", id);
@@ -83,6 +122,13 @@ public class ProofVaultController {
         throw new CashuErrorException("ProofEntity not found");
     }
 
+    /**
+     * Deletes a proof entity.
+     *
+     * @param id proof identifier
+     * @return empty response on success
+     * @throws CashuErrorException if the proof does not exist
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Deleting ProofEntity {}", id);

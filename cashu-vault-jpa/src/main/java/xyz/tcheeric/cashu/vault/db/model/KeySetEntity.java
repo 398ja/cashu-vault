@@ -19,6 +19,9 @@ import org.hibernate.envers.Audited;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Entity representing a set of keys for a given mint and unit.
+ */
 @Entity(name = "keyset")
 @Table(name = "t_keyset", indexes = {
         @Index(name = "idx_keyset_unit_mint_unq", columnList = "unit, mint_id", unique = true),
@@ -31,18 +34,22 @@ import java.util.Set;
 @ToString(callSuper = true, exclude = "keys")
 public class KeySetEntity extends BaseEntity {
 
+    /** Keys contained in this key set. */
     @JsonIgnore
     @OneToMany(mappedBy = "keySet", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<KeyEntity> keys = new LinkedHashSet<>();
 
+    /** External key set identifier. */
     @JsonProperty
     @Column(name = "key_set_id", nullable = false, length = 16)
     private String keySetId;
 
+    /** Monetary unit associated with the key set. */
     @JsonProperty
     @Column(name = "unit", nullable = false, length = 5)
     private String unit;
 
+    /** Mint to which this key set belongs. */
     @JsonProperty
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "mint_id")

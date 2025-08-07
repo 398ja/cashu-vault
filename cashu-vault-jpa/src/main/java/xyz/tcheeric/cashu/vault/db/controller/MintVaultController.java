@@ -20,6 +20,10 @@ import xyz.tcheeric.cashu.vault.db.repos.MintRepository;
 
 import java.util.UUID;
 
+/**
+ * REST controller providing CRUD-style endpoints for {@link MintEntity}
+ * resources.
+ */
 @RequestMapping("/vault/mint")
 @RestController
 @Slf4j
@@ -28,6 +32,13 @@ public class MintVaultController {
     @Autowired
     private MintRepository mintRepository;
 
+    /**
+     * Stores a new mint entity.
+     *
+     * @param mint mint entity to persist
+     * @return stored mint entity
+     * @throws CashuErrorException if the mint cannot be persisted
+     */
     @PostMapping
     public ResponseEntity<MintEntity> store(@RequestBody MintEntity mint) throws CashuErrorException {
         log.info("Storing MintEntity {}", mint.getId());
@@ -36,6 +47,13 @@ public class MintVaultController {
         return ResponseEntity.ok(newMint);
     }
 
+    /**
+     * Retrieves a mint by its identifier.
+     *
+     * @param id mint identifier
+     * @return matching mint entity
+     * @throws CashuErrorException if no mint exists with the ID
+     */
     @GetMapping("/{id}")
     public ResponseEntity<MintEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Retrieving MintEntity {}", id);
@@ -45,6 +63,13 @@ public class MintVaultController {
         return ResponseEntity.ok(mint);
     }
 
+    /**
+     * Marks a mint as archived.
+     *
+     * @param id mint identifier
+     * @return archived mint entity
+     * @throws CashuErrorException if the mint does not exist
+     */
     @PostMapping("/archive/{id}")
     public ResponseEntity<MintEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Archiving MintEntity {}", id);
@@ -56,6 +81,13 @@ public class MintVaultController {
         return ResponseEntity.ok(archivedMint);
     }
 
+    /**
+     * Deletes a mint entity.
+     *
+     * @param id mint identifier
+     * @return empty response on success
+     * @throws CashuErrorException if the mint does not exist
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Deleting MintEntity {}", id);
@@ -67,6 +99,12 @@ public class MintVaultController {
     }
 
 
+    /**
+     * Handles optimistic locking failures by returning a conflict message.
+     *
+     * @param ex optimistic locking failure exception
+     * @return error description
+     */
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public String handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {

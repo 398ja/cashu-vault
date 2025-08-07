@@ -19,6 +19,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * REST controller for managing {@link KeySetEntity} resources.
+ */
 @RestController
 @RequestMapping("/vault/keyset")
 @Slf4j
@@ -27,6 +30,13 @@ public class KeySetVaultController {
     @Autowired
     private KeySetRepository keySetRepository;
 
+    /**
+     * Stores a new key set entity.
+     *
+     * @param keySet key set to persist
+     * @return stored key set entity
+     * @throws CashuErrorException if the key set cannot be persisted
+     */
     @PostMapping
     public ResponseEntity<KeySetEntity> store(@RequestBody KeySetEntity keySet) throws CashuErrorException {
         log.info("Storing KeySetEntity {}", keySet.getId());
@@ -35,6 +45,13 @@ public class KeySetVaultController {
         return ResponseEntity.ok(newKeySet);
     }
 
+    /**
+     * Retrieves a key set by its identifier.
+     *
+     * @param id key set identifier
+     * @return matching key set entity
+     * @throws CashuErrorException if the key set is not found
+     */
     @GetMapping("/{id}")
     public ResponseEntity<KeySetEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Retrieving KeySetEntity {}", id);
@@ -47,6 +64,13 @@ public class KeySetVaultController {
         }
     }
 
+    /**
+     * Retrieves a key set by its key set identifier.
+     *
+     * @param id key set identifier string
+     * @return matching key set entity
+     * @throws CashuErrorException if none exists
+     */
     @GetMapping("/id/{id}")
     public ResponseEntity<KeySetEntity> retrieveByKeySetId(@PathVariable("id") String id) throws CashuErrorException, ExecutionException, InterruptedException {
         log.info("Retrieving KeySetEntity by keySetId {}", id);
@@ -58,6 +82,13 @@ public class KeySetVaultController {
         }
     }
 
+    /**
+     * Retrieves key sets for a specific unit.
+     *
+     * @param unit monetary unit code
+     * @return set of key sets for the unit
+     * @throws CashuErrorException if none exist for the unit
+     */
     @GetMapping("/unit/{unit}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException, InterruptedException {
         log.info("Retrieving KeySetEntities for unit {}", unit);
@@ -68,6 +99,15 @@ public class KeySetVaultController {
         return ResponseEntity.ok(keySets.get());
     }
 
+    /**
+     * Retrieves a key set for the given mint and unit filtered by key set ID.
+     *
+     * @param mintId   mint identifier
+     * @param unit     monetary unit code
+     * @param keySetId key set identifier
+     * @return matching key set entity
+     * @throws CashuErrorException if no matching key set is found
+     */
     @GetMapping("/mint/{mintId}/unit/{unit}/keyset/{keySetId}")
     public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException, InterruptedException {
         log.info("Retrieving KeySetEntity for mint {} unit {}", mintId, unit);
@@ -82,6 +122,13 @@ public class KeySetVaultController {
                 .orElseThrow(() -> new CashuErrorException("KeySetEntity not found for the specified keySetId"));
     }
 
+    /**
+     * Retrieves key sets associated with a mint.
+     *
+     * @param mintId mint identifier
+     * @return set of key sets for the mint
+     * @throws CashuErrorException if no key sets are found
+     */
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException, ExecutionException, InterruptedException {
         log.info("Retrieving KeySetEntities for mint {}", mintId);
@@ -92,6 +139,13 @@ public class KeySetVaultController {
         return ResponseEntity.ok(keySets.get());
     }
 
+    /**
+     * Archives a key set entity.
+     *
+     * @param id key set identifier
+     * @return archived key set entity
+     * @throws CashuErrorException if the key set does not exist
+     */
     @PostMapping("/archive/{id}")
     public ResponseEntity<KeySetEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Archiving KeySetEntity {}", id);
@@ -107,6 +161,13 @@ public class KeySetVaultController {
         }
     }
 
+    /**
+     * Deletes a key set entity.
+     *
+     * @param id key set identifier
+     * @return empty response on success
+     * @throws CashuErrorException if the key set does not exist
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
         log.info("Deleting KeySetEntity {}", id);
