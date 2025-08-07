@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -142,6 +143,7 @@ public class VaultClient<T extends BaseEntity> {
                 null,
                 new ParameterizedTypeReference<List<T>>() {}
         );
-        return response.getBody();
+        List<T> body = response.getBody();
+        return body != null ? body : Collections.emptyList();
     }
 }

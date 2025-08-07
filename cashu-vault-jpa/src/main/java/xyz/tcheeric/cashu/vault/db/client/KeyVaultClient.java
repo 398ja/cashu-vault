@@ -28,7 +28,14 @@ public class KeyVaultClient extends VaultClient<KeyEntity> {
      */
     public Set<KeyEntity> getKeysByUnit(String unit) {
         log.info("GET {}/vault/key/unit/{}", getBaseUrl(), unit);
-        return restTemplate.getForObject(getBaseUrl() + "/vault/key/unit/" + unit, Set.class);
+        ResponseEntity<Set<KeyEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/key/unit/" + unit,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<KeyEntity>>() {
+                }
+        );
+        return response.getBody();
     }
 
     /**
@@ -39,7 +46,14 @@ public class KeyVaultClient extends VaultClient<KeyEntity> {
      */
     public Set<KeyEntity> getKeysByKeySetId(String id) {
         log.info("GET {}/vault/key/keyset/{}", getBaseUrl(), id);
-        return restTemplate.getForObject(getBaseUrl() + "/vault/key/keyset/" + id, Set.class);
+        ResponseEntity<Set<KeyEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/key/keyset/" + id,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<KeyEntity>>() {
+                }
+        );
+        return response.getBody();
     }
 
     /**

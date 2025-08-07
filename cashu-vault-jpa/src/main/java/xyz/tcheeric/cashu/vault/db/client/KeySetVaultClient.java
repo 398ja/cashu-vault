@@ -38,7 +38,14 @@ public class KeySetVaultClient extends VaultClient<KeySetEntity> {
      */
     public Set<KeySetEntity> getByUnit(String unit) {
         log.info("GET {}/vault/keyset/unit/{}", getBaseUrl(), unit);
-        Set<KeySetEntity> keySetEntities = restTemplate.getForObject(getBaseUrl() + "/vault/keyset/unit/" + unit, Set.class);
+        ResponseEntity<Set<KeySetEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/keyset/unit/" + unit,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<KeySetEntity>>() {
+                }
+        );
+        Set<KeySetEntity> keySetEntities = response.getBody();
         if (keySetEntities == null || keySetEntities.isEmpty()) {
             throw new IllegalArgumentException("No KeySet found for unit: " + unit);
         }
@@ -54,7 +61,14 @@ public class KeySetVaultClient extends VaultClient<KeySetEntity> {
      */
     public Set<KeySetEntity> getByMintId(String mintId) {
         log.info("GET {}/vault/keyset/mint/{}", getBaseUrl(), mintId);
-        Set<KeySetEntity> keySetEntities = restTemplate.getForObject(getBaseUrl() + "/vault/keyset/mint/" + mintId, Set.class);
+        ResponseEntity<Set<KeySetEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/keyset/mint/" + mintId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<KeySetEntity>>() {
+                }
+        );
+        Set<KeySetEntity> keySetEntities = response.getBody();
         if (keySetEntities == null || keySetEntities.isEmpty()) {
             throw new IllegalArgumentException("No KeySet found for mintId: " + mintId);
         }
