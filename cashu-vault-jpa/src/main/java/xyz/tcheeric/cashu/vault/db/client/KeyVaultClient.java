@@ -1,6 +1,9 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 
 import java.util.Set;
