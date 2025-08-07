@@ -62,20 +62,20 @@ public class KeySetVaultController {
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException, InterruptedException {
         log.info("Retrieving KeySetEntities for unit {}", unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
-        if (keySets.isEmpty()) {
-            throw new CashuErrorException("No KeySetEntity found for the specified unit");
-        }
-        return ResponseEntity.ok(keySets.get());
+        Set<KeySetEntity> keySetEntities = keySets
+                .filter(set -> !set.isEmpty())
+                .orElseThrow(() -> new CashuErrorException("No KeySetEntity found for the specified unit"));
+        return ResponseEntity.ok(keySetEntities);
     }
 
     @GetMapping("/mint/{mintId}/unit/{unit}/keyset/{keySetId}")
     public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException, InterruptedException {
         log.info("Retrieving KeySetEntity for mint {} unit {}", mintId, unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_IdAndUnit(UUID.fromString(mintId), unit);
-        if (keySets.isEmpty()) {
-            throw new CashuErrorException("No KeySetEntity found for the specified mintId and unit");
-        }
-        return keySets.get().stream()
+        Set<KeySetEntity> keySetEntities = keySets
+                .filter(set -> !set.isEmpty())
+                .orElseThrow(() -> new CashuErrorException("No KeySetEntity found for the specified mintId and unit"));
+        return keySetEntities.stream()
                 .filter(keySet -> keySet.getKeySetId().equals(keySetId))
                 .findFirst()
                 .map(ResponseEntity::ok)
@@ -85,11 +85,11 @@ public class KeySetVaultController {
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException, ExecutionException, InterruptedException {
         log.info("Retrieving KeySetEntities for mint {}", mintId);
-        var keySets = keySetRepository.findByMint_Id(UUID.fromString(mintId));
-        if (keySets.isEmpty()) {
-            throw new CashuErrorException("No KeySetEntity found for the specified mintId");
-        }
-        return ResponseEntity.ok(keySets.get());
+        Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_Id(UUID.fromString(mintId));
+        Set<KeySetEntity> keySetEntities = keySets
+                .filter(set -> !set.isEmpty())
+                .orElseThrow(() -> new CashuErrorException("No KeySetEntity found for the specified mintId"));
+        return ResponseEntity.ok(keySetEntities);
     }
 
     @PostMapping("/archive/{id}")
