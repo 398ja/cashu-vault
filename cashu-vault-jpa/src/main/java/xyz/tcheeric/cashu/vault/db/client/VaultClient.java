@@ -1,18 +1,15 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
 import jakarta.persistence.Entity;
-import jakarta.transaction.Transactional;
 import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -91,6 +88,7 @@ public class VaultClient<T extends BaseEntity> {
                 null,
                 new ParameterizedTypeReference<List<T>>() {}
         );
-        return response.getBody();
+        List<T> body = response.getBody();
+        return body != null ? body : Collections.emptyList();
     }
 }
