@@ -4,6 +4,9 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+/**
+ * Configuration properties for the base URL of the vault service.
+ */
 @Component
 @ConfigurationProperties(prefix = "vault.base")
 @Data
