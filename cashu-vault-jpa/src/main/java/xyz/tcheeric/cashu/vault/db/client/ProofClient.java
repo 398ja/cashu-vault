@@ -1,7 +1,10 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
-import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.Set;
 
@@ -14,7 +17,17 @@ public class ProofClient extends VaultClient<ProofEntity> {
 
     public ProofEntity getByMintIdAndSecret(String mintId, String secret) {
         log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
-        Set<ProofEntity> optionalProofEntities = restTemplate.getForObject(getBaseUrl() + "/vault/proof/mint/" + mintId, Set.class);
+        ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/proof/mint/" + mintId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<ProofEntity>>() {
+                }
+        );
+        Set<ProofEntity> optionalProofEntities = response.getBody();
+        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
+            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+        }
         return optionalProofEntities.stream()
                 .filter(proofEntity -> proofEntity.getSecret().equals(secret))
                 .findFirst()
@@ -23,7 +36,17 @@ public class ProofClient extends VaultClient<ProofEntity> {
 
     public ProofEntity getByMintAndAmount(String mintId, Integer amount) {
         log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
-        Set<ProofEntity> optionalProofEntities = restTemplate.getForObject(getBaseUrl() + "/vault/proof/mint/" + mintId, Set.class);
+        ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/proof/mint/" + mintId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<ProofEntity>>() {
+                }
+        );
+        Set<ProofEntity> optionalProofEntities = response.getBody();
+        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
+            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+        }
         return optionalProofEntities.stream()
                 .filter(proofEntity -> proofEntity.getAmount().equals(amount))
                 .findFirst()
@@ -32,7 +55,17 @@ public class ProofClient extends VaultClient<ProofEntity> {
 
     public ProofEntity getByMintAndUnblindedSignature(String mintId, String unblindedSignature) {
         log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
-        Set<ProofEntity> optionalProofEntities = restTemplate.getForObject(getBaseUrl() + "/vault/proof/mint/" + mintId, Set.class);
+        ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
+                getBaseUrl() + "/vault/proof/mint/" + mintId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Set<ProofEntity>>() {
+                }
+        );
+        Set<ProofEntity> optionalProofEntities = response.getBody();
+        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
+            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+        }
         return optionalProofEntities.stream()
                 .filter(proofEntity -> proofEntity.getUnblindedSignature().equals(unblindedSignature))
                 .findFirst()
