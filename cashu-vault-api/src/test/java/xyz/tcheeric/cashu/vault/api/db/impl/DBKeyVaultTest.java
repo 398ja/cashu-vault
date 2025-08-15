@@ -35,16 +35,16 @@ class DBKeyVaultTest {
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(VaultClientFactory::keySetClient).thenReturn(ksClient);
 
-            DBKeyVault vault = new DBKeyVault(entity, client);
+            DBKeyVault vault = new DBKeyVault(client);
 
-            vault.store();
+            vault.store(entity);
             verify(ksClient).getByKeySetId("ks");
             verify(client).store(entity);
 
-            vault.archive();
+            vault.archive(entity.getId().toString());
             verify(client).archive(entity.getId().toString());
 
-            vault.delete();
+            vault.delete(entity.getId().toString());
             verify(client).delete(entity.getId().toString());
         }
     }
@@ -56,8 +56,9 @@ class DBKeyVaultTest {
         VaultClient<KeyEntity> client = mock(VaultClient.class);
         when(client.retrieve(anyString())).thenReturn(entity);
 
-        DBKeyVault vault = DBKeyVault.retrieveKey("id", client);
+        DBKeyVault vault = new DBKeyVault(client);
+        KeyEntity result = vault.retrieve("id");
         verify(client).retrieve("id");
-        assertThat(vault.getEntity()).isEqualTo(entity);
+        assertThat(result).isEqualTo(entity);
     }
 }

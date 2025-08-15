@@ -17,26 +17,22 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
-    public DBProofVault(ProofEntity entity) {
-        this(entity, VaultClientFactory.getClient(ProofEntity.class));
+    public DBProofVault() {
+        this(VaultClientFactory.getClient(ProofEntity.class));
     }
 
-    public DBProofVault(ProofEntity entity, VaultClient<ProofEntity> client) {
-        super(entity, client);
+    public DBProofVault(VaultClient<ProofEntity> client) {
+        super(client);
     }
 
     @Override
-    public void store() {
-        ProofEntity proofEntity = getEntity();
-        VaultClient<ProofEntity> client = getClient();
-
+    public ProofEntity store(ProofEntity proofEntity) throws CashuErrorException {
         proofEntity.setMint(getMint(proofEntity));
-        client.store(proofEntity);
+        return client.store(proofEntity);
     }
 
     @Override
     protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
-        VaultClient<ProofEntity> client = getClient();
         ProofEntity proofEntity = client.retrieve(id);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
@@ -51,53 +47,50 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 */
 
-    public static DBProofVault retrieveProof(@NonNull String secret) throws CashuErrorException {
+    public static ProofEntity retrieveProof(@NonNull String secret) throws CashuErrorException {
         ProofClient client = VaultClientFactory.proofClient();
         return retrieveProof(secret, client);
     }
 
-    public static DBProofVault retrieveProof(@NonNull String secret, ProofClient client) throws CashuErrorException {
+    public static ProofEntity retrieveProof(@NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getBySecret(secret);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for secret: " + secret);
         }
-        return new DBProofVault(proofEntity, client);
+        return proofEntity;
     }
 
-    public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
+    public static ProofEntity retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
         ProofClient client = VaultClientFactory.proofClient();
         return retrieveProof(mintId, secret, client);
     }
 
-    public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret, ProofClient client) throws CashuErrorException {
+    public static ProofEntity retrieveProof(@NonNull String mintId, @NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
         }
-        return new DBProofVault(proofEntity, client);
+        return proofEntity;
     }
 
-    public static DBProofVault retrieveProof(String mintId, Integer amount) throws CashuErrorException {
+    public static ProofEntity retrieveProof(String mintId, Integer amount) throws CashuErrorException {
         ProofClient client = VaultClientFactory.proofClient();
         return retrieveProof(mintId, amount, client);
     }
 
-    public static DBProofVault retrieveProof(String mintId, Integer amount, ProofClient client) throws CashuErrorException {
+    public static ProofEntity retrieveProof(String mintId, Integer amount, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
         }
-        return new DBProofVault(proofEntity, client);
+        return proofEntity;
     }
 
-    public void storePending() {
-        ProofEntity proofEntity = getEntity();
-        VaultClient<ProofEntity> client = getClient();
-
+    public ProofEntity storePending(ProofEntity proofEntity) throws CashuErrorException {
         proofEntity.setMint(getMint(proofEntity));
         proofEntity.setState(ProofEntity.STATE_PENDING);
 
-        client.store(proofEntity);
+        return client.store(proofEntity);
     }
 
     private MintEntity getMint(ProofEntity proofEntity) {
@@ -139,32 +132,34 @@ public class DBProofVault extends DBVault<ProofEntity> {
 */
 
     @Override
-    public void archive() throws CashuErrorException {
+    public ProofEntity archive(String id) throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
 
         try {
             ProofClient proofClient = VaultClientFactory.proofClient();
-            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
+            ProofEntity proofEntity = retrieveEntity(id);
             proofEntity.setArchived(true);
             proofClient.store(proofEntity);
+            return proofEntity;
         } finally {
             PROOF_STATE_LOCK.unlock();
         }
     }
 
     @Override
-    public void delete() {
+    public void delete(String id) throws CashuErrorException {
         ProofClient client = VaultClientFactory.proofClient();
-        client.delete(getEntity().getId().toString());
+        client.delete(id);
     }
 
-    public void invalidate() throws CashuErrorException {
+    public ProofEntity invalidate(String id) throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
         try {
             ProofClient proofClient = VaultClientFactory.proofClient();
-            ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
+            ProofEntity proofEntity = retrieveEntity(id);
             proofEntity.setState(ProofEntity.STATE_SPENT);
             proofClient.store(proofEntity);
+            return proofEntity;
         } finally {
             PROOF_STATE_LOCK.unlock();
         }

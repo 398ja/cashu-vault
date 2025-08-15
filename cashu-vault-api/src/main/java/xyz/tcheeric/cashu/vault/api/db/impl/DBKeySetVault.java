@@ -18,38 +18,18 @@ import java.util.Set;
 
 public class DBKeySetVault extends DBVault<KeySetEntity> {
 
-    public DBKeySetVault(KeySetEntity entity) {
-        this(entity, VaultClientFactory.getClient(KeySetEntity.class));
+    public DBKeySetVault() {
+        this(VaultClientFactory.getClient(KeySetEntity.class));
     }
 
-    public DBKeySetVault(KeySetEntity entity, VaultClient<KeySetEntity> client) {
-        super(entity, client);
+    public DBKeySetVault(VaultClient<KeySetEntity> client) {
+        super(client);
     }
 
     @Override
-    public void store() {
-        KeySetEntity keySetEntity = getEntity();
-        VaultClient<KeySetEntity> client = getClient();
-
+    public KeySetEntity store(KeySetEntity keySetEntity) throws CashuErrorException {
         keySetEntity.setMint(getMint(keySetEntity));
-
-        client.store(keySetEntity);
-    }
-
-    @Override
-    public void archive() {
-        KeySetEntity keySetEntity = getEntity();
-        VaultClient<KeySetEntity> client = getClient();
-
-        client.archive(keySetEntity.getId().toString());
-    }
-
-    @Override
-    public void delete() {
-        KeySetEntity keySetEntity = getEntity();
-        VaultClient<KeySetEntity> client = getClient();
-
-        client.delete(keySetEntity.getId().toString());
+        return client.store(keySetEntity);
     }
 
     private MintEntity getMint(KeySetEntity keySetEntity) {
@@ -62,10 +42,8 @@ public class DBKeySetVault extends DBVault<KeySetEntity> {
         return keyVaultClient.getKeysByUnit(keySetEntity.getUnit());
     }
 
-
     @Override
     protected KeySetEntity retrieveEntity(String id) throws CashuErrorException {
-        VaultClient<KeySetEntity> client = getClient();
         KeySetEntity keySetEntity = client.retrieve(id);
         if (keySetEntity == null) {
             throw new CashuErrorException("Keyset not found");
@@ -73,30 +51,16 @@ public class DBKeySetVault extends DBVault<KeySetEntity> {
         return keySetEntity;
     }
 
-    public static DBKeySetVault retrieveKeySet(@NonNull String id) throws CashuErrorException {
-        VaultClient<KeySetEntity> client = VaultClientFactory.getClient(KeySetEntity.class);
-        return retrieveKeySet(id, client);
-    }
-
-    public static DBKeySetVault retrieveKeySet(@NonNull String id, VaultClient<KeySetEntity> client) throws CashuErrorException {
-        DBKeySetVault keySetVault = new DBKeySetVault(null, client);
-        return new DBKeySetVault(keySetVault.retrieveEntity(id), client);
-    }
-
-    public static DBKeySetVault retrieveKeySet(@NonNull String mintId, @NonNull String unit) throws CashuErrorException {
-        KeySetVaultClient client = VaultClientFactory.keySetClient();
-        return retrieveKeySet(mintId, unit, client);
-    }
-
-    public static DBKeySetVault retrieveKeySet(@NonNull String mintId, @NonNull String unit, KeySetVaultClient client) throws CashuErrorException {
-        KeySetEntity keySetEntity = client.getByMintId(mintId).stream()
+    public KeySetEntity retrieveByMintIdAndUnit(@NonNull String mintId, @NonNull String unit) throws CashuErrorException {
+        KeySetVaultClient ksClient = VaultClientFactory.keySetClient();
+        KeySetEntity keySetEntity = ksClient.getByMintId(mintId).stream()
                 .filter(k -> k.getUnit().equals(unit))
                 .findFirst()
                 .orElse(null);
         if (keySetEntity == null) {
             throw new CashuErrorException("Keyset not found for mintId: " + mintId + " and unit: " + unit);
         }
-        return new DBKeySetVault(keySetEntity, client);
+        return keySetEntity;
     }
 
     public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive) throws CashuErrorException {
