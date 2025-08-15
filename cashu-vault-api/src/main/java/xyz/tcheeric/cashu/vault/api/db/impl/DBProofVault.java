@@ -74,6 +74,17 @@ public class DBProofVault extends DBVault<ProofEntity> {
         return new DBProofVault(proofEntity);
     }
 
+    public static DBProofVault retrieveProofByUnblindedSignature(@NonNull String mintId,
+            @NonNull String unblindedSignature) throws CashuErrorException {
+        ProofClient client = new ProofClient();
+        ProofEntity proofEntity = client.getByMintAndUnblindedSignature(mintId, unblindedSignature);
+        if (proofEntity == null) {
+            throw new CashuErrorException(
+                    "Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature);
+        }
+        return new DBProofVault(proofEntity);
+    }
+
     public void storePending() {
         ProofEntity proofEntity = getEntity();
         VaultClient<ProofEntity> client = getClient();

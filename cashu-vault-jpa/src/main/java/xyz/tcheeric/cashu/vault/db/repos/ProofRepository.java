@@ -29,6 +29,33 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
     Optional<Set<ProofEntity>> findByMint_Id(UUID id);
 
     /**
+     * Finds a proof by the mint it belongs to and its secret.
+     *
+     * @param id     mint identifier
+     * @param secret proof secret
+     * @return optional proof entity
+     */
+    Optional<ProofEntity> findByMint_IdAndSecret(UUID id, String secret);
+
+    /**
+     * Finds proofs by the mint they belong to and their amount.
+     *
+     * @param id     mint identifier
+     * @param amount proof amount
+     * @return optional set of proof entities
+     */
+    Optional<Set<ProofEntity>> findByMint_IdAndAmount(UUID id, Integer amount);
+
+    /**
+     * Finds a proof by the mint it belongs to and its unblinded signature.
+     *
+     * @param id                 mint identifier
+     * @param unblindedSignature unblinded signature value
+     * @return optional proof entity
+     */
+    Optional<ProofEntity> findByMint_IdAndUnblindedSignature(UUID id, String unblindedSignature);
+
+    /**
      * Finds proofs by their state.
      *
      * @param state proof state
