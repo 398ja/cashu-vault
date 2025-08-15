@@ -5,7 +5,7 @@ import xyz.tcheeric.cashu.common.Keys;
 import xyz.tcheeric.cashu.common.PrivateKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -16,8 +16,12 @@ import java.math.BigInteger;
 
 public class DBKeyVault extends DBVault<KeyEntity> {
 
-    public DBKeyVault(KeyEntity entity) {
-        super(entity, new CashuVaultApplication().vaultKeyClient());
+    public DBKeyVault() {
+        this(VaultClientFactory.getClient(KeyEntity.class));
+    }
+
+    public DBKeyVault(VaultClient<KeyEntity> client) {
+        super(client);
     }
 
     public static Keys load(@Nonnull KeySetEntity keySetEntity) {
@@ -37,36 +41,27 @@ public class DBKeyVault extends DBVault<KeyEntity> {
     }
 
     @Override
-    public void store() {
-        KeyEntity keyEntity = getEntity();
-        VaultClient<KeyEntity> client = getClient();
+    public KeyEntity store(KeyEntity keyEntity) throws CashuErrorException {
         keyEntity.setKeySet(getKeySet(keyEntity));
-        client.store(keyEntity);
+        return client.store(keyEntity);
     }
 
     private KeySetEntity getKeySet(KeyEntity keyEntity) {
-        KeySetVaultClient keySetVaultClient = new KeySetVaultClient();
+        KeySetVaultClient keySetVaultClient = VaultClientFactory.keySetClient();
         return keySetVaultClient.getByKeySetId(keyEntity.getKeySet().getKeySetId());
     }
 
     @Override
     protected KeyEntity retrieveEntity(@Nonnull String id) throws CashuErrorException {
-        KeyVaultClient keyVaultClient = new KeyVaultClient();
-
-        KeyEntity keyEntity = keyVaultClient.retrieve(id);
+        KeyEntity keyEntity = client.retrieve(id);
         if (keyEntity == null) {
             throw new CashuErrorException("Key not found");
         }
         return keyEntity;
     }
 
-    public static DBKeyVault retrieveKey(@Nonnull String id) throws CashuErrorException {
-        DBKeyVault keyVault = new DBKeyVault(null);
-        return new DBKeyVault(keyVault.retrieveEntity(id));
-    }
-
-    public static DBKeyVault retrieveKey(@Nonnull BigInteger amount, @Nonnull String keySetId) throws CashuErrorException {
-        KeyVaultClient keyVaultClient = new KeyVaultClient();
+    public KeyEntity retrieveByAmount(@Nonnull BigInteger amount, @Nonnull String keySetId) throws CashuErrorException {
+        KeyVaultClient keyVaultClient = VaultClientFactory.keyClient();
         KeyEntity keyEntity = keyVaultClient.getKeysByKeySetId(keySetId).stream()
                 .filter(k -> k.getAmount().equals(amount))
                 .findFirst()
@@ -74,18 +69,6 @@ public class DBKeyVault extends DBVault<KeyEntity> {
         if (keyEntity == null) {
             throw new CashuErrorException("Key not found for amount: " + amount + " and keySetId: " + keySetId);
         }
-        return new DBKeyVault(keyEntity);
-    }
-
-    @Override
-    public void archive() throws CashuErrorException {
-        KeyVaultClient keyVaultClient = new KeyVaultClient();
-        keyVaultClient.archive(this.getEntity().getId().toString());
-    }
-
-    @Override
-    public void delete() throws CashuErrorException {
-        KeyVaultClient keyVaultClient = new KeyVaultClient();
-        keyVaultClient.delete(this.getEntity().getId().toString());
+        return keyEntity;
     }
 }

@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -44,5 +45,11 @@ class MintVaultControllerIntegrationTest {
                     JsonNode read = objectMapper.readTree(mvcResult.getResponse().getContentAsString());
                     assertThat(read.get("id").asText()).isEqualTo(id);
                 });
+    }
+
+    @Test
+    void retrieveMissingMintReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/vault/mint/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
     }
 }
