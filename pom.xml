@@ -17,6 +17,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <maven-gpg-plugin.version>3.1.0</maven-gpg-plugin.version>
+
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
@@ -28,6 +31,17 @@
             <url>https://maven.pkg.github.com/tcheeric/cashu-lib</url>
         </repository>
     </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <pluginManagement>
@@ -132,10 +146,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>${maven-gpg-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <phase>deploy</phase>
+                            <goals><goal>sign</goal></goals>
+                        </execution>
+                    </executions>
                     <configuration>
-                        <gpgKeyname>${gpg.keyname}</gpgKeyname>
-                        <gpgPassphrase>${env.GPG_PASSPHRASE}</gpgPassphrase>
+                        <keyname>${gpg.keyname}</keyname>
+                        <passphrase>${gpg.passphrase}</passphrase>
                     </configuration>
                 </plugin>
             </plugins>
