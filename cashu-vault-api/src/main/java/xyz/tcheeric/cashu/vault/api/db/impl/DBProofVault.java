@@ -10,6 +10,7 @@ import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Log
@@ -58,7 +59,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
         ProofClient client = new ProofClient();
-        ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
+        ProofEntity proofEntity = client.getByMintAndSecret(mintId, secret);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
         }
@@ -67,11 +68,11 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     public static DBProofVault retrieveProof(String mintId, Integer amount) throws CashuErrorException {
         ProofClient client = new ProofClient();
-        ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
-        if (proofEntity == null) {
+        Set<ProofEntity> proofs = client.getByMintAndAmount(mintId, amount);
+        if (proofs == null || proofs.isEmpty()) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
         }
-        return new DBProofVault(proofEntity);
+        return new DBProofVault(proofs.iterator().next());
     }
 
     public void storePending() {

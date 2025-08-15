@@ -29,23 +29,16 @@ public class ProofClient extends VaultClient<ProofEntity> {
      * @return matching proof entity
      * @throws IllegalArgumentException if no proof matches the criteria
      */
-    public ProofEntity getByMintIdAndSecret(String mintId, String secret) {
-        log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
-        ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
-                getBaseUrl() + "/vault/proof/mint/" + mintId,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<Set<ProofEntity>>() {
-                }
-        );
-        Set<ProofEntity> optionalProofEntities = response.getBody();
-        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
-            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+    public ProofEntity getByMintAndSecret(String mintId, String secret) {
+        log.info("GET {}/vault/proof/mint/{}/secret/{}", getBaseUrl(), mintId, secret);
+        ProofEntity proof = restTemplate.getForObject(
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/secret/" + secret,
+                ProofEntity.class);
+        if (proof == null) {
+            throw new IllegalArgumentException(
+                    "Proof not found for mintId: " + mintId + " and secret: " + secret);
         }
-        return optionalProofEntities.stream()
-                .filter(proofEntity -> proofEntity.getSecret().equals(secret))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Proof not found for mintId: " + mintId + " and secret: " + secret));
+        return proof;
     }
 
     /**
@@ -53,26 +46,24 @@ public class ProofClient extends VaultClient<ProofEntity> {
      *
      * @param mintId identifier of the mint
      * @param amount proof amount
-     * @return matching proof entity
+     * @return set of matching proof entities
      * @throws IllegalArgumentException if no proof matches the criteria
      */
-    public ProofEntity getByMintAndAmount(String mintId, Integer amount) {
-        log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
+    public Set<ProofEntity> getByMintAndAmount(String mintId, Integer amount) {
+        log.info("GET {}/vault/proof/mint/{}/amount/{}", getBaseUrl(), mintId, amount);
         ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
-                getBaseUrl() + "/vault/proof/mint/" + mintId,
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/amount/" + amount,
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<Set<ProofEntity>>() {
                 }
         );
-        Set<ProofEntity> optionalProofEntities = response.getBody();
-        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
-            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+        Set<ProofEntity> proofs = response.getBody();
+        if (proofs == null || proofs.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Proof not found for mintId: " + mintId + " and amount: " + amount);
         }
-        return optionalProofEntities.stream()
-                .filter(proofEntity -> proofEntity.getAmount().equals(amount))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Proof not found for mintId: " + mintId + " and amount: " + amount));
+        return proofs;
     }
 
     /**
@@ -84,22 +75,15 @@ public class ProofClient extends VaultClient<ProofEntity> {
      * @throws IllegalArgumentException if no proof matches the criteria
      */
     public ProofEntity getByMintAndUnblindedSignature(String mintId, String unblindedSignature) {
-        log.info("GET {}/vault/proof/mint/{}", getBaseUrl(), mintId);
-        ResponseEntity<Set<ProofEntity>> response = restTemplate.exchange(
-                getBaseUrl() + "/vault/proof/mint/" + mintId,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<Set<ProofEntity>>() {
-                }
-        );
-        Set<ProofEntity> optionalProofEntities = response.getBody();
-        if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
-            throw new IllegalArgumentException("No proofs found for mintId: " + mintId);
+        log.info("GET {}/vault/proof/mint/{}/signature/{}", getBaseUrl(), mintId, unblindedSignature);
+        ProofEntity proof = restTemplate.getForObject(
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/signature/" + unblindedSignature,
+                ProofEntity.class);
+        if (proof == null) {
+            throw new IllegalArgumentException(
+                    "Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature);
         }
-        return optionalProofEntities.stream()
-                .filter(proofEntity -> proofEntity.getUnblindedSignature().equals(unblindedSignature))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature));
+        return proof;
     }
 
     /**

@@ -9,8 +9,10 @@ import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
+import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +54,34 @@ class DBProofVaultTest {
              MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
             DBProofVault vault = DBProofVault.retrieveProof("secret");
             verify(proofMock.constructed().get(0)).getBySecret("secret");
+            assertThat(vault.getEntity()).isEqualTo(entity);
+        }
+    }
+
+    @Test
+    void retrieveProofByMintAndSecretUsesClient() throws Exception {
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(new MintEntity());
+
+        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
+                (m, ctx) -> when(m.getByMintAndSecret(anyString(), anyString())).thenReturn(entity));
+             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+            DBProofVault vault = DBProofVault.retrieveProof("mint", "secret");
+            verify(proofMock.constructed().get(0)).getByMintAndSecret("mint", "secret");
+            assertThat(vault.getEntity()).isEqualTo(entity);
+        }
+    }
+
+    @Test
+    void retrieveProofByMintAndAmountUsesClient() throws Exception {
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(new MintEntity());
+
+        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
+                (m, ctx) -> when(m.getByMintAndAmount(anyString(), anyInt())).thenReturn(Set.of(entity)));
+             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+            DBProofVault vault = DBProofVault.retrieveProof("mint", 1);
+            verify(proofMock.constructed().get(0)).getByMintAndAmount("mint", 1);
             assertThat(vault.getEntity()).isEqualTo(entity);
         }
     }

@@ -81,6 +81,69 @@ public class ProofVaultController {
     }
 
     /**
+     * Retrieves a proof by mint and secret.
+     *
+     * @param mintId mint identifier
+     * @param secret secret value
+     * @return matching proof entity
+     * @throws CashuErrorException if no proof exists for the criteria
+     */
+    @GetMapping("/mint/{mintId}/secret/{secret}")
+    public ResponseEntity<ProofEntity> retrieveByMintAndSecret(@PathVariable("mintId") String mintId,
+                                                               @PathVariable("secret") String secret)
+            throws CashuErrorException {
+        log.info("Retrieving ProofEntity for mint {} with secret {}", mintId, secret);
+        Optional<ProofEntity> proof =
+                proofRepository.findByMint_IdAndSecret(UUID.fromString(mintId), secret);
+        if (proof.isPresent()) {
+            return ResponseEntity.ok(proof.get());
+        }
+        throw new CashuErrorException("ProofEntity not found for the specified mint and secret");
+    }
+
+    /**
+     * Retrieves proofs by mint and amount.
+     *
+     * @param mintId mint identifier
+     * @param amount proof amount
+     * @return set of matching proof entities
+     * @throws CashuErrorException if none are found
+     */
+    @GetMapping("/mint/{mintId}/amount/{amount}")
+    public ResponseEntity<Set<ProofEntity>> retrieveByMintAndAmount(@PathVariable("mintId") String mintId,
+                                                                    @PathVariable("amount") Integer amount)
+            throws CashuErrorException {
+        log.info("Retrieving ProofEntities for mint {} with amount {}", mintId, amount);
+        Optional<Set<ProofEntity>> proofs =
+                proofRepository.findByMint_IdAndAmount(UUID.fromString(mintId), amount);
+        if (proofs.isPresent() && !proofs.get().isEmpty()) {
+            return ResponseEntity.ok(proofs.get());
+        }
+        throw new CashuErrorException("No ProofEntities found for the specified mint and amount");
+    }
+
+    /**
+     * Retrieves a proof by mint and unblinded signature.
+     *
+     * @param mintId mint identifier
+     * @param unblindedSignature unblinded signature
+     * @return matching proof entity
+     * @throws CashuErrorException if none is found
+     */
+    @GetMapping("/mint/{mintId}/signature/{signature}")
+    public ResponseEntity<ProofEntity> retrieveByMintAndSignature(@PathVariable("mintId") String mintId,
+                                                                  @PathVariable("signature") String unblindedSignature)
+            throws CashuErrorException {
+        log.info("Retrieving ProofEntity for mint {} with signature {}", mintId, unblindedSignature);
+        Optional<ProofEntity> proof =
+                proofRepository.findByMint_IdAndUnblindedSignature(UUID.fromString(mintId), unblindedSignature);
+        if (proof.isPresent()) {
+            return ResponseEntity.ok(proof.get());
+        }
+        throw new CashuErrorException("ProofEntity not found for the specified mint and signature");
+    }
+
+    /**
      * Retrieves a proof by its secret.
      *
      * @param secret secret value
