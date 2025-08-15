@@ -9,23 +9,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-import xyz.tcheeric.cashu.common.util.CashuErrorException;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class KeyVaultControllerIntegrationTest {
+class ProofVaultControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Test
-    void retrieveMissingKeyReturnsNotFound() throws Exception {
-        mockMvc.perform(get("/vault/key/" + UUID.randomUUID()))
+    void retrieveMissingProofReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/vault/proof/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound());
     }
 }
