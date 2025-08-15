@@ -23,6 +23,19 @@ If Maven is not installed globally, use the provided wrapper in
 
 This creates the runnable JAR `cashu-vault-jpa/target/cashu-vault-jpa-*.jar` used in the Docker image.
 
+## Running locally
+
+The application can be started directly on your machine once it has been
+built. Execute the jar produced by the build or run it from source:
+
+```bash
+java -jar cashu-vault-jpa/target/cashu-vault-jpa-*.jar
+# or
+./cashu-vault-jpa/mvnw spring-boot:run
+```
+
+The service will then be available at `http://localhost:3333`.
+
 ## Running with Docker Compose
 
 The repository includes a `docker-compose.yml` which starts the vault service together with a PostgreSQL container:
