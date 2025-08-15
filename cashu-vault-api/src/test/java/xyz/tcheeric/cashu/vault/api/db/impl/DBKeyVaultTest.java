@@ -2,11 +2,11 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
+import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
-import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
@@ -27,35 +27,37 @@ class DBKeyVaultTest {
         KeyEntity entity = new KeyEntity();
         entity.setKeySet(keySet);
 
-        try (MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class);
-             MockedConstruction<KeySetVaultClient> ksMock = mockConstruction(KeySetVaultClient.class,
-                     (m, ctx) -> when(m.getByKeySetId(anyString())).thenReturn(keySet));
-             MockedConstruction<KeyVaultClient> kvMock = mockConstruction(KeyVaultClient.class)) {
-            DBKeyVault vault = new DBKeyVault(entity);
-            VaultClient<KeyEntity> client = vaultMock.constructed().get(0);
+        @SuppressWarnings("unchecked")
+        VaultClient<KeyEntity> client = mock(VaultClient.class);
+        KeySetVaultClient ksClient = mock(KeySetVaultClient.class);
+        when(ksClient.getByKeySetId(anyString())).thenReturn(keySet);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::keySetClient).thenReturn(ksClient);
+
+            DBKeyVault vault = new DBKeyVault(entity, client);
 
             vault.store();
-            verify(ksMock.constructed().get(0)).getByKeySetId("ks");
+            verify(ksClient).getByKeySetId("ks");
             verify(client).store(entity);
 
             vault.archive();
-            verify(kvMock.constructed().get(0)).archive(entity.getId().toString());
+            verify(client).archive(entity.getId().toString());
 
             vault.delete();
-            verify(kvMock.constructed().get(1)).delete(entity.getId().toString());
+            verify(client).delete(entity.getId().toString());
         }
     }
 
     @Test
     void retrieveKeyReturnsWrappedEntity() throws Exception {
         KeyEntity entity = new KeyEntity();
+        @SuppressWarnings("unchecked")
+        VaultClient<KeyEntity> client = mock(VaultClient.class);
+        when(client.retrieve(anyString())).thenReturn(entity);
 
-        try (MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class);
-             MockedConstruction<KeyVaultClient> kvMock = mockConstruction(KeyVaultClient.class,
-                     (m, ctx) -> when(m.retrieve(anyString())).thenReturn(entity))) {
-            DBKeyVault vault = DBKeyVault.retrieveKey("id");
-            verify(kvMock.constructed().get(0)).retrieve("id");
-            assertThat(vault.getEntity()).isEqualTo(entity);
-        }
+        DBKeyVault vault = DBKeyVault.retrieveKey("id", client);
+        verify(client).retrieve("id");
+        assertThat(vault.getEntity()).isEqualTo(entity);
     }
 }
