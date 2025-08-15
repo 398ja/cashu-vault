@@ -5,11 +5,11 @@ import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
 public interface Vault<T extends BaseEntity> {
 
-    void store() throws CashuErrorException;
+    T store(T entity) throws CashuErrorException;
 
-    //String retrieve() throws CashuErrorException;
+    T retrieve(String id) throws CashuErrorException;
 
-    void archive() throws CashuErrorException;
+    T archive(String id) throws CashuErrorException;
 
-    void delete() throws CashuErrorException;
+    void delete(String id) throws CashuErrorException;
 }

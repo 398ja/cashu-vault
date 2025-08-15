@@ -19,15 +19,15 @@ class DBMintVaultTest {
         @SuppressWarnings("unchecked")
         VaultClient<MintEntity> client = mock(VaultClient.class);
 
-        DBMintVault vault = new DBMintVault(entity, client);
+        DBMintVault vault = new DBMintVault(client);
 
-        vault.store();
+        vault.store(entity);
         verify(client).store(entity);
 
-        vault.archive();
+        vault.archive(entity.getId().toString());
         verify(client).archive(entity.getId().toString());
 
-        vault.delete();
+        vault.delete(entity.getId().toString());
         verify(client).delete(entity.getId().toString());
     }
 
@@ -38,8 +38,9 @@ class DBMintVaultTest {
         VaultClient<MintEntity> client = mock(VaultClient.class);
         when(client.retrieve(anyString())).thenReturn(entity);
 
-        DBMintVault vault = DBMintVault.retrieveMint("42", client);
+        DBMintVault vault = new DBMintVault(client);
+        MintEntity result = vault.retrieve("42");
         verify(client).retrieve("42");
-        assertThat(vault.getEntity()).isEqualTo(entity);
+        assertThat(result).isEqualTo(entity);
     }
 }

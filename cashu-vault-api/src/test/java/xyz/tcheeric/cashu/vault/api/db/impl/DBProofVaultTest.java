@@ -36,16 +36,16 @@ class DBProofVaultTest {
             factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
             factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
-            DBProofVault vault = new DBProofVault(entity, client);
+            DBProofVault vault = new DBProofVault(client);
 
-            vault.store();
+            vault.store(entity);
             verify(client).store(entity);
 
-            vault.archive();
-            verify(proofClient).retrieve(entity.getId().toString());
+            vault.archive(entity.getId().toString());
+            verify(client).retrieve(entity.getId().toString());
             verify(proofClient).store(argThat(ProofEntity::isArchived));
 
-            vault.delete();
+            vault.delete(entity.getId().toString());
             verify(proofClient).delete(entity.getId().toString());
         }
     }
@@ -57,8 +57,8 @@ class DBProofVaultTest {
         ProofClient proofClient = mock(ProofClient.class);
         when(proofClient.getBySecret(anyString())).thenReturn(entity);
 
-        DBProofVault vault = DBProofVault.retrieveProof("secret", proofClient);
+        ProofEntity result = DBProofVault.retrieveProof("secret", proofClient);
         verify(proofClient).getBySecret("secret");
-        assertThat(vault.getEntity()).isEqualTo(entity);
+        assertThat(result).isEqualTo(entity);
     }
 }
