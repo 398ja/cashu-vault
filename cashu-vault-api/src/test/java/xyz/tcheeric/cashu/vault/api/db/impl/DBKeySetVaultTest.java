@@ -23,16 +23,16 @@ class DBKeySetVaultTest {
 
         try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class,
                 (mock, ctx) -> when(mock.retrieve(anyString())).thenReturn(mint))) {
-            DBKeySetVault vault = new DBKeySetVault(entity);
+            DBKeySetVault vault = new DBKeySetVault();
             VaultClient<KeySetEntity> client = mc.constructed().get(0);
 
-            vault.store();
+            vault.store(entity);
             verify(client).store(entity);
 
-            vault.archive();
+            vault.archive(entity.getId().toString());
             verify(client).archive(entity.getId().toString());
 
-            vault.delete();
+            vault.delete(entity.getId().toString());
             verify(client).delete(entity.getId().toString());
         }
     }
@@ -43,10 +43,11 @@ class DBKeySetVaultTest {
 
         try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class,
                 (mock, ctx) -> when(mock.retrieve(anyString())).thenReturn(entity))) {
-            DBKeySetVault vault = DBKeySetVault.retrieveKeySet("id");
+            DBKeySetVault vault = new DBKeySetVault();
             VaultClient<?> client = mc.constructed().get(0);
+            KeySetEntity retrieved = vault.retrieve("id");
             verify(client).retrieve("id");
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(retrieved).isEqualTo(entity);
         }
     }
 }

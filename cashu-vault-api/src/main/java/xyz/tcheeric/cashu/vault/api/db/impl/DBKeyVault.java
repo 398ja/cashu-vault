@@ -16,8 +16,8 @@ import java.math.BigInteger;
 
 public class DBKeyVault extends DBVault<KeyEntity> {
 
-    public DBKeyVault(KeyEntity entity) {
-        super(entity, new CashuVaultApplication().vaultKeyClient());
+    public DBKeyVault() {
+        super(new CashuVaultApplication().vaultKeyClient());
     }
 
     public static Keys load(@Nonnull KeySetEntity keySetEntity) {
@@ -37,11 +37,10 @@ public class DBKeyVault extends DBVault<KeyEntity> {
     }
 
     @Override
-    public void store() {
-        KeyEntity keyEntity = getEntity();
+    public KeyEntity store(KeyEntity keyEntity) {
         VaultClient<KeyEntity> client = getClient();
         keyEntity.setKeySet(getKeySet(keyEntity));
-        client.store(keyEntity);
+        return client.store(keyEntity);
     }
 
     private KeySetEntity getKeySet(KeyEntity keyEntity) {
@@ -50,9 +49,8 @@ public class DBKeyVault extends DBVault<KeyEntity> {
     }
 
     @Override
-    protected KeyEntity retrieveEntity(@Nonnull String id) throws CashuErrorException {
+    public KeyEntity retrieve(@Nonnull String id) throws CashuErrorException {
         KeyVaultClient keyVaultClient = new KeyVaultClient();
-
         KeyEntity keyEntity = keyVaultClient.retrieve(id);
         if (keyEntity == null) {
             throw new CashuErrorException("Key not found");
@@ -60,32 +58,15 @@ public class DBKeyVault extends DBVault<KeyEntity> {
         return keyEntity;
     }
 
-    public static DBKeyVault retrieveKey(@Nonnull String id) throws CashuErrorException {
-        DBKeyVault keyVault = new DBKeyVault(null);
-        return new DBKeyVault(keyVault.retrieveEntity(id));
-    }
-
-    public static DBKeyVault retrieveKey(@Nonnull BigInteger amount, @Nonnull String keySetId) throws CashuErrorException {
+    @Override
+    public KeyEntity archive(String id) throws CashuErrorException {
         KeyVaultClient keyVaultClient = new KeyVaultClient();
-        KeyEntity keyEntity = keyVaultClient.getKeysByKeySetId(keySetId).stream()
-                .filter(k -> k.getAmount().equals(amount))
-                .findFirst()
-                .orElse(null);
-        if (keyEntity == null) {
-            throw new CashuErrorException("Key not found for amount: " + amount + " and keySetId: " + keySetId);
-        }
-        return new DBKeyVault(keyEntity);
+        return keyVaultClient.archive(id);
     }
 
     @Override
-    public void archive() throws CashuErrorException {
+    public void delete(String id) throws CashuErrorException {
         KeyVaultClient keyVaultClient = new KeyVaultClient();
-        keyVaultClient.archive(this.getEntity().getId().toString());
-    }
-
-    @Override
-    public void delete() throws CashuErrorException {
-        KeyVaultClient keyVaultClient = new KeyVaultClient();
-        keyVaultClient.delete(this.getEntity().getId().toString());
+        keyVaultClient.delete(id);
     }
 }

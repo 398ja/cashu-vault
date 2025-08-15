@@ -26,18 +26,18 @@ class DBProofVaultTest {
                 (m, ctx) -> when(m.retrieve(anyString())).thenReturn(mint));
              MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
                      (m, ctx) -> when(m.retrieve(anyString())).thenReturn(entity))) {
-            DBProofVault vault = new DBProofVault(entity);
+            DBProofVault vault = new DBProofVault();
             VaultClient<ProofEntity> client = vaultMock.constructed().get(0);
 
-            vault.store();
+            vault.store(entity);
             verify(client).store(entity);
 
-            vault.archive();
+            vault.archive(entity.getId().toString());
             assertThat(proofMock.constructed()).hasSize(2);
             verify(proofMock.constructed().get(1)).retrieve(entity.getId().toString());
             verify(proofMock.constructed().get(0)).store(argThat(ProofEntity::isArchived));
 
-            vault.delete();
+            vault.delete(entity.getId().toString());
             verify(proofMock.constructed().get(2)).delete(entity.getId().toString());
         }
     }
@@ -50,9 +50,9 @@ class DBProofVaultTest {
         try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
                 (m, ctx) -> when(m.getBySecret(anyString())).thenReturn(entity));
              MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            DBProofVault vault = DBProofVault.retrieveProof("secret");
+            ProofEntity retrieved = DBProofVault.retrieveProof("secret");
             verify(proofMock.constructed().get(0)).getBySecret("secret");
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(retrieved).isEqualTo(entity);
         }
     }
 }

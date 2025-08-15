@@ -22,15 +22,14 @@ import java.util.UUID;
 
 public class DBMintVault extends DBVault<MintEntity> {
 
-    public DBMintVault(MintEntity entity) {
-        super(entity, new CashuVaultApplication().vaultMintClient());
+    public DBMintVault() {
+        super(new CashuVaultApplication().vaultMintClient());
     }
 
     @Override
-    public void store() {
-        MintEntity mintEntity = getEntity();
+    public MintEntity store(MintEntity mintEntity) {
         VaultClient<MintEntity> client = getClient();
-        client.store(mintEntity);
+        return client.store(mintEntity);
     }
 
     private Set<ProofEntity> getProofs(MintEntity mintEntity) {
@@ -45,9 +44,8 @@ public class DBMintVault extends DBVault<MintEntity> {
 
 
     @Override
-    protected MintEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
+    public MintEntity retrieve(@NonNull String id) throws CashuErrorException {
         VaultClient<MintEntity> client = getClient();
-
         MintEntity mintEntity = client.retrieve(id);
         if (mintEntity == null) {
             throw new CashuErrorException("Mint not found");
@@ -55,21 +53,16 @@ public class DBMintVault extends DBVault<MintEntity> {
         return mintEntity;
     }
 
-    public static DBMintVault retrieveMint(@NonNull String id) throws CashuErrorException {
-        DBMintVault mintVault = new DBMintVault(null);
-        return new DBMintVault(mintVault.retrieveEntity(id));
+    @Override
+    public MintEntity archive(String id) {
+        VaultClient<MintEntity> client = getClient();
+        return client.archive(id);
     }
 
     @Override
-    public void archive() {
+    public void delete(String id) {
         VaultClient<MintEntity> client = getClient();
-        client.archive(this.getEntity().getId().toString());
-    }
-
-    @Override
-    public void delete() {
-        VaultClient<MintEntity> client = getClient();
-        client.delete(this.getEntity().getId().toString());
+        client.delete(id);
     }
 
     public static List<Mint> load(boolean archive) {
@@ -168,16 +161,16 @@ public class DBMintVault extends DBVault<MintEntity> {
         return mint;
     }
 
-    public String getUnit(@NonNull String keySetId) throws CashuErrorException {
-        return this.getEntity().getKeySets().stream()
+    public String getUnit(MintEntity mintEntity, @NonNull String keySetId) throws CashuErrorException {
+        return mintEntity.getKeySets().stream()
                 .filter(keySetEntity -> getKeySetId(keySetEntity).equals(keySetId))
                 .map(KeySetEntity::getUnit)
                 .findFirst()
                 .orElseThrow(() -> new CashuErrorException("KeySet with ID " + keySetId + " not found"));
     }
 
-    public String getPrivateKey(@NonNull String unit, Integer amount) throws CashuErrorException {
-        return this.getEntity().getKeySets().stream()
+    public String getPrivateKey(MintEntity mintEntity, @NonNull String unit, Integer amount) throws CashuErrorException {
+        return mintEntity.getKeySets().stream()
                 .filter(keySetEntity -> keySetEntity.getUnit().equals(unit))
                 .flatMap(keySetEntity -> keySetEntity.getKeys().stream())
                 .filter(keyEntity -> keyEntity.getAmount().equals(amount))

@@ -19,16 +19,16 @@ class DBMintVaultTest {
         MintEntity entity = new MintEntity();
 
         try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class)) {
-            DBMintVault vault = new DBMintVault(entity);
+            DBMintVault vault = new DBMintVault();
             VaultClient<MintEntity> client = mc.constructed().get(0);
 
-            vault.store();
+            vault.store(entity);
             verify(client).store(entity);
 
-            vault.archive();
+            vault.archive(entity.getId().toString());
             verify(client).archive(entity.getId().toString());
 
-            vault.delete();
+            vault.delete(entity.getId().toString());
             verify(client).delete(entity.getId().toString());
         }
     }
@@ -39,10 +39,11 @@ class DBMintVaultTest {
 
         try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class,
                 (mock, ctx) -> when(mock.retrieve(anyString())).thenReturn(entity))) {
-            DBMintVault vault = DBMintVault.retrieveMint("42");
+            DBMintVault vault = new DBMintVault();
             VaultClient<?> client = mc.constructed().get(0);
+            MintEntity retrieved = vault.retrieve("42");
             verify(client).retrieve("42");
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(retrieved).isEqualTo(entity);
         }
     }
 }
