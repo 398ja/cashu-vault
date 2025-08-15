@@ -2,8 +2,9 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -21,12 +22,19 @@ class DBKeySetVaultTest {
         KeySetEntity entity = new KeySetEntity();
         entity.setMint(mint);
 
-        try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class,
-                (mock, ctx) -> when(mock.retrieve(anyString())).thenReturn(mint))) {
-            DBKeySetVault vault = new DBKeySetVault(entity);
-            VaultClient<KeySetEntity> client = mc.constructed().get(0);
+        @SuppressWarnings("unchecked")
+        VaultClient<KeySetEntity> client = mock(VaultClient.class);
+        @SuppressWarnings("unchecked")
+        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
+        when(mintClient.retrieve(anyString())).thenReturn(mint);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
+
+            DBKeySetVault vault = new DBKeySetVault(entity, client);
 
             vault.store();
+            verify(mintClient).retrieve(anyString());
             verify(client).store(entity);
 
             vault.archive();
@@ -40,13 +48,12 @@ class DBKeySetVaultTest {
     @Test
     void retrieveKeySetReturnsWrappedEntity() throws Exception {
         KeySetEntity entity = new KeySetEntity();
+        @SuppressWarnings("unchecked")
+        VaultClient<KeySetEntity> client = mock(VaultClient.class);
+        when(client.retrieve(anyString())).thenReturn(entity);
 
-        try (MockedConstruction<VaultClient> mc = mockConstruction(VaultClient.class,
-                (mock, ctx) -> when(mock.retrieve(anyString())).thenReturn(entity))) {
-            DBKeySetVault vault = DBKeySetVault.retrieveKeySet("id");
-            VaultClient<?> client = mc.constructed().get(0);
-            verify(client).retrieve("id");
-            assertThat(vault.getEntity()).isEqualTo(entity);
-        }
+        DBKeySetVault vault = DBKeySetVault.retrieveKeySet("id", client);
+        verify(client).retrieve("id");
+        assertThat(vault.getEntity()).isEqualTo(entity);
     }
 }

@@ -2,8 +2,9 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -22,23 +23,30 @@ class DBProofVaultTest {
         ProofEntity entity = new ProofEntity();
         entity.setMint(mint);
 
-        try (MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class,
-                (m, ctx) -> when(m.retrieve(anyString())).thenReturn(mint));
-             MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
-                     (m, ctx) -> when(m.retrieve(anyString())).thenReturn(entity))) {
-            DBProofVault vault = new DBProofVault(entity);
-            VaultClient<ProofEntity> client = vaultMock.constructed().get(0);
+        @SuppressWarnings("unchecked")
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
+        when(client.retrieve(anyString())).thenReturn(entity);
+        @SuppressWarnings("unchecked")
+        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
+        when(mintClient.retrieve(anyString())).thenReturn(mint);
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.retrieve(anyString())).thenReturn(entity);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            DBProofVault vault = new DBProofVault(entity, client);
 
             vault.store();
             verify(client).store(entity);
 
             vault.archive();
-            assertThat(proofMock.constructed()).hasSize(2);
-            verify(proofMock.constructed().get(1)).retrieve(entity.getId().toString());
-            verify(proofMock.constructed().get(0)).store(argThat(ProofEntity::isArchived));
+            verify(proofClient).retrieve(entity.getId().toString());
+            verify(proofClient).store(argThat(ProofEntity::isArchived));
 
             vault.delete();
-            verify(proofMock.constructed().get(2)).delete(entity.getId().toString());
+            verify(proofClient).delete(entity.getId().toString());
         }
     }
 
@@ -46,13 +54,11 @@ class DBProofVaultTest {
     void retrieveProofReturnsWrappedEntity() throws Exception {
         ProofEntity entity = new ProofEntity();
         entity.setMint(new MintEntity());
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getBySecret(anyString())).thenReturn(entity);
 
-        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
-                (m, ctx) -> when(m.getBySecret(anyString())).thenReturn(entity));
-             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            DBProofVault vault = DBProofVault.retrieveProof("secret");
-            verify(proofMock.constructed().get(0)).getBySecret("secret");
-            assertThat(vault.getEntity()).isEqualTo(entity);
-        }
+        DBProofVault vault = DBProofVault.retrieveProof("secret", proofClient);
+        verify(proofClient).getBySecret("secret");
+        assertThat(vault.getEntity()).isEqualTo(entity);
     }
 }
