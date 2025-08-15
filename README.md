@@ -88,4 +88,4 @@ Docker image defines `VAULT_BASE_URL` so the service defaults to
 
 ## License
 
-This project is provided without any specific license information.
+This project is licensed under the [MIT License](LICENSE).
