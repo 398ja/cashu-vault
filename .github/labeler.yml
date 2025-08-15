@@ -1,0 +1,6 @@
+bug:
+  - '(?i)bug'
+feature:
+  - '(?i)feature'
+question:
+  - '(?i)question'
