@@ -73,14 +73,9 @@ public class KeyVaultController {
     @GetMapping("/unit/{unit}")
     public ResponseEntity<Set<KeyEntity>> getKeysByUnit(@PathVariable("unit") String unit) throws CashuErrorException {
         log.info("Retrieving keys for unit {}", unit);
-        Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_UnitIgnoreCase(unit);
-        if (keys.isEmpty()) {
-            throw new CashuErrorException("No keys found for the specified unit");
-        }
-        Set<KeyEntity> keySet = keys.get();
-        if (keySet.isEmpty()) {
-            throw new CashuErrorException("No keys found for the specified unit");
-        }
+        Set<KeyEntity> keySet = keyRepository.findByKeySet_UnitIgnoreCase(unit)
+                .filter(set -> !set.isEmpty())
+                .orElseThrow(() -> new CashuErrorException("No keys found for the specified unit"));
         return ResponseEntity.ok(keySet);
     }
 

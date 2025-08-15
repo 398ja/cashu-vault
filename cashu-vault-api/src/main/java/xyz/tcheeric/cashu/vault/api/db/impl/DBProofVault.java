@@ -4,7 +4,7 @@ import lombok.NonNull;
 import lombok.extern.java.Log;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
-import xyz.tcheeric.cashu.vault.db.CashuVaultApplication;
+import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
@@ -18,7 +18,11 @@ public class DBProofVault extends DBVault<ProofEntity> {
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
     public DBProofVault(ProofEntity entity) {
-        super(entity, new CashuVaultApplication().vaultProofClient());
+        this(entity, VaultClientFactory.getClient(ProofEntity.class));
+    }
+
+    public DBProofVault(ProofEntity entity, VaultClient<ProofEntity> client) {
+        super(entity, client);
     }
 
     @Override
@@ -32,7 +36,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     @Override
     protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
-        ProofClient client = new ProofClient();
+        VaultClient<ProofEntity> client = getClient();
         ProofEntity proofEntity = client.retrieve(id);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found");
@@ -48,30 +52,42 @@ public class DBProofVault extends DBVault<ProofEntity> {
 */
 
     public static DBProofVault retrieveProof(@NonNull String secret) throws CashuErrorException {
-        ProofClient client = new ProofClient();
+        ProofClient client = VaultClientFactory.proofClient();
+        return retrieveProof(secret, client);
+    }
+
+    public static DBProofVault retrieveProof(@NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getBySecret(secret);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for secret: " + secret);
         }
-        return new DBProofVault(proofEntity);
+        return new DBProofVault(proofEntity, client);
     }
 
     public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
-        ProofClient client = new ProofClient();
+        ProofClient client = VaultClientFactory.proofClient();
+        return retrieveProof(mintId, secret, client);
+    }
+
+    public static DBProofVault retrieveProof(@NonNull String mintId, @NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
         }
-        return new DBProofVault(proofEntity);
+        return new DBProofVault(proofEntity, client);
     }
 
     public static DBProofVault retrieveProof(String mintId, Integer amount) throws CashuErrorException {
-        ProofClient client = new ProofClient();
+        ProofClient client = VaultClientFactory.proofClient();
+        return retrieveProof(mintId, amount, client);
+    }
+
+    public static DBProofVault retrieveProof(String mintId, Integer amount, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
         if (proofEntity == null) {
             throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
         }
-        return new DBProofVault(proofEntity);
+        return new DBProofVault(proofEntity, client);
     }
 
     public void storePending() {
@@ -85,7 +101,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 
     private MintEntity getMint(ProofEntity proofEntity) {
-        VaultClient<MintEntity> mintVaultClient = new VaultClient<>(MintEntity.class);
+        VaultClient<MintEntity> mintVaultClient = VaultClientFactory.getClient(MintEntity.class);
         return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 
@@ -127,7 +143,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
         PROOF_STATE_LOCK.lock();
 
         try {
-            ProofClient proofClient = new ProofClient();
+            ProofClient proofClient = VaultClientFactory.proofClient();
             ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setArchived(true);
             proofClient.store(proofEntity);
@@ -138,14 +154,14 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     @Override
     public void delete() {
-        ProofClient client = new ProofClient();
+        ProofClient client = VaultClientFactory.proofClient();
         client.delete(getEntity().getId().toString());
     }
 
     public void invalidate() throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
         try {
-            ProofClient proofClient = new ProofClient();
+            ProofClient proofClient = VaultClientFactory.proofClient();
             ProofEntity proofEntity = retrieveEntity(getEntity().getId().toString());
             proofEntity.setState(ProofEntity.STATE_SPENT);
             proofClient.store(proofEntity);
