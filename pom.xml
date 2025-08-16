@@ -48,7 +48,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/tcheeric/cashu-lib</url>
+            <url>https://maven.pkg.github.com/398ja/cashu-lib</url>
         </repository>
     </repositories>
 
