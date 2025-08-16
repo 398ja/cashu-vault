@@ -12,5 +12,21 @@ import org.springframework.stereotype.Component;
 @Data
 public class VaultBaseProperties {
     /** Base URL for the vault service. */
-    private String url = "http://localhost:3333";
+    private String url = loadBaseUrl();
+
+    private static String loadBaseUrl() {
+        String env = System.getenv("VAULT_BASE_URL");
+        if (env != null && !env.isBlank()) {
+            return env;
+        }
+        String property = System.getProperty("vault.base.url");
+        if (property != null && !property.isBlank()) {
+            return property;
+        }
+        String port = System.getenv("cashu_vault_port");
+        if (port != null && !port.isBlank()) {
+            return "http://localhost:" + port;
+        }
+        return "http://localhost:3333";
+    }
 }
