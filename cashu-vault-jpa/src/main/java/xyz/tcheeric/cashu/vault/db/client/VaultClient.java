@@ -75,6 +75,10 @@ public class VaultClient<T extends BaseEntity> {
         if (property != null && !property.isBlank()) {
             return removeTrailingSlash(property);
         }
+        String port = System.getenv("cashu_vault_port");
+        if (port != null && !port.isBlank()) {
+            return "http://localhost:" + port;
+        }
         return DEFAULT_BASE_URL;
     }
 
