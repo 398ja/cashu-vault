@@ -22,6 +22,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/cashu_vault
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      VAULT_BASE_URL: http://localhost:3333
+      cashu_vault_port: ${cashu_vault_port:-3333}
+      VAULT_BASE_URL: http://localhost:${cashu_vault_port:-3333}
     ports:
-      - "3333:3333"
+      - "${cashu_vault_port:-3333}:${cashu_vault_port:-3333}"

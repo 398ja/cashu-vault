@@ -23,6 +23,19 @@ If Maven is not installed globally, use the provided wrapper in
 
 This creates the runnable JAR `cashu-vault-jpa/target/cashu-vault-jpa-*.jar` used in the Docker image.
 
+## Running locally
+
+The application can be started directly on your machine once it has been
+built. Execute the jar produced by the build or run it from source:
+
+```bash
+java -jar cashu-vault-jpa/target/cashu-vault-jpa-*.jar
+# or
+./cashu-vault-jpa/mvnw spring-boot:run
+```
+
+The service will then be available at `http://localhost:3333`.
+
 ## Running with Docker Compose
 
 The repository includes a `docker-compose.yml` which starts the vault service together with a PostgreSQL container:
@@ -31,8 +44,9 @@ The repository includes a `docker-compose.yml` which starts the vault service to
 docker-compose up --build
 ```
 
-The application listens on port `3333` and the database on `5432`.  Datasource
-settings can be customised with the environment variables defined in
+The application listens on port `3333` by default and the database on `5432`.
+Set the `cashu_vault_port` environment variable to run the service on a different port.
+Datasource settings can be customised with the environment variables defined in
 `docker-compose.yml`.
 
 ## Running Tests
@@ -82,8 +96,9 @@ The service exposes the following endpoints (all relative to `/vault`):
 ## Configuration
 
 `VaultClient` reads the base URL of the service from the `VAULT_BASE_URL`
-environment variable or the `vault.base.url` system property. The provided
-Docker image defines `VAULT_BASE_URL` so the service defaults to
+environment variable or the `vault.base.url` system property. If neither is
+set, it falls back to `http://localhost:${cashu_vault_port}` with a default port of `3333`.
+The provided Docker image defines `cashu_vault_port` so the service defaults to
 `http://localhost:3333` when started with Docker Compose.
 
 ## License
