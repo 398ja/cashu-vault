@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
-          server-id: github
+          server-id: github-vault-releases
           server-username: ${{ github.actor }}
           server-password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -33,7 +33,12 @@ jobs:
           <settings>
             <servers>
               <server>
-                <id>github</id>
+                <id>github-vault-releases</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
+              </server>
+              <server>
+                <id>github-vault-snapshots</id>
                 <username>${{ github.actor }}</username>
                 <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>

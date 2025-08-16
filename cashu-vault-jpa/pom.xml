@@ -31,19 +31,19 @@
 
     <distributionManagement>
         <repository>
-            <id>github</id>
+            <id>github-vault-releases</id>
             <name>GitHub Packages</name>
             <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
         </repository>
         <snapshotRepository>
-            <id>github</id>
+            <id>github-vault-snapshots</id>
             <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
         </snapshotRepository>
     </distributionManagement>
 
     <repositories>
         <repository>
-            <id>github</id>
+            <id>github-lib-releases</id>
             <name>GitHub Packages</name>
             <url>https://maven.pkg.github.com/398ja/cashu-lib</url>
         </repository>
