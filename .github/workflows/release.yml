@@ -42,6 +42,11 @@ jobs:
                 <username>${{ github.actor }}</username>
                 <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
+              <server>
+                <id>github-lib-releases</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
+              </server>          
             </servers>
           </settings>
           EOL
