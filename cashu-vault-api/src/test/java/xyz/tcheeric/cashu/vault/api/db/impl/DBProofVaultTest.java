@@ -65,6 +65,24 @@ class DBProofVaultTest {
     }
 
     @Test
+    void retrieveProofBySecretUsesFactoryClient() throws Exception {
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(new MintEntity());
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getBySecret("secret")).thenReturn(entity);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            ProofEntity proofEntity = DBProofVault.retrieveProof("secret");
+
+            factory.verify(VaultClientFactory::proofClient);
+            verify(proofClient).getBySecret("secret");
+            assertThat(proofEntity).isEqualTo(entity);
+        }
+    }
+
+    @Test
     void retrieveProofByMintAndSecretUsesClient() throws Exception {
         ProofEntity entity = new ProofEntity();
         entity.setMint(new MintEntity());
