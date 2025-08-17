@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -12,6 +13,7 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -103,6 +105,47 @@ class DBProofVaultTest {
             ProofEntity proofEntity = DBProofVault.retrieveProofByUnblindedSignature("mint", "sig");
             verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
             assertThat(proofEntity).isEqualTo(entity);
+        }
+    }
+
+    @Test
+    void retrieveProofBySecretThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getBySecret(anyString())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("missing", proofClient));
+        verify(proofClient).getBySecret("missing");
+    }
+
+    @Test
+    void retrieveProofByMintAndSecretThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getByMintIdAndSecret(anyString(), anyString())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("mint", "missing", proofClient));
+        verify(proofClient).getByMintIdAndSecret("mint", "missing");
+    }
+
+    @Test
+    void retrieveProofByMintAndAmountThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getByMintAndAmount(anyString(), anyInt())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("mint", 1, proofClient));
+        verify(proofClient).getByMintAndAmount("mint", 1);
+    }
+
+    @Test
+    void retrieveProofByMintAndSignatureThrowsWhenMissing() {
+        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
+                (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(null));
+             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+            assertThrows(CashuErrorException.class,
+                    () -> DBProofVault.retrieveProofByUnblindedSignature("mint", "sig"));
+            verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
         }
     }
 }
