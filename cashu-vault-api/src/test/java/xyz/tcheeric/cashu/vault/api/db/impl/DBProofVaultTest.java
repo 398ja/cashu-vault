@@ -92,24 +92,20 @@ class DBProofVaultTest {
     }
 
     @Test
-    void invalidateMarksProofSpent() throws Exception {
+    void retrieveProofBySecretUsesFactoryClient() throws Exception {
         ProofEntity entity = new ProofEntity();
         entity.setMint(new MintEntity());
-
-        @SuppressWarnings("unchecked")
-        VaultClient<ProofEntity> client = mock(VaultClient.class);
-        when(client.retrieve(anyString())).thenReturn(entity);
         ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getBySecret("secret")).thenReturn(entity);
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
-            DBProofVault vault = new DBProofVault(client);
+            ProofEntity proofEntity = DBProofVault.retrieveProof("secret");
 
-            ProofEntity result = vault.invalidate(entity.getId().toString());
-            verify(client).retrieve(entity.getId().toString());
-            verify(proofClient).store(argThat(p -> ProofEntity.STATE_SPENT.equals(p.getState())));
-            assertThat(result.getState()).isEqualTo(ProofEntity.STATE_SPENT);
+            factory.verify(VaultClientFactory::proofClient);
+            verify(proofClient).getBySecret("secret");
+            assertThat(proofEntity).isEqualTo(entity);
         }
     }
 
