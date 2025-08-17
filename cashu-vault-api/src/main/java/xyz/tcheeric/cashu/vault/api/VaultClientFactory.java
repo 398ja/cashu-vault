@@ -44,7 +44,7 @@ public final class VaultClientFactory {
      */
     @SuppressWarnings("unchecked")
     public static <T extends BaseEntity> VaultClient<T> getClient(Class<T> type) {
-        return (VaultClient<T>) CLIENTS.computeIfAbsent(type, t -> new VaultClient<>(t, PROPERTIES.getUrl()));
+        return (VaultClient<T>) CLIENTS.computeIfAbsent(type, t -> new VaultClient<>(type, PROPERTIES.getUrl()));
     }
 
     /**

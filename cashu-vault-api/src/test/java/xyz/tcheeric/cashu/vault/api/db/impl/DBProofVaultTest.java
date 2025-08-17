@@ -2,6 +2,7 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
@@ -71,9 +72,9 @@ class DBProofVaultTest {
         try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
                 (m, ctx) -> when(m.getByMintIdAndSecret(anyString(), anyString())).thenReturn(entity));
              MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            DBProofVault vault = DBProofVault.retrieveProof("mint", "secret");
+            ProofEntity proofEntity = DBProofVault.retrieveProof("mint", "secret");
             verify(proofMock.constructed().get(0)).getByMintIdAndSecret("mint", "secret");
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(proofEntity).isEqualTo(entity);
         }
     }
 
@@ -85,9 +86,9 @@ class DBProofVaultTest {
         try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
                 (m, ctx) -> when(m.getByMintAndAmount(anyString(), anyInt())).thenReturn(entity));
              MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            DBProofVault vault = DBProofVault.retrieveProof("mint", 1);
+            ProofEntity proofEntity = DBProofVault.retrieveProof("mint", 1);
             verify(proofMock.constructed().get(0)).getByMintAndAmount("mint", 1);
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(proofEntity).isEqualTo(entity);
         }
     }
 
@@ -99,9 +100,9 @@ class DBProofVaultTest {
         try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
                 (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(entity));
              MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            DBProofVault vault = DBProofVault.retrieveProofByUnblindedSignature("mint", "sig");
+            ProofEntity proofEntity = DBProofVault.retrieveProofByUnblindedSignature("mint", "sig");
             verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
-            assertThat(vault.getEntity()).isEqualTo(entity);
+            assertThat(proofEntity).isEqualTo(entity);
         }
     }
 }
