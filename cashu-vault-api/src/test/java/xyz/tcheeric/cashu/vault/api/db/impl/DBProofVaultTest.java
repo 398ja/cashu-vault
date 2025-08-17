@@ -98,8 +98,7 @@ class DBProofVaultTest {
         entity.setMint(new MintEntity());
 
         try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
-                (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(entity));
-             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+                (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(entity))) {
             ProofEntity proofEntity = DBProofVault.retrieveProofByUnblindedSignature("mint", "sig");
             verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
             assertThat(proofEntity).isEqualTo(entity);
