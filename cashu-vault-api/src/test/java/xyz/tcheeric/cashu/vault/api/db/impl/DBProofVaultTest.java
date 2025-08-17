@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -12,6 +13,7 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -49,6 +51,31 @@ class DBProofVaultTest {
 
             vault.delete(entity.getId().toString());
             verify(proofClient).delete(entity.getId().toString());
+        }
+    }
+
+    @Test
+    void storePendingSetsStatePending() throws Exception {
+        MintEntity mint = new MintEntity();
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(mint);
+
+        @SuppressWarnings("unchecked")
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
+        when(client.store(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        @SuppressWarnings("unchecked")
+        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
+        when(mintClient.retrieve(anyString())).thenReturn(mint);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(() -> VaultClientFactory.getClient(ProofEntity.class)).thenReturn(client);
+            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
+
+            DBProofVault vault = new DBProofVault(mock(VaultClient.class));
+
+            ProofEntity stored = vault.storePending(entity);
+            verify(client).store(entity);
+            assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
         }
     }
 
@@ -121,6 +148,47 @@ class DBProofVaultTest {
             ProofEntity proofEntity = DBProofVault.retrieveProofByUnblindedSignature("mint", "sig");
             verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
             assertThat(proofEntity).isEqualTo(entity);
+        }
+    }
+
+    @Test
+    void retrieveProofBySecretThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getBySecret(anyString())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("missing", proofClient));
+        verify(proofClient).getBySecret("missing");
+    }
+
+    @Test
+    void retrieveProofByMintAndSecretThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getByMintIdAndSecret(anyString(), anyString())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("mint", "missing", proofClient));
+        verify(proofClient).getByMintIdAndSecret("mint", "missing");
+    }
+
+    @Test
+    void retrieveProofByMintAndAmountThrowsWhenMissing() {
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getByMintAndAmount(anyString(), anyInt())).thenReturn(null);
+
+        assertThrows(CashuErrorException.class,
+                () -> DBProofVault.retrieveProof("mint", 1, proofClient));
+        verify(proofClient).getByMintAndAmount("mint", 1);
+    }
+
+    @Test
+    void retrieveProofByMintAndSignatureThrowsWhenMissing() {
+        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
+                (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(null));
+             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+            assertThrows(CashuErrorException.class,
+                    () -> DBProofVault.retrieveProofByUnblindedSignature("mint", "sig"));
+            verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
         }
     }
 }
