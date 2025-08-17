@@ -43,6 +43,7 @@ class DBProofVaultTest {
             DBProofVault vault = new DBProofVault(client);
 
             vault.store(entity);
+            verify(mintClient).retrieve(mint.getId().toString());
             verify(client).store(entity);
 
             vault.archive(entity.getId().toString());
