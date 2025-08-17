@@ -53,6 +53,31 @@ class DBProofVaultTest {
     }
 
     @Test
+    void storePendingSetsStatePending() throws Exception {
+        MintEntity mint = new MintEntity();
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(mint);
+
+        @SuppressWarnings("unchecked")
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
+        when(client.store(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        @SuppressWarnings("unchecked")
+        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
+        when(mintClient.retrieve(anyString())).thenReturn(mint);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(() -> VaultClientFactory.getClient(ProofEntity.class)).thenReturn(client);
+            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
+
+            DBProofVault vault = new DBProofVault(mock(VaultClient.class));
+
+            ProofEntity stored = vault.storePending(entity);
+            verify(client).store(entity);
+            assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
+        }
+    }
+
+    @Test
     void retrieveProofBySecretReturnsWrappedEntity() throws Exception {
         ProofEntity entity = new ProofEntity();
         entity.setMint(new MintEntity());
@@ -62,6 +87,28 @@ class DBProofVaultTest {
         ProofEntity result = DBProofVault.retrieveProof("secret", proofClient);
         verify(proofClient).getBySecret("secret");
         assertThat(result).isEqualTo(entity);
+    }
+
+    @Test
+    void invalidateMarksProofSpent() throws Exception {
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(new MintEntity());
+
+        @SuppressWarnings("unchecked")
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
+        when(client.retrieve(anyString())).thenReturn(entity);
+        ProofClient proofClient = mock(ProofClient.class);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            DBProofVault vault = new DBProofVault(client);
+
+            ProofEntity result = vault.invalidate(entity.getId().toString());
+            verify(client).retrieve(entity.getId().toString());
+            verify(proofClient).store(argThat(p -> ProofEntity.STATE_SPENT.equals(p.getState())));
+            assertThat(result.getState()).isEqualTo(ProofEntity.STATE_SPENT);
+        }
     }
 
     @Test
