@@ -34,7 +34,6 @@ class DBProofVaultTest {
         VaultClient<MintEntity> mintClient = mock(VaultClient.class);
         when(mintClient.retrieve(anyString())).thenReturn(mint);
         ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.retrieve(anyString())).thenReturn(entity);
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
