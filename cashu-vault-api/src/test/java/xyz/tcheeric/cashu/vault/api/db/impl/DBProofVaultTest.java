@@ -68,12 +68,15 @@ class DBProofVaultTest {
     void retrieveProofByMintAndSecretUsesClient() throws Exception {
         ProofEntity entity = new ProofEntity();
         entity.setMint(new MintEntity());
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.getByMintIdAndSecret(anyString(), anyString())).thenReturn(entity);
 
-        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
-                (m, ctx) -> when(m.getByMintIdAndSecret(anyString(), anyString())).thenReturn(entity));
-             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
             ProofEntity proofEntity = DBProofVault.retrieveProof("mint", "secret");
-            verify(proofMock.constructed().get(0)).getByMintIdAndSecret("mint", "secret");
+
+            verify(proofClient).getByMintIdAndSecret("mint", "secret");
             assertThat(proofEntity).isEqualTo(entity);
         }
     }
