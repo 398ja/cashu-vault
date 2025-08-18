@@ -3,6 +3,7 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 
@@ -14,7 +15,7 @@ import static org.mockito.Mockito.*;
 class DBMintVaultTest {
 
     @Test
-    void storeArchiveDeleteUseVaultClient() {
+    void storeArchiveDeleteUseVaultClient() throws CashuErrorException {
         MintEntity entity = new MintEntity();
         @SuppressWarnings("unchecked")
         VaultClient<MintEntity> client = mock(VaultClient.class);
