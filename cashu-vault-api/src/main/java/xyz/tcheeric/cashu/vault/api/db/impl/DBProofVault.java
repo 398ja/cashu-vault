@@ -12,6 +12,8 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+import static xyz.tcheeric.cashu.vault.api.VaultClientFactory.getClient;
+
 @Log
 public class DBProofVault extends DBVault<ProofEntity> {
 
@@ -86,7 +88,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
         return proofEntity;
     }
 
-    public static DBProofVault retrieveProofByUnblindedSignature(@NonNull String mintId,
+    public static ProofEntity retrieveProofByUnblindedSignature(@NonNull String mintId,
             @NonNull String unblindedSignature) throws CashuErrorException {
         ProofClient client = new ProofClient();
         ProofEntity proofEntity = client.getByMintAndUnblindedSignature(mintId, unblindedSignature);
@@ -94,12 +96,11 @@ public class DBProofVault extends DBVault<ProofEntity> {
             throw new CashuErrorException(
                     "Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature);
         }
-        return new DBProofVault(proofEntity);
+        return proofEntity;
     }
 
-    public void storePending() {
-        ProofEntity proofEntity = getEntity();
-        VaultClient<ProofEntity> client = getClient();
+    public ProofEntity storePending(@NonNull ProofEntity proofEntity) throws CashuErrorException {
+        VaultClient<ProofEntity> client = getClient(ProofEntity.class);
 
         proofEntity.setMint(getMint(proofEntity));
         proofEntity.setState(ProofEntity.STATE_PENDING);
@@ -108,7 +109,7 @@ public class DBProofVault extends DBVault<ProofEntity> {
     }
 
     private MintEntity getMint(ProofEntity proofEntity) {
-        VaultClient<MintEntity> mintVaultClient = VaultClientFactory.getClient(MintEntity.class);
+        VaultClient<MintEntity> mintVaultClient = getClient(MintEntity.class);
         return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 

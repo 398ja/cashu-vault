@@ -46,21 +46,20 @@
 
     <repositories>
         <repository>
-            <id>github-lib-releases</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/398ja/cashu-lib</url>
+            <id>reposilite-releases</id>
+            <name>Reposilite</name>
+            <url>https://maven.398ja.xyz/releases</url>
         </repository>
     </repositories>
 
     <distributionManagement>
         <repository>
-            <id>github-vault-releases</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
+            <id>reposilite-releases</id>
+            <url>https://maven.398ja.xyz/releases</url>
         </repository>
         <snapshotRepository>
-            <id>github-vault-snapshots</id>
-            <url>https://maven.pkg.github.com/398ja/cashu-vault</url>
+            <id>reposilite-snapshots</id>
+            <url>https://maven.398ja.xyz/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
