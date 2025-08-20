@@ -8,14 +8,7 @@ It provides REST endpoints for persisting **mints**, **key sets**, **proofs**, a
 
 ## Building
 
-Java 21 and Maven 3.8+ are required. Compile all modules with:
-
-```bash
-mvn package
-```
-
-If Maven is not installed globally, use the provided wrapper in
-`cashu-vault-jpa/`:
+Java 21 and Maven 3.8+ are required. Build all modules using the Maven wrapper:
 
 ```bash
 ./cashu-vault-jpa/mvnw package
@@ -103,4 +96,4 @@ The provided Docker image defines `cashu_vault_port` so the service defaults to
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+See the [LICENSE](LICENSE) file for details.
