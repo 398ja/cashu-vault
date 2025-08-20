@@ -1,6 +1,6 @@
 bug:
-  - '(?i)bug'
+  - '(?i)\\bbug\\b'
 feature:
-  - '(?i)feature'
+  - '(?i)\\bfeature\\b'
 question:
-  - '(?i)question'
+  - '(?i)\\bquestion\\b'
