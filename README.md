@@ -57,42 +57,6 @@ Unit tests run against an in-memory H2 database and can be executed with:
 mvn test
 ```
 
-## REST API Overview
-
-The service exposes the following endpoints (all relative to `/vault`):
-
-### Mint
-- `POST   /mint` – store a mint
-- `GET    /mint/{id}` – retrieve by ID
-- `POST   /mint/archive/{id}` – mark archived
-- `DELETE /mint/{id}` – remove
-
-### Key set
-- `POST   /keyset` – store a key set
-- `GET    /keyset/{id}` – retrieve by ID
-- `GET    /keyset/id/{id}` – retrieve by key set ID
-- `GET    /keyset/unit/{unit}` – all key sets for a unit
-- `GET    /keyset/mint/{mintId}/unit/{unit}/keyset/{keySetId}` – key set for a mint, unit and ID
-- `GET    /keyset/mint/{mintId}` – key sets for a mint
-- `POST   /keyset/archive/{id}` – mark archived
-- `DELETE /keyset/{id}` – remove
-
-### Key
-- `POST   /key` – store a key
-- `GET    /key/{id}` – retrieve by ID
-- `GET    /key/unit/{unit}` – keys by unit
-- `GET    /key/privatekey/{privateKey}` – retrieve by private key
-- `GET    /key/keyset/{id}` – keys by key set ID
-- `POST   /key/archive/{id}` – mark archived
-- `DELETE /key/{id}` – remove
-
-### Proof
-- `POST   /proof` – store a proof
-- `GET    /proof/{id}` – retrieve by ID
-- `GET    /proof/mint/{mintId}` – proofs by mint ID
-- `POST   /proof/archive/{id}` – mark archived
-- `DELETE /proof/{id}` – remove
-
 ## Configuration
 
 `VaultClient` reads the base URL of the service from the `VAULT_BASE_URL`
