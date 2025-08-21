@@ -67,3 +67,4 @@ The URL format for the NUTs is https://github.com/cashubtc/nuts/blob/main/XX.md 
 - When TODOs or placeholders remain, include a Notes section.
 - Review AI-generated changes with developer expertise, ensuring you understand why the code works and that it remains resilient, scalable, and secure.
 - Use `rg` for search instead of `ls -R` or `grep -R`.
+- Ensure all new features are compliant with the API specification provided above.
