@@ -47,6 +47,7 @@ The URL format for the NUTs is https://github.com/cashubtc/nuts/blob/main/XX.md 
 - Always make sure that the operations are compliant with the Cashu protocol specifications, and that the actions are valid according to the NUT specifications.
 - Always remove unused imports
 - When creating a branch, bump up the version in the pom files to the next minor version.
+- Add a comment on top of every test method to describe the test in plain English.
 
 ## Pull Requests
 
