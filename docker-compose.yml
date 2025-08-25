@@ -14,7 +14,7 @@ services:
       timeout: 5s
       retries: 5
   cashu-vault-jpa:
-    build: .
+    build: ./cashu-vault-jpa
     depends_on:
       cashu-vault-db:
         condition: service_healthy
