@@ -112,11 +112,7 @@
                 <version>${jib-maven-plugin.version}</version>
                 <configuration>
                     <to>
-                        <image>docker.398ja.xyz/${project.artifactId}</image>
-                        <tags>
-                            <tag>${project.version}</tag>
-                            <tag>latest</tag>
-                        </tags>
+                        <image>docker.398ja.xyz/${project.artifactId}:${project.version}</image>
                     </to>
                 </configuration>
                 <executions>
