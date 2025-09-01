@@ -1,0 +1,672 @@
+17:33:30.480 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [xyz.tcheeric.cashu.vault.db.controller.ProofVaultControllerIntegrationTest]: ProofVaultControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+17:33:30.978 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration xyz.tcheeric.cashu.vault.db.CashuVaultApplication for test class xyz.tcheeric.cashu.vault.db.controller.ProofVaultControllerIntegrationTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.0)
+
+2025-09-01T17:33:32.490+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .d.c.ProofVaultControllerIntegrationTest : Starting ProofVaultControllerIntegrationTest using Java 23 with PID 337460 (started by eric in /home/eric/IdeaProjects/cashu-vault/cashu-vault-jpa)
+2025-09-01T17:33:32.492+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .d.c.ProofVaultControllerIntegrationTest : No active profile set, falling back to 1 default profile: "default"
+2025-09-01T17:33:35.607+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-09-01T17:33:35.746+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 121 ms. Found 4 JPA repository interfaces.
+2025-09-01T17:33:38.064+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-09-01T17:33:38.403+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-09-01T17:33:38.530+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-09-01T17:33:38.878+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.boot.internal.EnversServiceImpl    : Envers integration enabled? : true
+2025-09-01T17:33:39.412+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-09-01T17:33:39.509+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-09-01T17:33:40.053+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2025-09-01T17:33:40.060+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-09-01T17:33:40.148+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-09-01T17:33:40.267+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.2.224
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-09-01T17:33:41.096+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.MintEntity
+2025-09-01T17:33:41.103+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.KeyEntity
+2025-09-01T17:33:41.107+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.ProofEntity
+2025-09-01T17:33:41.111+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.KeySetEntity
+2025-09-01T17:33:43.154+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-09-01T17:33:43.181+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists revinfo cascade 
+Hibernate: drop table if exists revinfo cascade 
+2025-09-01T17:33:43.188+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_key cascade 
+Hibernate: drop table if exists t_key cascade 
+2025-09-01T17:33:43.189+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_key_a cascade 
+Hibernate: drop table if exists t_key_a cascade 
+2025-09-01T17:33:43.189+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_keyset cascade 
+Hibernate: drop table if exists t_keyset cascade 
+2025-09-01T17:33:43.190+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_keyset_a cascade 
+Hibernate: drop table if exists t_keyset_a cascade 
+2025-09-01T17:33:43.191+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_mint cascade 
+Hibernate: drop table if exists t_mint cascade 
+2025-09-01T17:33:43.191+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_mint_a cascade 
+Hibernate: drop table if exists t_mint_a cascade 
+2025-09-01T17:33:43.192+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_proof cascade 
+Hibernate: drop table if exists t_proof cascade 
+2025-09-01T17:33:43.193+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_proof_a cascade 
+Hibernate: drop table if exists t_proof_a cascade 
+2025-09-01T17:33:43.199+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table revinfo (rev integer generated by default as identity, revtstmp bigint, primary key (rev))
+Hibernate: create table revinfo (rev integer generated by default as identity, revtstmp bigint, primary key (rev))
+2025-09-01T17:33:43.214+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_key (amount numeric(38,0) not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id uuid, private_key varchar(255) not null, primary key (id), constraint idx_key_private_key_unq unique (private_key))
+Hibernate: create table t_key (amount numeric(38,0) not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id uuid, private_key varchar(255) not null, primary key (id), constraint idx_key_private_key_unq unique (private_key))
+2025-09-01T17:33:43.237+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_key_a (amount numeric(38,0), archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id uuid, private_key varchar(255), primary key (rev, id))
+Hibernate: create table t_key_a (amount numeric(38,0), archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id uuid, private_key varchar(255), primary key (rev, id))
+2025-09-01T17:33:43.254+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_keyset (archived boolean not null, version integer, unit varchar(5) not null, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id varchar(16) not null, mint_id uuid, primary key (id), constraint idx_keyset_unit_mint_unq unique (unit, mint_id), constraint idx_keyset_key_set_mint_unq unique (key_set_id, mint_id))
+Hibernate: create table t_keyset (archived boolean not null, version integer, unit varchar(5) not null, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id varchar(16) not null, mint_id uuid, primary key (id), constraint idx_keyset_unit_mint_unq unique (unit, mint_id), constraint idx_keyset_key_set_mint_unq unique (key_set_id, mint_id))
+2025-09-01T17:33:43.270+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_keyset_a (archived boolean, rev integer not null, revtype tinyint, unit varchar(5), created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id varchar(16), mint_id uuid, primary key (rev, id))
+Hibernate: create table t_keyset_a (archived boolean, rev integer not null, revtype tinyint, unit varchar(5), created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id varchar(16), mint_id uuid, primary key (rev, id))
+2025-09-01T17:33:43.273+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_mint (archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, primary key (id))
+Hibernate: create table t_mint (archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, primary key (id))
+2025-09-01T17:33:43.276+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_mint_a (archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, primary key (rev, id))
+Hibernate: create table t_mint_a (archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, primary key (rev, id))
+2025-09-01T17:33:43.279+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_proof (amount integer not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, mint_id uuid not null, c varchar(255) not null, secret varchar(255) not null, state varchar(255) not null, witness varchar(255) unique, primary key (id))
+Hibernate: create table t_proof (amount integer not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, mint_id uuid not null, c varchar(255) not null, secret varchar(255) not null, state varchar(255) not null, witness varchar(255) unique, primary key (id))
+2025-09-01T17:33:43.284+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_proof_a (amount integer, archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, mint_id uuid, c varchar(255), secret varchar(255), state varchar(255), witness varchar(255), primary key (rev, id))
+Hibernate: create table t_proof_a (amount integer, archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, mint_id uuid, c varchar(255), secret varchar(255), state varchar(255), witness varchar(255), primary key (rev, id))
+2025-09-01T17:33:43.288+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create index idx_proof_mint_id on t_proof (mint_id)
+Hibernate: create index idx_proof_mint_id on t_proof (mint_id)
+2025-09-01T17:33:43.290+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_key add constraint FKdb637wosjhxn8rb36a58dcm4x foreign key (key_set_id) references t_keyset
+Hibernate: alter table if exists t_key add constraint FKdb637wosjhxn8rb36a58dcm4x foreign key (key_set_id) references t_keyset
+2025-09-01T17:33:43.311+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_key_a add constraint FKerqw0hfj351r297pr3vv54l2f foreign key (rev) references revinfo
+Hibernate: alter table if exists t_key_a add constraint FKerqw0hfj351r297pr3vv54l2f foreign key (rev) references revinfo
+2025-09-01T17:33:43.314+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_keyset add constraint FKbxtit78pqc24j6jfqtiva41l3 foreign key (mint_id) references t_mint
+Hibernate: alter table if exists t_keyset add constraint FKbxtit78pqc24j6jfqtiva41l3 foreign key (mint_id) references t_mint
+2025-09-01T17:33:43.317+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_keyset_a add constraint FKthcertt7tonuxx9tdt6twsrx4 foreign key (rev) references revinfo
+Hibernate: alter table if exists t_keyset_a add constraint FKthcertt7tonuxx9tdt6twsrx4 foreign key (rev) references revinfo
+2025-09-01T17:33:43.320+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_mint_a add constraint FKhsr48hvcgrjyk99td8ya045nl foreign key (rev) references revinfo
+Hibernate: alter table if exists t_mint_a add constraint FKhsr48hvcgrjyk99td8ya045nl foreign key (rev) references revinfo
+2025-09-01T17:33:43.325+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_proof add constraint FKis1w4qrn2dewlif0mqgynqy7r foreign key (mint_id) references t_mint
+Hibernate: alter table if exists t_proof add constraint FKis1w4qrn2dewlif0mqgynqy7r foreign key (mint_id) references t_mint
+2025-09-01T17:33:43.332+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_proof_a add constraint FKluyu6xpje6a39xpa8eug9ratu foreign key (rev) references revinfo
+Hibernate: alter table if exists t_proof_a add constraint FKluyu6xpje6a39xpa8eug9ratu foreign key (rev) references revinfo
+2025-09-01T17:33:43.346+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-09-01T17:33:45.181+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-09-01T17:33:46.902+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2025-09-01T17:33:46.902+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2025-09-01T17:33:46.945+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-01T17:33:47.001+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 96 ms
+2025-09-01T17:33:47.206+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .d.c.ProofVaultControllerIntegrationTest : Started ProofVaultControllerIntegrationTest in 15.745 seconds (process running for 18.938)
+2025-09-01T17:33:48.460+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.ProofVaultController         : Retrieving ProofEntity 4ce72045-3d53-4780-ab2c-0d8d4e27ce99
+2025-09-01T17:33:48.588+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : select pe1_0.id,pe1_0.amount,pe1_0.archived,pe1_0.created_at,pe1_0.mint_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,pe1_0.secret,pe1_0.state,pe1_0.c,pe1_0.updated_at,pe1_0.version,pe1_0.witness from t_proof pe1_0 join t_mint m1_0 on m1_0.id=pe1_0.mint_id where pe1_0.id=?
+Hibernate: select pe1_0.id,pe1_0.amount,pe1_0.archived,pe1_0.created_at,pe1_0.mint_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,pe1_0.secret,pe1_0.state,pe1_0.c,pe1_0.updated_at,pe1_0.version,pe1_0.witness from t_proof pe1_0 join t_mint m1_0 on m1_0.id=pe1_0.mint_id where pe1_0.id=?
+2025-09-01T17:33:48.798+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.GlobalExceptionHandler       : Cashu error
+
+xyz.tcheeric.cashu.common.util.CashuErrorException: ProofEntity not found
+	at xyz.tcheeric.cashu.vault.db.controller.ProofVaultController.retrieve(ProofVaultController.java:63) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72) ~[spring-test-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201) ~[spring-test-6.2.7.jar:6.2.7]
+	at xyz.tcheeric.cashu.vault.db.controller.ProofVaultControllerIntegrationTest.retrieveMissingProofReturnsNotFound(ProofVaultControllerIntegrationTest.java:25) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:479) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:194) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:150) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:124) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.5.3.jar:3.5.3]
+
+2025-09-01T17:33:49.030+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [xyz.tcheeric.cashu.vault.db.controller.KeySetVaultControllerIntegrationTest]: KeySetVaultControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2025-09-01T17:33:49.056+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration xyz.tcheeric.cashu.vault.db.CashuVaultApplication for test class xyz.tcheeric.cashu.vault.db.controller.KeySetVaultControllerIntegrationTest
+2025-09-01T17:33:49.122+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.KeySetVaultController        : Retrieving KeySetEntity c42d600a-141c-4372-83b7-309675e0e5d9
+2025-09-01T17:33:49.125+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : select kse1_0.id,kse1_0.archived,kse1_0.created_at,kse1_0.key_set_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,kse1_0.unit,kse1_0.updated_at,kse1_0.version from t_keyset kse1_0 left join t_mint m1_0 on m1_0.id=kse1_0.mint_id where kse1_0.id=?
+Hibernate: select kse1_0.id,kse1_0.archived,kse1_0.created_at,kse1_0.key_set_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,kse1_0.unit,kse1_0.updated_at,kse1_0.version from t_keyset kse1_0 left join t_mint m1_0 on m1_0.id=kse1_0.mint_id where kse1_0.id=?
+2025-09-01T17:33:49.133+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.GlobalExceptionHandler       : Cashu error
+
+xyz.tcheeric.cashu.common.util.CashuErrorException: KeySetEntity not found
+	at xyz.tcheeric.cashu.vault.db.controller.KeySetVaultController.retrieve(KeySetVaultController.java:62) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72) ~[spring-test-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201) ~[spring-test-6.2.7.jar:6.2.7]
+	at xyz.tcheeric.cashu.vault.db.controller.KeySetVaultControllerIntegrationTest.retrieveMissingKeySetReturnsNotFound(KeySetVaultControllerIntegrationTest.java:25) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:479) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:194) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:150) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:124) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.5.3.jar:3.5.3]
+
+2025-09-01T17:33:49.257+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [xyz.tcheeric.cashu.vault.db.controller.MintVaultControllerIntegrationTest]: MintVaultControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2025-09-01T17:33:49.279+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration xyz.tcheeric.cashu.vault.db.CashuVaultApplication for test class xyz.tcheeric.cashu.vault.db.controller.MintVaultControllerIntegrationTest
+2025-09-01T17:33:49.474+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.MintVaultController          : Storing MintEntity ce0a4c76-19f9-4ecb-8fe2-d596f43ed776
+2025-09-01T17:33:49.494+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : select me1_0.id,me1_0.archived,me1_0.created_at,ks1_0.mint_id,ks1_0.id,ks1_0.archived,ks1_0.created_at,ks1_0.key_set_id,ks1_0.unit,ks1_0.updated_at,ks1_0.version,me1_0.updated_at,me1_0.version from t_mint me1_0 left join t_keyset ks1_0 on me1_0.id=ks1_0.mint_id where me1_0.id=?
+Hibernate: select me1_0.id,me1_0.archived,me1_0.created_at,ks1_0.mint_id,ks1_0.id,ks1_0.archived,ks1_0.created_at,ks1_0.key_set_id,ks1_0.unit,ks1_0.updated_at,ks1_0.version,me1_0.updated_at,me1_0.version from t_mint me1_0 left join t_keyset ks1_0 on me1_0.id=ks1_0.mint_id where me1_0.id=?
+2025-09-01T17:33:49.794+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.MintVaultController          : Retrieving MintEntity ce0a4c76-19f9-4ecb-8fe2-d596f43ed776
+2025-09-01T17:33:49.852+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.MintVaultController          : Retrieving MintEntity 9d3d3589-97a3-4c3e-8e9e-b62c60687ba5
+2025-09-01T17:33:49.857+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : select me1_0.id,me1_0.archived,me1_0.created_at,me1_0.updated_at,me1_0.version from t_mint me1_0 where me1_0.id=?
+Hibernate: select me1_0.id,me1_0.archived,me1_0.created_at,me1_0.updated_at,me1_0.version from t_mint me1_0 where me1_0.id=?
+2025-09-01T17:33:49.860+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.GlobalExceptionHandler       : Cashu error
+
+xyz.tcheeric.cashu.common.util.CashuErrorException: MintEntity not found
+	at xyz.tcheeric.cashu.vault.db.controller.MintVaultController.lambda$retrieve$0(MintVaultController.java:61) ~[classes/:na]
+	at java.base/java.util.Optional.orElseThrow(Optional.java:403) ~[na:na]
+	at xyz.tcheeric.cashu.vault.db.controller.MintVaultController.retrieve(MintVaultController.java:61) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72) ~[spring-test-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201) ~[spring-test-6.2.7.jar:6.2.7]
+	at xyz.tcheeric.cashu.vault.db.controller.MintVaultControllerIntegrationTest.retrieveMissingMintReturnsNotFound(MintVaultControllerIntegrationTest.java:52) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:479) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:194) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:150) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:124) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.5.3.jar:3.5.3]
+
+2025-09-01T17:33:49.914+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [xyz.tcheeric.cashu.vault.db.controller.KeyVaultControllerIntegrationTest]: KeyVaultControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2025-09-01T17:33:49.920+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration xyz.tcheeric.cashu.vault.db.CashuVaultApplication for test class xyz.tcheeric.cashu.vault.db.controller.KeyVaultControllerIntegrationTest
+2025-09-01T17:33:49.957+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.controller.KeyVaultController  : Retrieving KeyEntity 6224a12a-1e95-4d1b-a5a2-df8fd9daf457
+2025-09-01T17:33:49.958+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : select ke1_0.id,ke1_0.amount,ke1_0.archived,ke1_0.created_at,ks1_0.id,ks1_0.archived,ks1_0.created_at,ks1_0.key_set_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,ks1_0.unit,ks1_0.updated_at,ks1_0.version,ke1_0.private_key,ke1_0.updated_at,ke1_0.version from t_key ke1_0 left join t_keyset ks1_0 on ks1_0.id=ke1_0.key_set_id left join t_mint m1_0 on m1_0.id=ks1_0.mint_id where ke1_0.id=?
+Hibernate: select ke1_0.id,ke1_0.amount,ke1_0.archived,ke1_0.created_at,ks1_0.id,ks1_0.archived,ks1_0.created_at,ks1_0.key_set_id,m1_0.id,m1_0.archived,m1_0.created_at,m1_0.updated_at,m1_0.version,ks1_0.unit,ks1_0.updated_at,ks1_0.version,ke1_0.private_key,ke1_0.updated_at,ke1_0.version from t_key ke1_0 left join t_keyset ks1_0 on ks1_0.id=ke1_0.key_set_id left join t_mint m1_0 on m1_0.id=ks1_0.mint_id where ke1_0.id=?
+2025-09-01T17:33:49.982+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.d.c.GlobalExceptionHandler       : Cashu error
+
+xyz.tcheeric.cashu.common.util.CashuErrorException: KeyEntity not found
+	at xyz.tcheeric.cashu.vault.db.controller.KeyVaultController.retrieve(KeyVaultController.java:62) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72) ~[spring-test-6.2.7.jar:6.2.7]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.41.jar:6.0]
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.setup.MockMvcFilterDecorator.doFilter(MockMvcFilterDecorator.java:162) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132) ~[spring-test-6.2.7.jar:6.2.7]
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201) ~[spring-test-6.2.7.jar:6.2.7]
+	at xyz.tcheeric.cashu.vault.db.controller.KeyVaultControllerIntegrationTest.retrieveMissingKeyReturnsNotFound(KeyVaultControllerIntegrationTest.java:26) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:479) ~[junit-platform-commons-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.12.2.jar:5.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.12.2.jar:1.12.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:194) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:150) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:124) ~[surefire-junit-platform-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.5.3.jar:3.5.3]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.5.3.jar:3.5.3]
+
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.0)
+
+2025-09-01T17:33:50.198+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.db.CashuVaultApplicationTests    : Starting CashuVaultApplicationTests using Java 23 with PID 337460 (started by eric in /home/eric/IdeaProjects/cashu-vault/cashu-vault-jpa)
+2025-09-01T17:33:50.199+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.db.CashuVaultApplicationTests    : No active profile set, falling back to 1 default profile: "default"
+2025-09-01T17:33:51.267+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-09-01T17:33:51.331+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 59 ms. Found 4 JPA repository interfaces.
+2025-09-01T17:33:51.665+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-09-01T17:33:51.698+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-09-01T17:33:51.705+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.boot.internal.EnversServiceImpl    : Envers integration enabled? : true
+2025-09-01T17:33:51.728+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-09-01T17:33:51.730+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2025-09-01T17:33:51.733+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:testdb user=SA
+2025-09-01T17:33:51.734+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2025-09-01T17:33:51.737+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-09-01T17:33:51.738+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-2)']
+	Database driver: undefined/unknown
+	Database version: 2.2.224
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-09-01T17:33:51.827+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.MintEntity
+2025-09-01T17:33:51.828+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.KeyEntity
+2025-09-01T17:33:51.831+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.ProofEntity
+2025-09-01T17:33:51.832+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.c.i.m.AuditMetadataGenerator       : Adding properties for entity: xyz.tcheeric.cashu.vault.db.model.KeySetEntity
+2025-09-01T17:33:52.033+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-09-01T17:33:52.034+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists revinfo cascade 
+Hibernate: drop table if exists revinfo cascade 
+2025-09-01T17:33:52.046+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_key cascade 
+Hibernate: drop table if exists t_key cascade 
+2025-09-01T17:33:52.051+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_key_a cascade 
+Hibernate: drop table if exists t_key_a cascade 
+2025-09-01T17:33:52.056+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_keyset cascade 
+Hibernate: drop table if exists t_keyset cascade 
+2025-09-01T17:33:52.062+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_keyset_a cascade 
+Hibernate: drop table if exists t_keyset_a cascade 
+2025-09-01T17:33:52.064+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_mint cascade 
+Hibernate: drop table if exists t_mint cascade 
+2025-09-01T17:33:52.069+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_mint_a cascade 
+Hibernate: drop table if exists t_mint_a cascade 
+2025-09-01T17:33:52.075+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_proof cascade 
+Hibernate: drop table if exists t_proof cascade 
+2025-09-01T17:33:52.078+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : drop table if exists t_proof_a cascade 
+Hibernate: drop table if exists t_proof_a cascade 
+2025-09-01T17:33:52.085+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table revinfo (rev integer generated by default as identity, revtstmp bigint, primary key (rev))
+Hibernate: create table revinfo (rev integer generated by default as identity, revtstmp bigint, primary key (rev))
+2025-09-01T17:33:52.090+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_key (amount numeric(38,0) not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id uuid, private_key varchar(255) not null, primary key (id), constraint idx_key_private_key_unq unique (private_key))
+Hibernate: create table t_key (amount numeric(38,0) not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id uuid, private_key varchar(255) not null, primary key (id), constraint idx_key_private_key_unq unique (private_key))
+2025-09-01T17:33:52.096+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_key_a (amount numeric(38,0), archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id uuid, private_key varchar(255), primary key (rev, id))
+Hibernate: create table t_key_a (amount numeric(38,0), archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id uuid, private_key varchar(255), primary key (rev, id))
+2025-09-01T17:33:52.098+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_keyset (archived boolean not null, version integer, unit varchar(5) not null, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id varchar(16) not null, mint_id uuid, primary key (id), constraint idx_keyset_unit_mint_unq unique (unit, mint_id), constraint idx_keyset_key_set_mint_unq unique (key_set_id, mint_id))
+Hibernate: create table t_keyset (archived boolean not null, version integer, unit varchar(5) not null, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, key_set_id varchar(16) not null, mint_id uuid, primary key (id), constraint idx_keyset_unit_mint_unq unique (unit, mint_id), constraint idx_keyset_key_set_mint_unq unique (key_set_id, mint_id))
+2025-09-01T17:33:52.107+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_keyset_a (archived boolean, rev integer not null, revtype tinyint, unit varchar(5), created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id varchar(16), mint_id uuid, primary key (rev, id))
+Hibernate: create table t_keyset_a (archived boolean, rev integer not null, revtype tinyint, unit varchar(5), created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, key_set_id varchar(16), mint_id uuid, primary key (rev, id))
+2025-09-01T17:33:52.113+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_mint (archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, primary key (id))
+Hibernate: create table t_mint (archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, primary key (id))
+2025-09-01T17:33:52.117+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_mint_a (archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, primary key (rev, id))
+Hibernate: create table t_mint_a (archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, primary key (rev, id))
+2025-09-01T17:33:52.120+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_proof (amount integer not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, mint_id uuid not null, c varchar(255) not null, secret varchar(255) not null, state varchar(255) not null, witness varchar(255) unique, primary key (id))
+Hibernate: create table t_proof (amount integer not null, archived boolean not null, version integer, created_at timestamp(6) with time zone not null, updated_at timestamp(6) with time zone not null, id uuid not null, mint_id uuid not null, c varchar(255) not null, secret varchar(255) not null, state varchar(255) not null, witness varchar(255) unique, primary key (id))
+2025-09-01T17:33:52.125+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create table t_proof_a (amount integer, archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, mint_id uuid, c varchar(255), secret varchar(255), state varchar(255), witness varchar(255), primary key (rev, id))
+Hibernate: create table t_proof_a (amount integer, archived boolean, rev integer not null, revtype tinyint, created_at timestamp(6) with time zone, updated_at timestamp(6) with time zone, id uuid not null, mint_id uuid, c varchar(255), secret varchar(255), state varchar(255), witness varchar(255), primary key (rev, id))
+2025-09-01T17:33:52.127+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : create index idx_proof_mint_id on t_proof (mint_id)
+Hibernate: create index idx_proof_mint_id on t_proof (mint_id)
+2025-09-01T17:33:52.128+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_key add constraint FKdb637wosjhxn8rb36a58dcm4x foreign key (key_set_id) references t_keyset
+Hibernate: alter table if exists t_key add constraint FKdb637wosjhxn8rb36a58dcm4x foreign key (key_set_id) references t_keyset
+2025-09-01T17:33:52.131+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_key_a add constraint FKerqw0hfj351r297pr3vv54l2f foreign key (rev) references revinfo
+Hibernate: alter table if exists t_key_a add constraint FKerqw0hfj351r297pr3vv54l2f foreign key (rev) references revinfo
+2025-09-01T17:33:52.133+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_keyset add constraint FKbxtit78pqc24j6jfqtiva41l3 foreign key (mint_id) references t_mint
+Hibernate: alter table if exists t_keyset add constraint FKbxtit78pqc24j6jfqtiva41l3 foreign key (mint_id) references t_mint
+2025-09-01T17:33:52.138+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_keyset_a add constraint FKthcertt7tonuxx9tdt6twsrx4 foreign key (rev) references revinfo
+Hibernate: alter table if exists t_keyset_a add constraint FKthcertt7tonuxx9tdt6twsrx4 foreign key (rev) references revinfo
+2025-09-01T17:33:52.144+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_mint_a add constraint FKhsr48hvcgrjyk99td8ya045nl foreign key (rev) references revinfo
+Hibernate: alter table if exists t_mint_a add constraint FKhsr48hvcgrjyk99td8ya045nl foreign key (rev) references revinfo
+2025-09-01T17:33:52.150+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_proof add constraint FKis1w4qrn2dewlif0mqgynqy7r foreign key (mint_id) references t_mint
+Hibernate: alter table if exists t_proof add constraint FKis1w4qrn2dewlif0mqgynqy7r foreign key (mint_id) references t_mint
+2025-09-01T17:33:52.154+01:00 DEBUG 337460 --- [cashu-vault-jpa] [           main] org.hibernate.SQL                        : alter table if exists t_proof_a add constraint FKluyu6xpje6a39xpa8eug9ratu foreign key (rev) references revinfo
+Hibernate: alter table if exists t_proof_a add constraint FKluyu6xpje6a39xpa8eug9ratu foreign key (rev) references revinfo
+2025-09-01T17:33:52.171+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-09-01T17:33:52.589+01:00  WARN 337460 --- [cashu-vault-jpa] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-09-01T17:33:53.231+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-01T17:33:53.274+01:00  INFO 337460 --- [cashu-vault-jpa] [           main] x.t.c.v.db.CashuVaultApplicationTests    : Started CashuVaultApplicationTests in 3.211 seconds (process running for 25.006)
