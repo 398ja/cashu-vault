@@ -97,6 +97,11 @@
             <artifactId>spring-core</artifactId>
             <version>${spring.framework.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -109,11 +114,23 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>${jib-maven-plugin.version}</version>
+                <version>3.4.1</version>
                 <configuration>
+                    <from>
+                        <image>eclipse-temurin:21-jre</image>
+                    </from>
                     <to>
-                        <image>docker.398ja.xyz/${project.artifactId}:${project.version}</image>
+                        <image>docker.398ja.xyz/cashu-vault-jpa</image>
+                        <tags>
+                            <tag>${project.version}</tag>
+                            <tag>latest</tag>
+                        </tags>
                     </to>
+                    <container>
+                        <ports>
+                            <port>8080</port>
+                        </ports>
+                    </container>
                 </configuration>
                 <executions>
                     <execution>
