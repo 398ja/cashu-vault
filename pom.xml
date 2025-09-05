@@ -26,6 +26,7 @@
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
         <properties-maven-plugin.version>1.0.0</properties-maven-plugin.version>
         <maven-gpg-plugin.version>3.1.0</maven-gpg-plugin.version>
+        <jib-maven-plugin.version>3.4.0</jib-maven-plugin.version>
 
         <!-- Dependency Versions -->
         <lombok.version>1.18.36</lombok.version>
