@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.api;
 
+import xyz.tcheeric.cashu.vault.db.client.BlindSignatureClient;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
@@ -22,6 +23,7 @@ public final class VaultClientFactory {
     private static final KeySetVaultClient KEY_SET_CLIENT;
     private static final KeyVaultClient KEY_CLIENT;
     private static final ProofClient PROOF_CLIENT;
+    private static final BlindSignatureClient BLIND_SIGNATURE_CLIENT;
 
     static {
         KEY_SET_CLIENT = new KeySetVaultClient();
@@ -30,6 +32,8 @@ public final class VaultClientFactory {
         KEY_CLIENT.setBaseUrl(PROPERTIES.getUrl());
         PROOF_CLIENT = new ProofClient();
         PROOF_CLIENT.setBaseUrl(PROPERTIES.getUrl());
+        BLIND_SIGNATURE_CLIENT = new BlindSignatureClient();
+        BLIND_SIGNATURE_CLIENT.setBaseUrl(PROPERTIES.getUrl());
     }
 
     private VaultClientFactory() {
@@ -72,5 +76,14 @@ public final class VaultClientFactory {
      */
     public static ProofClient proofClient() {
         return PROOF_CLIENT;
+    }
+
+    /**
+     * Returns a singleton {@link BlindSignatureClient} instance.
+     *
+     * @return configured blind signature client
+     */
+    public static BlindSignatureClient blindSignatureClient() {
+        return BLIND_SIGNATURE_CLIENT;
     }
 }
