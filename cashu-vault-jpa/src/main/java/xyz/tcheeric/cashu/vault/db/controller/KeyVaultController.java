@@ -15,6 +15,7 @@ import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeyRepository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +43,17 @@ public class KeyVaultController {
         var savedKey = keyRepository.save(key);
         log.debug("Stored KeyEntity {}", savedKey.getId());
         return ResponseEntity.ok(savedKey);
+    }
+
+    /**
+     * Retrieves all key entities.
+     *
+     * @return list of keys (possibly empty)
+     */
+    @GetMapping
+    public ResponseEntity<List<KeyEntity>> list() {
+        log.info("Listing all KeyEntity items");
+        return ResponseEntity.ok(keyRepository.findAll());
     }
 
     /**
