@@ -15,6 +15,7 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +44,16 @@ public class ProofVaultController {
         var savedProof = proofRepository.save(proof);
         log.debug("Stored ProofEntity {}", savedProof.getId());
         return ResponseEntity.ok(savedProof);
+    }
+
+    /**
+     * Retrieves all proof entities.
+     *
+     * @return list of proofs (possibly empty)
+     */
+    @GetMapping
+    public ResponseEntity<List<ProofEntity>> list() {
+        return ResponseEntity.ok(proofRepository.findAll());
     }
 
     /**
