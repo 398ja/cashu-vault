@@ -5,11 +5,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2</version>
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>
@@ -85,7 +85,7 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
