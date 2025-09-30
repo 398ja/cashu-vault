@@ -36,6 +36,9 @@ public class DBProofVault extends DBVault<ProofEntity> {
     @Override
     protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofEntity proofEntity = client.retrieve(id);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found");
+        }
         return proofEntity;
     }
 
