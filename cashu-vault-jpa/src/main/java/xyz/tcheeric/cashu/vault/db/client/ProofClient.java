@@ -34,10 +34,6 @@ public class ProofClient extends VaultClient<ProofEntity> {
         ProofEntity proofEntity = restTemplate.getForObject(
                 getBaseUrl() + "/vault/proof/mint/" + mintId + "/secret/" + secret,
                 ProofEntity.class);
-        if (proofEntity == null) {
-            throw new IllegalArgumentException(
-                    "Proof not found for mintId: " + mintId + " and secret: " + secret);
-        }
         return proofEntity;
     }
 
@@ -60,8 +56,7 @@ public class ProofClient extends VaultClient<ProofEntity> {
         );
         Set<ProofEntity> optionalProofEntities = response.getBody();
         if (optionalProofEntities == null || optionalProofEntities.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Proof not found for mintId: " + mintId + " and amount: " + amount);
+            return null;
         }
         return optionalProofEntities.iterator().next();
     }
@@ -79,10 +74,6 @@ public class ProofClient extends VaultClient<ProofEntity> {
         ProofEntity proofEntity = restTemplate.getForObject(
                 getBaseUrl() + "/vault/proof/mint/" + mintId + "/signature/" + unblindedSignature,
                 ProofEntity.class);
-        if (proofEntity == null) {
-            throw new IllegalArgumentException("Proof not found for mintId: " + mintId
-                    + " and unblindedSignature: " + unblindedSignature);
-        }
         return proofEntity;
     }
 
