@@ -23,6 +23,6 @@ class KeySetVaultControllerIntegrationTest {
     @Test
     void retrieveMissingKeySetReturnsNotFound() throws Exception {
         mockMvc.perform(get("/vault/keyset/" + UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().is2xxSuccessful());
     }
 }

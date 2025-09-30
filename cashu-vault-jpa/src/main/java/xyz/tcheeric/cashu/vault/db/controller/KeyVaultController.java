@@ -70,9 +70,8 @@ public class KeyVaultController {
         if (keyOpt.isPresent()) {
             log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.ok(keyOpt.get());
-        } else {
-            throw new CashuErrorException("KeyEntity not found");
         }
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -105,9 +104,8 @@ public class KeyVaultController {
         if (keyOpt.isPresent()) {
             log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.ok(keyOpt.get());
-        } else {
-            throw new CashuErrorException("KeyEntity not found for the specified private key");
         }
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -124,7 +122,7 @@ public class KeyVaultController {
         if (keys.isPresent()) {
             return ResponseEntity.ok(keys.get());
         }
-        throw new CashuErrorException("No keys found for the specified key set ID");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -144,9 +142,8 @@ public class KeyVaultController {
             var updatedKey = keyRepository.save(archivedKey);
             log.debug("Archived KeyEntity {}", updatedKey.getId());
             return ResponseEntity.ok(updatedKey);
-        } else {
-            throw new CashuErrorException("KeyEntity not found");
         }
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -164,8 +161,8 @@ public class KeyVaultController {
             keyRepository.delete(keyOpt.get());
             log.debug("Deleted KeyEntity {}", keyOpt.get().getId());
             return ResponseEntity.noContent().build();
-        } else {
-            throw new CashuErrorException("KeyEntity not found");
         }
+
+        return ResponseEntity.noContent().build();
     }
 }
