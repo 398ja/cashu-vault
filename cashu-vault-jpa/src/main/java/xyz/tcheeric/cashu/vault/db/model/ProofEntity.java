@@ -13,6 +13,11 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
+import xyz.tcheeric.cashu.common.Proof;
+import xyz.tcheeric.cashu.common.Secret;
+import xyz.tcheeric.cashu.common.UnCompressedPublicKey;
+import xyz.tcheeric.cashu.common.util.SecretUtil;
+import xyz.tcheeric.cashu.crypto.BDHKEUtils;
 
 /**
  * Entity representing a spendable proof issued by a mint.
@@ -66,4 +71,17 @@ public class ProofEntity extends BaseEntity {
     @Column(name = "state", nullable = false)
     private String state = STATE_UNSPENT;
 
+    public static <T extends Secret> ProofEntity fromProof(Proof<T> proof, MintEntity mintEntity) {
+        ProofEntity proofEntity = new ProofEntity();
+        proofEntity.setAmount(proof.getAmount());
+
+        proofEntity.setSecret(SecretUtil.toY(proof.getSecret()));
+
+        if (proof.getWitness() != null) {
+            proofEntity.setWitness(proof.getWitness().toString());
+        }
+        proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
+        proofEntity.setMint(mintEntity);
+        return proofEntity;
+    }
 }

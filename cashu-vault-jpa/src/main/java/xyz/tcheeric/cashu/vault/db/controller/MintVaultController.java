@@ -19,6 +19,7 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.repos.MintRepository;
 
 import java.util.UUID;
+import java.util.List;
 
 /**
  * REST controller providing CRUD-style endpoints for {@link MintEntity}
@@ -82,6 +83,17 @@ public class MintVaultController {
     }
 
     /**
+     * Retrieves all mint entities.
+     *
+     * @return list of all mints (possibly empty)
+     */
+    @GetMapping
+    public ResponseEntity<List<MintEntity>> list() {
+        log.info("Listing all MintEntity items");
+        return ResponseEntity.ok(mintRepository.findAll());
+    }
+
+    /**
      * Deletes a mint entity.
      *
      * @param id mint identifier
@@ -112,5 +124,4 @@ public class MintVaultController {
         return "Conflict detected: " + ex.getMessage();
     }
 }
-
 

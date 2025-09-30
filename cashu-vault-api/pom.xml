@@ -4,10 +4,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.2.0</version>
+        <version>0.2.3</version>
     </parent>
 
     <artifactId>cashu-vault-api</artifactId>
+    <version>0.2.3</version>
     <packaging>jar</packaging>
 
     <name>cashu-vault-api</name>

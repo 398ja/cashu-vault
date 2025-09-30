@@ -29,11 +29,11 @@ public class MintEntity extends BaseEntity {
 
     /** Proofs issued by this mint. */
     @JsonIgnore
-    @OneToMany(mappedBy = "mint", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "mint", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<ProofEntity> proofs = new LinkedHashSet<>();
 
     /** Key sets associated with this mint. */
     @JsonIgnore
-    @OneToMany(mappedBy = "mint", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "mint", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<KeySetEntity> keySets = new LinkedHashSet<>();
 }

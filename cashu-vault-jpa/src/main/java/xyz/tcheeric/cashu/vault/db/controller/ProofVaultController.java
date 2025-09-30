@@ -15,6 +15,7 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +47,16 @@ public class ProofVaultController {
     }
 
     /**
+     * Retrieves all proof entities.
+     *
+     * @return list of proofs (possibly empty)
+     */
+    @GetMapping
+    public ResponseEntity<List<ProofEntity>> list() {
+        return ResponseEntity.ok(proofRepository.findAll());
+    }
+
+    /**
      * Retrieves a proof by its identifier.
      *
      * @param id proof identifier
@@ -60,7 +71,7 @@ public class ProofVaultController {
             log.debug("Retrieved ProofEntity {}", proofOpt.get().getId());
             return ResponseEntity.ok(proofOpt.get());
         }
-        throw new CashuErrorException("ProofEntity not found");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -89,13 +100,14 @@ public class ProofVaultController {
      */
     @GetMapping("/secret/{secret}")
     public ResponseEntity<ProofEntity> retrieveBySecret(@PathVariable("secret") String secret) throws CashuErrorException {
-        log.info("Retrieving ProofEntity with secret {}", secret);
+        log.debug("Retrieving ProofEntity with secret {}", secret);
         Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
         if (proof.isPresent()) {
             log.debug("Retrieved ProofEntity {}", proof.get().getId());
             return ResponseEntity.ok(proof.get());
         }
-        throw new CashuErrorException("ProofEntity not found for the specified secret");
+        log.warn("No ProofEntity found for the specified secret");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -115,7 +127,8 @@ public class ProofVaultController {
             log.debug("Retrieved ProofEntity {}", proof.get().getId());
             return ResponseEntity.ok(proof.get());
         }
-        throw new CashuErrorException("ProofEntity not found for the specified mint and secret");
+        log.warn("No ProofEntity found for the specified mint and secret");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -134,7 +147,7 @@ public class ProofVaultController {
         if (proofs.isPresent() && !proofs.get().isEmpty()) {
             return ResponseEntity.ok(proofs.get());
         }
-        throw new CashuErrorException("No ProofEntities found for the specified mint and amount");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -156,7 +169,7 @@ public class ProofVaultController {
             log.debug("Retrieved ProofEntity {}", proof.get().getId());
             return ResponseEntity.ok(proof.get());
         }
-        throw new CashuErrorException("ProofEntity not found for the specified mint and signature");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -177,7 +190,7 @@ public class ProofVaultController {
             log.debug("Archived ProofEntity {}", archivedProof.getId());
             return ResponseEntity.ok(archivedProof);
         }
-        throw new CashuErrorException("ProofEntity not found");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -196,6 +209,6 @@ public class ProofVaultController {
             log.debug("Deleted ProofEntity {}", proofOpt.get().getId());
             return ResponseEntity.noContent().build();
         }
-        throw new CashuErrorException("ProofEntity not found");
+        return ResponseEntity.noContent().build();
     }
 }
