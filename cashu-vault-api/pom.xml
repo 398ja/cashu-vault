@@ -10,7 +10,6 @@
     <artifactId>cashu-vault-api</artifactId>
     <version>0.2.2</version>
     <packaging>jar</packaging>
-    <version>0.2.1</version>
 
     <name>cashu-vault-api</name>
     <url>http://maven.apache.org</url>
