@@ -14,6 +14,7 @@ import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.List;
 import java.util.Set;
@@ -69,9 +70,8 @@ public class KeySetVaultController {
         if (keySet.isPresent()) {
             log.debug("Retrieved KeySetEntity {}", keySet.get().getId());
             return ResponseEntity.ok(keySet.get());
-        } else {
-            throw new CashuErrorException("KeySetEntity not found");
         }
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -87,9 +87,9 @@ public class KeySetVaultController {
         Optional<KeySetEntity> keySet = keySetRepository.findByKeySetId(id);
         if (keySet.isPresent()) {
             return ResponseEntity.ok(keySet.get());
-        } else {
-            throw new CashuErrorException("KeySetEntity not found");
         }
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -105,7 +105,7 @@ public class KeySetVaultController {
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
         Set<KeySetEntity> keySetEntities = keySets
                 .filter(set -> !set.isEmpty())
-                .orElseThrow(() -> new CashuErrorException("No KeySetEntity found for the specified unit"));
+                .orElse(new HashSet<>());
         return ResponseEntity.ok(keySetEntities);
     }
 
@@ -129,7 +129,7 @@ public class KeySetVaultController {
                 .filter(keySet -> keySet.getKeySetId().equals(keySetId))
                 .findFirst()
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new CashuErrorException("KeySetEntity not found for the specified keySetId"));
+                .orElse(ResponseEntity.noContent().build());
     }
 
     /**
@@ -166,9 +166,9 @@ public class KeySetVaultController {
             keySetRepository.save(archivedKeySet);
             log.debug("Archived KeySetEntity {}", archivedKeySet.getId());
             return ResponseEntity.ok(archivedKeySet);
-        } else {
-            throw new CashuErrorException("KeySetEntity not found");
         }
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -186,8 +186,8 @@ public class KeySetVaultController {
             keySetRepository.delete(keySet.get());
             log.debug("Deleted KeySetEntity {}", keySet.get().getId());
             return ResponseEntity.noContent().build();
-        } else {
-            throw new CashuErrorException("KeySetEntity not found");
         }
+
+        return ResponseEntity.noContent().build();
     }
 }
