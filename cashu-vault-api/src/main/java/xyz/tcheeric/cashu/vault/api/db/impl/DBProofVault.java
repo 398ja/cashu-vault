@@ -36,9 +36,6 @@ public class DBProofVault extends DBVault<ProofEntity> {
     @Override
     protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofEntity proofEntity = client.retrieve(id);
-        if (proofEntity == null) {
-            throw new CashuErrorException("Proof not found");
-        }
         return proofEntity;
     }
 
@@ -56,9 +53,6 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     public static ProofEntity retrieveProof(@NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getBySecret(secret);
-        if (proofEntity == null) {
-            throw new CashuErrorException("Proof not found for secret: " + secret);
-        }
         return proofEntity;
     }
 
@@ -69,9 +63,6 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     public static ProofEntity retrieveProof(@NonNull String mintId, @NonNull String secret, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
-        if (proofEntity == null) {
-            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and secret: " + secret);
-        }
         return proofEntity;
     }
 
@@ -82,9 +73,6 @@ public class DBProofVault extends DBVault<ProofEntity> {
 
     public static ProofEntity retrieveProof(String mintId, Integer amount, ProofClient client) throws CashuErrorException {
         ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
-        if (proofEntity == null) {
-            throw new CashuErrorException("Proof not found for mintId: " + mintId + " and amount: " + amount);
-        }
         return proofEntity;
     }
 
@@ -92,10 +80,6 @@ public class DBProofVault extends DBVault<ProofEntity> {
             @NonNull String unblindedSignature) throws CashuErrorException {
         ProofClient client = new ProofClient();
         ProofEntity proofEntity = client.getByMintAndUnblindedSignature(mintId, unblindedSignature);
-        if (proofEntity == null) {
-            throw new CashuErrorException(
-                    "Proof not found for mintId: " + mintId + " and unblindedSignature: " + unblindedSignature);
-        }
         return proofEntity;
     }
 
