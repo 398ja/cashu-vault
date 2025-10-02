@@ -32,7 +32,7 @@ public class DBKeyVault extends DBVault<KeyEntity> {
         Keys keys = new Keys();
         keySetEntity.getKeys()
                 .stream()
-                .filter(k -> archived != null ? k.isArchived() == archived : true)
+                .filter(k -> archived == null || k.isArchived() == archived)
                 .forEach(k -> {
                     keys.put(k.getAmount(), PrivateKey.derivePublicKey(PrivateKey.fromString(k.getPrivateKey())));
                 });
