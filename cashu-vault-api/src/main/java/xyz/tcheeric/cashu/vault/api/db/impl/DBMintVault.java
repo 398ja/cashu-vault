@@ -112,7 +112,7 @@ public class DBMintVault extends DBVault<MintEntity> {
         }
 
         loaded.getKeySets().forEach(keySetEntity -> {
-            KeySet keySet = null;
+            KeySet keySet;
             try {
                 keySet = DBKeySetVault.load(keySetEntity, archive);
             } catch (CashuErrorException e) {
@@ -163,7 +163,7 @@ public class DBMintVault extends DBVault<MintEntity> {
         return mintEntity.getKeySets().stream()
                 .filter(keySetEntity -> keySetEntity.getUnit().equals(unit))
                 .flatMap(keySetEntity -> keySetEntity.getKeys().stream())
-                .filter(keyEntity -> keyEntity.getAmount().equals(amount))
+                .filter(keyEntity -> amount != null && keyEntity.getAmount().equals(BigInteger.valueOf(amount.longValue())))
                 .map(keyEntity -> PublicKey.fromString(keyEntity.getPrivateKey()).toString())
                 .findFirst()
                 .orElseThrow(() -> new CashuErrorException("Private key for unit " + unit + " and amount " + amount + " not found"));
