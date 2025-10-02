@@ -22,4 +22,4 @@ cd cashu-vault-jpa
 docker build -t docker.398ja.xyz/cashu-vault-jpa:latest .
 ```
 
-The Dockerfile uses the Spring Boot repackaged JAR from `target/cashu-vault-jpa-*.jar`.
+The Dockerfile uses the Spring Boot repackaged JAR from `target/cashu-vault-jpa-*-exec.jar`.
