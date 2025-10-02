@@ -65,10 +65,10 @@ public class ProofVaultController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ProofEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
-        log.info("Retrieving ProofEntity {}", id);
+        log.info("Retrieving ProofEntity by id {}", id);
         Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
         if (proofOpt.isPresent()) {
-            log.debug("Retrieved ProofEntity {}", proofOpt.get().getId());
+            log.debug("Retrieved ProofEntity by id {}", proofOpt.get().getId());
             return ResponseEntity.ok(proofOpt.get());
         }
         return ResponseEntity.noContent().build();
@@ -83,7 +83,7 @@ public class ProofVaultController {
      */
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<ProofEntity>> retrieveByMint(@PathVariable("mintId") String mintId) throws CashuErrorException {
-        log.info("Retrieving ProofEntities for mint {}", mintId);
+        log.info("Retrieving ProofEntities by mintId {}", mintId);
         Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_Id(UUID.fromString(mintId));
         if (proofs.isPresent() && !proofs.get().isEmpty()) {
             return ResponseEntity.ok(proofs.get());
@@ -100,10 +100,10 @@ public class ProofVaultController {
      */
     @GetMapping("/secret/{secret}")
     public ResponseEntity<ProofEntity> retrieveBySecret(@PathVariable("secret") String secret) throws CashuErrorException {
-        log.debug("Retrieving ProofEntity with secret {}", secret);
+        log.debug("Retrieving ProofEntity by secret {}", secret);
         Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity {}", proof.get().getId());
+            log.debug("Retrieved ProofEntity by secret {}", secret);
             return ResponseEntity.ok(proof.get());
         }
         log.warn("No ProofEntity found for the specified secret");
@@ -121,10 +121,10 @@ public class ProofVaultController {
     @GetMapping("/mint/{mintId}/secret/{secret}")
     public ResponseEntity<ProofEntity> retrieveByMintAndSecret(@PathVariable("mintId") String mintId,
             @PathVariable("secret") String secret) throws CashuErrorException {
-        log.info("Retrieving ProofEntity for mint {} with secret {}", mintId, secret);
+        log.info("Retrieving ProofEntity by mintId {} and secret {}", mintId, secret);
         Optional<ProofEntity> proof = proofRepository.findByMint_IdAndSecret(UUID.fromString(mintId), secret);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity {}", proof.get().getId());
+            log.debug("Retrieved ProofEntity by mintId {} and secret {}", mintId, secret);
             return ResponseEntity.ok(proof.get());
         }
         log.warn("No ProofEntity found for the specified mint and secret");
@@ -142,7 +142,7 @@ public class ProofVaultController {
     @GetMapping("/mint/{mintId}/amount/{amount}")
     public ResponseEntity<Set<ProofEntity>> retrieveByMintAndAmount(@PathVariable("mintId") String mintId,
             @PathVariable("amount") Integer amount) throws CashuErrorException {
-        log.info("Retrieving ProofEntities for mint {} with amount {}", mintId, amount);
+        log.info("Retrieving ProofEntities by mintId {} and amount {}", mintId, amount);
         Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_IdAndAmount(UUID.fromString(mintId), amount);
         if (proofs.isPresent() && !proofs.get().isEmpty()) {
             return ResponseEntity.ok(proofs.get());
@@ -162,11 +162,11 @@ public class ProofVaultController {
     public ResponseEntity<ProofEntity> retrieveByMintAndUnblindedSignature(
             @PathVariable("mintId") String mintId,
             @PathVariable("unblindedSignature") String unblindedSignature) throws CashuErrorException {
-        log.info("Retrieving ProofEntity for mint {} with signature {}", mintId, unblindedSignature);
+        log.info("Retrieving ProofEntity by mintId {} and signature {}", mintId, unblindedSignature);
         Optional<ProofEntity> proof = proofRepository.findByMint_IdAndUnblindedSignature(UUID.fromString(mintId),
                 unblindedSignature);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity {}", proof.get().getId());
+            log.debug("Retrieved ProofEntity by mintId {} and signature {}", mintId, unblindedSignature);
             return ResponseEntity.ok(proof.get());
         }
         return ResponseEntity.noContent().build();
