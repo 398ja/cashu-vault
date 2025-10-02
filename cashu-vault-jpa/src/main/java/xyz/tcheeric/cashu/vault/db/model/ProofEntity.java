@@ -13,6 +13,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
+import xyz.tcheeric.cashu.common.HashToCurveSecret;
 import xyz.tcheeric.cashu.common.Proof;
 import xyz.tcheeric.cashu.common.Secret;
 import xyz.tcheeric.cashu.common.UnCompressedPublicKey;
@@ -75,11 +76,13 @@ public class ProofEntity extends BaseEntity {
         ProofEntity proofEntity = new ProofEntity();
         proofEntity.setAmount(proof.getAmount());
 
-        proofEntity.setSecret(SecretUtil.toY(proof.getSecret()));
+        String yCoordinate = SecretUtil.toY(proof.getSecret());
+        proofEntity.setSecret(yCoordinate);
 
         if (proof.getWitness() != null) {
             proofEntity.setWitness(proof.getWitness().toString());
         }
+
         proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
         proofEntity.setMint(mintEntity);
         return proofEntity;
