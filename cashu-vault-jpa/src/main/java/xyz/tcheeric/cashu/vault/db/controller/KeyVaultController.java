@@ -65,10 +65,10 @@ public class KeyVaultController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<KeyEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
-        log.info("Retrieving KeyEntity {}", id);
+        log.info("Retrieving KeyEntity by id {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
-            log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
+            log.debug("Retrieved KeyEntity by id {}", keyOpt.get().getId());
             return ResponseEntity.ok(keyOpt.get());
         }
         return ResponseEntity.noContent().build();
@@ -99,10 +99,10 @@ public class KeyVaultController {
      */
     @GetMapping("/privatekey/{privateKey}")
     public ResponseEntity<KeyEntity> getKeyByPrivateKey(@PathVariable("privateKey") String privateKey) throws CashuErrorException {
-        log.info("Retrieving KeyEntity by private key");
+        log.info("Retrieving KeyEntity by privateKey");
         Optional<KeyEntity> keyOpt = keyRepository.findByPrivateKey(privateKey);
         if (keyOpt.isPresent()) {
-            log.debug("Retrieved KeyEntity {}", keyOpt.get().getId());
+            log.debug("Retrieved KeyEntity by privateKey");
             return ResponseEntity.ok(keyOpt.get());
         }
         return ResponseEntity.noContent().build();
