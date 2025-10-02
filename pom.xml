@@ -4,7 +4,7 @@
 
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.4</version>
     <packaging>pom</packaging>
 
     <name>cashu-vault</name>
@@ -40,7 +40,7 @@
         <assertj.version>3.27.3</assertj.version>
         <mockito.version>5.14.2</mockito.version>
         <mockito-inline.version>5.2.0</mockito-inline.version>
-        <cashu-lib.version>0.3.0</cashu-lib.version>
+        <cashu-lib.version>0.4.0</cashu-lib.version>
 
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>

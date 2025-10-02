@@ -65,10 +65,10 @@ public class KeySetVaultController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<KeySetEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
-        log.info("Retrieving KeySetEntity {}", id);
+        log.info("Retrieving KeySetEntity by id {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findById(UUID.fromString(id));
         if (keySet.isPresent()) {
-            log.debug("Retrieved KeySetEntity {}", keySet.get().getId());
+            log.debug("Retrieved KeySetEntity by id {}", keySet.get().getId());
             return ResponseEntity.ok(keySet.get());
         }
         return ResponseEntity.noContent().build();
@@ -101,7 +101,7 @@ public class KeySetVaultController {
      */
     @GetMapping("/unit/{unit}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByUnit(@PathVariable("unit") String unit) throws CashuErrorException {
-        log.info("Retrieving KeySetEntities for unit {}", unit);
+        log.info("Retrieving KeySetEntities by unit {}", unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
         Set<KeySetEntity> keySetEntities = keySets
                 .filter(set -> !set.isEmpty())
@@ -120,7 +120,7 @@ public class KeySetVaultController {
      */
     @GetMapping("/mint/{mintId}/unit/{unit}/keyset/{keySetId}")
     public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(@PathVariable("mintId") String mintId, @PathVariable("unit") String unit, @PathVariable("keySetId") String keySetId) throws CashuErrorException {
-        log.info("Retrieving KeySetEntity for mint {} unit {}", mintId, unit);
+        log.info("Retrieving KeySetEntity by mintId {} and unit {}", mintId, unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_IdAndUnit(UUID.fromString(mintId), unit);
         Set<KeySetEntity> keySetEntities = keySets
                 .filter(set -> !set.isEmpty())
@@ -141,7 +141,7 @@ public class KeySetVaultController {
      */
     @GetMapping("/mint/{mintId}")
     public ResponseEntity<Set<KeySetEntity>> getKeySetsByMintId(@PathVariable("mintId") String mintId) throws CashuErrorException {
-        log.info("Retrieving KeySetEntities for mint {}", mintId);
+        log.info("Retrieving KeySetEntities by mintId {}", mintId);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_Id(UUID.fromString(mintId));
         Set<KeySetEntity> keySetEntities = keySets
                 .filter(set -> !set.isEmpty())

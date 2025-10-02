@@ -16,11 +16,21 @@ This guide shows how to run the Cashu Vault service either with Docker Compose o
    git clone https://github.com/[your-org]/cashu-vault.git
    cd cashu-vault
    ```
-2. Build and start the containers:
+2. Build the JAR:
    ```bash
-   docker-compose up --build
+   mvn clean package -DskipTests
    ```
-3. When the logs show the service has started, visit `http://localhost:3333`.
+3. Build the Docker image:
+   ```bash
+   cd cashu-vault-jpa
+   docker build -t docker.398ja.xyz/cashu-vault-jpa:latest .
+   cd ..
+   ```
+4. Start the containers with docker-compose (if available in this repo):
+   ```bash
+   docker-compose up -d
+   ```
+5. When the logs show the service has started, visit `http://localhost:3333`.
    The PostgreSQL database listens on port `5432`.
 
 Stop the environment with `Ctrl+C` and remove the containers with:

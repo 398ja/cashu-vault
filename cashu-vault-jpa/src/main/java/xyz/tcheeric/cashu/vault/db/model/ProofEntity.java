@@ -75,11 +75,13 @@ public class ProofEntity extends BaseEntity {
         ProofEntity proofEntity = new ProofEntity();
         proofEntity.setAmount(proof.getAmount());
 
-        proofEntity.setSecret(SecretUtil.toY(proof.getSecret()));
+        String yCoordinate = SecretUtil.toY(proof.getSecret());
+        proofEntity.setSecret(yCoordinate);
 
         if (proof.getWitness() != null) {
             proofEntity.setWitness(proof.getWitness().toString());
         }
+
         proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
         proofEntity.setMint(mintEntity);
         return proofEntity;
