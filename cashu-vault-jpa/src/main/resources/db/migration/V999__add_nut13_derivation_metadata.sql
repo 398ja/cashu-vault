@@ -23,46 +23,34 @@
 -- ----------------------------------------------------------------------------
 
 -- Add derivation counter column (NULL for random secrets)
+-- Counter value used for NUT-13 deterministic secret derivation. NULL for random secrets.
 ALTER TABLE t_proof
 ADD COLUMN derivation_counter INTEGER NULL;
 
-COMMENT ON COLUMN t_proof.derivation_counter IS
-    'Counter value used for NUT-13 deterministic secret derivation. NULL for random secrets.';
-
 -- Add deterministic flag column
+-- Flag indicating if this proof uses a deterministic (NUT-13) secret.
 ALTER TABLE t_proof
 ADD COLUMN is_deterministic BOOLEAN DEFAULT FALSE NOT NULL;
-
-COMMENT ON COLUMN t_proof.is_deterministic IS
-    'Flag indicating if this proof uses a deterministic (NUT-13) secret.';
 
 -- ----------------------------------------------------------------------------
 -- 2. Create Indexes for Query Performance
 -- ----------------------------------------------------------------------------
 
 -- Index for filtering deterministic proofs
+-- Optimizes queries filtering for deterministic proofs only.
+-- Note: H2 doesn't support partial indexes with WHERE clause
 CREATE INDEX idx_proof_deterministic
-ON t_proof(is_deterministic)
-WHERE is_deterministic = TRUE;
-
-COMMENT ON INDEX idx_proof_deterministic IS
-    'Optimizes queries filtering for deterministic proofs only.';
+ON t_proof(is_deterministic);
 
 -- Index for counter-based queries and gap analysis
+-- Optimizes counter range queries and gap detection for recovery analysis.
 CREATE INDEX idx_proof_derivation_counter
-ON t_proof(derivation_counter)
-WHERE derivation_counter IS NOT NULL;
+ON t_proof(derivation_counter);
 
-COMMENT ON INDEX idx_proof_derivation_counter IS
-    'Optimizes counter range queries and gap detection for recovery analysis.';
-
--- Composite index for keyset + counter queries
-CREATE INDEX idx_proof_keyset_counter
-ON t_proof(keyset_id, derivation_counter)
-WHERE derivation_counter IS NOT NULL;
-
-COMMENT ON INDEX idx_proof_keyset_counter IS
-    'Optimizes gap detection queries for specific keysets.';
+-- Composite index for mint + counter queries
+-- Optimizes gap detection queries for specific mints.
+CREATE INDEX idx_proof_mint_counter
+ON t_proof(mint_id, derivation_counter);
 
 -- ----------------------------------------------------------------------------
 -- 3. Add Columns to Audit Table (Hibernate Envers)
