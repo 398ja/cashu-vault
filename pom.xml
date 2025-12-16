@@ -31,7 +31,7 @@
         <postgresql.version>42.7.7</postgresql.version>
         <h2.version>2.2.224</h2.version>
         <flyway.version>11.2.0</flyway.version>
-        <hibernate-envers.version>6.6.1.Final</hibernate-envers.version>
+        <hibernate-envers.version>6.6.26.Final</hibernate-envers.version>
 
         <!-- Annotation Processors -->
         <lombok.version>1.18.40</lombok.version>
