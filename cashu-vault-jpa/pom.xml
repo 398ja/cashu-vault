@@ -5,11 +5,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.4.3</version>
+        <version>0.4.5</version>
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>0.4.3</version>
+    <version>0.4.5</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>
@@ -65,12 +65,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cashu-lib-common</artifactId>
-            <version>0.7.0</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cashu-lib-entities</artifactId>
-            <version>0.7.0</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.orm</groupId>
