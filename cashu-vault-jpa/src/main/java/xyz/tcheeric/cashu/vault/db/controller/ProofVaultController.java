@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
+import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
+import xyz.tcheeric.cashu.vault.db.repos.MintRepository;
 import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 
 import java.util.Optional;
@@ -30,20 +32,41 @@ import java.util.UUID;
 public class ProofVaultController {
 
     private final ProofRepository proofRepository;
+    private final MintRepository mintRepository;
 
     /**
-     * Stores a new proof entity.
+     * Stores a new proof entity with duplicate detection.
+     * Returns 409 Conflict if the proof already exists.
      *
      * @param proof proof to persist
-     * @return stored proof entity
+     * @return stored proof entity, or 409 if duplicate
      * @throws CashuErrorException in case the entity cannot be persisted
      */
     @PostMapping
     public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof) throws CashuErrorException {
-        log.info("Storing ProofEntity {}", proof.getId());
-        var savedProof = proofRepository.save(proof);
-        log.debug("Stored ProofEntity {}", savedProof.getId());
-        return ResponseEntity.ok(savedProof);
+        log.info("Storing ProofEntity with secret: {}...",
+                proof.getSecret() != null ? proof.getSecret().substring(0, Math.min(16, proof.getSecret().length())) : "null");
+
+        // Look up mint to get managed entity (avoid cascade issues with detached entity)
+        if (proof.getMint() != null && proof.getMint().getId() != null) {
+            Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
+            if (mintOpt.isPresent()) {
+                proof.setMint(mintOpt.get());
+            } else {
+                log.warn("Mint not found for ID: {}", proof.getMint().getId());
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        var result = proofRepository.insertIfNotExists(proof);
+
+        if (result.isDuplicate()) {
+            log.info("Duplicate proof detected: {}", result.duplicateReason());
+            return ResponseEntity.status(409).build();
+        }
+
+        log.debug("Stored ProofEntity {}", result.proof().getId());
+        return ResponseEntity.ok(result.proof());
     }
 
     /**

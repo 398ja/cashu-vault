@@ -7,7 +7,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -19,13 +22,24 @@ import xyz.tcheeric.cashu.common.UnCompressedPublicKey;
 import xyz.tcheeric.cashu.common.util.SecretUtil;
 import xyz.tcheeric.cashu.crypto.BDHKEUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 /**
  * Entity representing a spendable proof issued by a mint.
  */
 @Entity(name = "proof")
-@Table(name = "t_proof", indexes = {
-        @Index(name = "idx_proof_mint_id", columnList = "mint_id")
-})
+@Table(name = "t_proof",
+        indexes = {
+                @Index(name = "idx_proof_mint_id", columnList = "mint_id"),
+                @Index(name = "idx_proof_commitment", columnList = "c"),
+                @Index(name = "idx_proof_fingerprint", columnList = "fingerprint")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_proof_mint_secret", columnNames = {"mint_id", "secret"}),
+                @UniqueConstraint(name = "uk_proof_mint_commitment", columnNames = {"mint_id", "c"})
+        }
+)
 @Data
 @Audited
 @AuditTable(value = "t_proof_a")
@@ -71,6 +85,54 @@ public class ProofEntity extends BaseEntity {
     @Column(name = "state", nullable = false)
     private String state = STATE_UNSPENT;
 
+    /**
+     * SHA-256 fingerprint for token-level duplicate detection.
+     * Computed from sorted proof secrets + mint URL.
+     */
+    @JsonProperty
+    @Column(name = "fingerprint", length = 64)
+    private String fingerprint;
+
+    /**
+     * Ensures fingerprint is computed before persisting.
+     */
+    @PrePersist
+    @PreUpdate
+    protected void ensureFingerprint() {
+        if (this.fingerprint == null && this.secret != null) {
+            String mintId = (this.mint != null && this.mint.getId() != null)
+                    ? this.mint.getId().toString()
+                    : "";
+            this.fingerprint = computeFingerprint(this.secret, mintId);
+        }
+    }
+
+    /**
+     * Computes SHA-256 fingerprint from secret and mint identifier.
+     *
+     * @param secret proof secret
+     * @param mintId mint identifier
+     * @return hex-encoded SHA-256 hash (64 characters)
+     */
+    public static String computeFingerprint(String secret, String mintId) {
+        try {
+            String input = secret + "||" + mintId;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to compute fingerprint", e);
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
     public static <T extends Secret> ProofEntity fromProof(Proof<T> proof, MintEntity mintEntity) {
         ProofEntity proofEntity = new ProofEntity();
         proofEntity.setAmount(proof.getAmount());
@@ -84,6 +146,11 @@ public class ProofEntity extends BaseEntity {
 
         proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
         proofEntity.setMint(mintEntity);
+
+        // Compute fingerprint for duplicate detection
+        String mintId = mintEntity.getId() != null ? mintEntity.getId().toString() : "";
+        proofEntity.setFingerprint(computeFingerprint(yCoordinate, mintId));
+
         return proofEntity;
     }
 }

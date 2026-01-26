@@ -41,6 +41,7 @@
 
         <!-- Maven Plugin Versions -->
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
         <spring-boot-maven-plugin.version>3.5.5</spring-boot-maven-plugin.version>
         <flatten-maven-plugin.version>1.7.2</flatten-maven-plugin.version>
     </properties>
@@ -152,6 +153,11 @@
                             </annotationProcessorPath>
                         </annotationProcessorPaths>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
