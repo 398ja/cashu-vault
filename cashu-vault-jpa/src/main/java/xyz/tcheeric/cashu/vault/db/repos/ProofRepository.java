@@ -101,11 +101,23 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
     boolean existsByFingerprint(String fingerprint);
 
     /**
+     * Constraint name for unique (mint_id, secret) - must match migration.
+     */
+    String CONSTRAINT_MINT_SECRET = "uk_proof_mint_secret";
+
+    /**
+     * Constraint name for unique (mint_id, C) - must match migration.
+     */
+    String CONSTRAINT_MINT_COMMITMENT = "uk_proof_mint_commitment";
+
+    /**
      * Stores proof if not already present (duplicate detection).
      * Uses the unique constraint on (mint_id, secret) to prevent duplicates.
      *
      * @param proof proof to store
      * @return InsertResult indicating success or duplicate
+     * @throws DataIntegrityViolationException for non-duplicate constraint violations
+     *         (e.g., NOT NULL, FK violations)
      */
     default InsertResult insertIfNotExists(ProofEntity proof) {
         UUID mintId = proof.getMint() != null ? proof.getMint().getId() : null;
@@ -120,9 +132,33 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             ProofEntity saved = save(proof);
             return new InsertResult(true, saved, null);
         } catch (DataIntegrityViolationException e) {
-            // Constraint violation - concurrent duplicate insertion
-            return new InsertResult(false, null, "Duplicate proof detected by constraint: " + e.getMessage());
+            // Only treat as duplicate if it's a unique constraint violation on our duplicate-detection constraints
+            if (isDuplicateConstraintViolation(e)) {
+                return new InsertResult(false, null, "Duplicate proof detected by constraint: " + e.getMessage());
+            }
+            // Rethrow other integrity violations (NOT NULL, FK, etc.)
+            throw e;
         }
+    }
+
+    /**
+     * Checks if the exception is a unique constraint violation for duplicate detection.
+     * Only returns true for violations of uk_proof_mint_secret or uk_proof_mint_commitment.
+     */
+    private static boolean isDuplicateConstraintViolation(DataIntegrityViolationException e) {
+        String message = e.getMessage();
+        if (message == null) {
+            Throwable cause = e.getCause();
+            message = cause != null ? cause.getMessage() : "";
+        }
+        String lowerMessage = message.toLowerCase();
+
+        // Check for our specific unique constraint names (case-insensitive)
+        return lowerMessage.contains(CONSTRAINT_MINT_SECRET.toLowerCase())
+                || lowerMessage.contains(CONSTRAINT_MINT_COMMITMENT.toLowerCase())
+                // Also check for generic unique violation patterns that mention our columns
+                || (lowerMessage.contains("unique") && lowerMessage.contains("secret"))
+                || (lowerMessage.contains("unique") && lowerMessage.contains("mint_id"));
     }
 
     /**

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -214,6 +216,21 @@ class ProofVaultControllerIntegrationTest {
             assertThat(result.isDuplicate()).isTrue();
             assertThat(result.stored()).isFalse();
             assertThat(result.duplicateReason()).contains("Duplicate");
+        }
+
+        @Test
+        @DisplayName("insertIfNotExists should throw for non-duplicate constraint violations")
+        void insertIfNotExistsThrowsForNonDuplicateViolations() {
+            // Create a proof entity missing required mint (FK violation)
+            ProofEntity invalidProof = new ProofEntity();
+            invalidProof.setSecret("some-secret-" + UUID.randomUUID());
+            invalidProof.setUnblindedSignature("some-commitment");
+            invalidProof.setAmount(100);
+            // Intentionally NOT setting mint - this should cause a NOT NULL/FK violation
+
+            // Should throw DataIntegrityViolationException, NOT return a duplicate result
+            assertThatThrownBy(() -> proofRepository.insertIfNotExists(invalidProof))
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 
