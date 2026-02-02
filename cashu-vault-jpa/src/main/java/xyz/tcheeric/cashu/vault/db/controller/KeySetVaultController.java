@@ -18,7 +18,7 @@ import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.List;
 import java.util.Set;
@@ -113,7 +113,7 @@ public class KeySetVaultController {
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByUnit(unit);
         Set<KeySetEntity> keySetEntities = keySets
                 .filter(set -> !set.isEmpty())
-                .orElse(new HashSet<>());
+                .orElse(Collections.emptySet());
         return ResponseEntity.ok(keySetEntities);
     }
 
