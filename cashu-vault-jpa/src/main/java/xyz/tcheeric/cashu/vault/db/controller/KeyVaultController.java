@@ -1,8 +1,12 @@
 package xyz.tcheeric.cashu.vault.db.controller;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +29,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/vault/key")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class KeyVaultController {
 
@@ -64,7 +69,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if no key exists with the ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<KeyEntity> retrieve(@PathVariable("id") String id) throws CashuErrorException {
+    public ResponseEntity<KeyEntity> retrieve(
+            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
         log.info("Retrieving KeyEntity by id {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
@@ -82,7 +88,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if no keys are found
      */
     @GetMapping("/unit/{unit}")
-    public ResponseEntity<Set<KeyEntity>> getKeysByUnit(@PathVariable("unit") String unit) throws CashuErrorException {
+    public ResponseEntity<Set<KeyEntity>> getKeysByUnit(
+            @PathVariable("unit") @NotBlank @Size(max = 10, message = "Unit code exceeds maximum length") String unit) throws CashuErrorException {
         log.info("Retrieving keys for unit {}", unit);
         Set<KeyEntity> keySet = keyRepository.findByKeySet_UnitIgnoreCase(unit)
                 .filter(set -> !set.isEmpty())
@@ -98,7 +105,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if no key exists for the private key
      */
     @GetMapping("/privatekey/{privateKey}")
-    public ResponseEntity<KeyEntity> getKeyByPrivateKey(@PathVariable("privateKey") String privateKey) throws CashuErrorException {
+    public ResponseEntity<KeyEntity> getKeyByPrivateKey(
+            @PathVariable("privateKey") @NotBlank @Size(max = 512, message = "Private key exceeds maximum length") String privateKey) throws CashuErrorException {
         log.info("Retrieving KeyEntity by privateKey");
         Optional<KeyEntity> keyOpt = keyRepository.findByPrivateKey(privateKey);
         if (keyOpt.isPresent()) {
@@ -116,7 +124,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if none are found
      */
     @GetMapping("/keyset/{id}")
-    public ResponseEntity<Set<KeyEntity>> getKeysByKeySetId(@PathVariable("id") String id) throws CashuErrorException {
+    public ResponseEntity<Set<KeyEntity>> getKeysByKeySetId(
+            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
         log.info("Retrieving keys for keySet {}", id);
         Optional<Set<KeyEntity>> keys = keyRepository.findByKeySet_Id(UUID.fromString(id));
         if (keys.isPresent()) {
@@ -133,7 +142,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if the key does not exist
      */
     @PostMapping("/archive/{id}")
-    public ResponseEntity<KeyEntity> archive(@PathVariable("id") String id) throws CashuErrorException {
+    public ResponseEntity<KeyEntity> archive(
+            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
         log.info("Archiving KeyEntity {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {
@@ -154,7 +164,8 @@ public class KeyVaultController {
      * @throws CashuErrorException if the key does not exist
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable("id") String id) throws CashuErrorException {
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
         log.info("Deleting KeyEntity {}", id);
         Optional<KeyEntity> keyOpt = keyRepository.findById(UUID.fromString(id));
         if (keyOpt.isPresent()) {

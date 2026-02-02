@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static xyz.tcheeric.cashu.vault.api.VaultClientFactory.getClient;
 
 @Log
-public class DBProofVault extends DBVault<ProofEntity> {
+public final class DBProofVault extends DBVault<ProofEntity> {
 
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 

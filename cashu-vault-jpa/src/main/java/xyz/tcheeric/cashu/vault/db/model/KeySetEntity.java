@@ -16,6 +16,7 @@ import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -55,4 +56,11 @@ public class KeySetEntity extends BaseEntity {
     @JoinColumn(name = "mint_id")
     private MintEntity mint;
 
+    /**
+     * Returns an unmodifiable view of the keys to prevent external modification.
+     * @return unmodifiable set of keys
+     */
+    public Set<KeyEntity> getKeys() {
+        return Collections.unmodifiableSet(keys);
+    }
 }

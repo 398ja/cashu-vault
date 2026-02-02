@@ -16,7 +16,7 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 
 import java.util.Set;
 
-public class DBKeySetVault extends DBVault<KeySetEntity> {
+public final class DBKeySetVault extends DBVault<KeySetEntity> {
 
     public DBKeySetVault() {
         this(VaultClientFactory.getClient(KeySetEntity.class));
