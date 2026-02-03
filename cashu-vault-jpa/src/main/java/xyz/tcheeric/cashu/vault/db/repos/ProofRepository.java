@@ -123,8 +123,13 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         UUID mintId = proof.getMint() != null ? proof.getMint().getId() : null;
         String secret = proof.getSecret();
 
+        // Validate required fields - throw early for null mint (NOT NULL constraint)
+        if (mintId == null) {
+            throw new DataIntegrityViolationException("Proof must have a mint associated");
+        }
+
         // Check for existing proof by mint and secret
-        if (mintId != null && secret != null && existsByMint_IdAndSecret(mintId, secret)) {
+        if (secret != null && existsByMint_IdAndSecret(mintId, secret)) {
             return new InsertResult(false, null, "Duplicate proof: same secret already exists for mint");
         }
 

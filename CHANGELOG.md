@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-03
+
+### Added
+
+- Production Spring profile (`application-prod.properties`) with PostgreSQL and HikariCP configuration
+- G1GC garbage collector configuration in Dockerfile with heap sizing and GC logging
+- Bean Validation annotations (`@NotBlank`, `@Pattern`, `@Size`, `@Positive`) on all controller path parameters
+- `GlobalExceptionHandler` for centralized exception handling with sanitized error messages
+
+### Changed
+
+- Updated cashu-lib dependency to 0.16.0
+- Use `TreeMap` instead of `HashMap` in `DBMintVault.getKeys()` to prevent hash collision DoS
+- Return defensive copies (unmodifiable collections) from `MintEntity` and `KeySetEntity` getters
+- Initialize collections with known sizes for better performance
+- HikariCP connection pool tuning (pool size, timeouts, prepared statement caching)
+
+### Security
+
+- Implement Oracle Secure Coding Guidelines for Java SE (83% compliance)
+- Exception message sanitization to prevent information disclosure
+- Input validation on all REST endpoints to prevent injection attacks
+
+### Performance
+
+- Implement Java Performance Tuning recommendations (80% compliance)
+- Configure G1GC with 200ms pause time target
+- Add heap dump on OOM for production diagnostics
+
 ## [0.5.0] - 2026-01-26
 
 ### Added
@@ -68,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Aligned hibernate-envers version with hibernate-core
 
-[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/398ja/cashu-vault/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/398ja/cashu-vault/compare/v0.4.6...v0.5.0
 [0.4.6]: https://github.com/398ja/cashu-vault/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/398ja/cashu-vault/compare/v0.4.4...v0.4.5

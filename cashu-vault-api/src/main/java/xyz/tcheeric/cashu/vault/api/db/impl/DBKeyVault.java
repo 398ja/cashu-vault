@@ -14,7 +14,7 @@ import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
 import java.math.BigInteger;
 
-public class DBKeyVault extends DBVault<KeyEntity> {
+public final class DBKeyVault extends DBVault<KeyEntity> {
 
     public DBKeyVault() {
         this(VaultClientFactory.getClient(KeyEntity.class));

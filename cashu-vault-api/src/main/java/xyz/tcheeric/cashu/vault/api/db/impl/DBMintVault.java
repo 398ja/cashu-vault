@@ -14,13 +14,13 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
-public class DBMintVault extends DBVault<MintEntity> {
+public final class DBMintVault extends DBVault<MintEntity> {
 
     public DBMintVault() {
         this(VaultClientFactory.getClient(MintEntity.class));
@@ -175,7 +175,8 @@ public class DBMintVault extends DBVault<MintEntity> {
     }
 
     private static Map<BigInteger, byte[]> getKeys(KeySetEntity keySetEntity) {
-        Map<BigInteger, byte[]> keys = new HashMap<>();
+        // Use TreeMap instead of HashMap to prevent hash collision DoS attacks
+        Map<BigInteger, byte[]> keys = new TreeMap<>();
         keySetEntity.getKeys().forEach(keyEntity -> {
             keys.put(keyEntity.getAmount(), PublicKey.fromString(keyEntity.getPrivateKey()).getBytes());
         });
