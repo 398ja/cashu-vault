@@ -30,7 +30,7 @@
 
         <!-- Dependency Versions -->
         <lombok.version>1.18.36</lombok.version>
-        <spring.boot.version>3.5.0</spring.boot.version>
+        <spring.boot.version>3.5.10</spring.boot.version>
         <postgresql.version>42.7.5</postgresql.version>
         <hibernate-envers.version>6.6.1.Final</hibernate-envers.version>
         <flyway.version>11.2.0</flyway.version>
