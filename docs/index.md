@@ -1,7 +1,7 @@
 # Cashu Vault
 
 Cashu Vault is a Spring Boot service that stores and manages [Cashu](https://cashu.space/) protocol data.
-It provides REST endpoints for persisting **mints**, **key sets**, **keys**, and **proofs**. The project supports two secrets backends: **PostgreSQL** (default) and **HashiCorp Vault** for production-grade key management.
+It provides REST endpoints for persisting **mints**, **key sets**, **keys**, and **proofs**. The project supports two secrets backends: **HashiCorp Vault** (default) and **PostgreSQL** for development.
 
 ## Modules
 
@@ -58,7 +58,7 @@ docker compose up --build
 
 ### Secrets Backend Selection
 
-By default, all secrets (private keys) are stored in PostgreSQL. To use HashiCorp Vault, set `VAULT_BACKEND=hashicorp` in `docker.env`. See [Configuration Reference](reference/configuration.md) for all options.
+By default, all secrets (private keys) are stored in HashiCorp Vault. To use PostgreSQL instead, set `VAULT_BACKEND=db` in `docker.env`. See [Configuration Reference](reference/configuration.md) for all options.
 
 ## Running Locally
 
