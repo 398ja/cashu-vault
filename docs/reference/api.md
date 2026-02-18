@@ -150,25 +150,11 @@ All endpoints are served under the `/vault` base path.
 - **Path:** `/vault/key`
 - **Body Fields:**
   - `amount` (integer, required)
-  - `privateKey` (string, required when `vault.backend=db`; stored in HashiCorp Vault when `vault.backend=hashicorp`)
+  - `privateKey` (string, required) - stored in HashiCorp Vault, not persisted to the database
   - `keySet.id` (UUID, required)
   - *(optional)* `id`, `archived`, `createdAt`, `updatedAt`, `version`
   - *(read-only)* `vaultPath` (string) - set automatically when using the HashiCorp Vault backend
-- **Example response (DB backend):**
-```json
-{
-  "id": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
-  "archived": false,
-  "createdAt": "2024-01-01T00:00:00Z",
-  "updatedAt": "2024-01-01T00:00:00Z",
-  "version": 0,
-  "amount": 1,
-  "privateKey": "priv",
-  "vaultPath": null,
-  "keySet": {"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}
-}
-```
-- **Example response (HashiCorp Vault backend):**
+- **Example response:**
 ```json
 {
   "id": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
@@ -194,12 +180,6 @@ All endpoints are served under the `/vault` base path.
 - **Path:** `/vault/key/unit/{unit}`
 - **Path Parameters:** `unit` (string, required)
 - **Example response:** array of key objects.
-
-### Retrieve by private key
-- **Method:** `GET`
-- **Path:** `/vault/key/privatekey/{privateKey}`
-- **Path Parameters:** `privateKey` (string, required)
-- **Example response:** key object.
 
 ### List keys by key set
 - **Method:** `GET`

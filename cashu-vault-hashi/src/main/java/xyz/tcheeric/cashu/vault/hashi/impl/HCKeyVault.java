@@ -73,11 +73,9 @@ public final class HCKeyVault extends DBVault<KeyEntity> {
     }
 
     private void enrichWithVaultSecret(KeyEntity entity) {
-        if (entity.getVaultPath() != null && entity.getPrivateKey() == null) {
-            Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
-            if (data != null) {
-                entity.setPrivateKey((String) data.get("private_key"));
-            }
+        Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
+        if (data != null) {
+            entity.setPrivateKey((String) data.get("private_key"));
         }
     }
 

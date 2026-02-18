@@ -2,7 +2,6 @@ package xyz.tcheeric.cashu.vault.hashi.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.core.VaultVersionedKeyValueOperations;
@@ -13,7 +12,6 @@ import xyz.tcheeric.cashu.vault.hashi.config.HashiVaultProperties;
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "vault.backend", havingValue = "hashicorp")
 @RequiredArgsConstructor
 @Slf4j
 public class HashiVaultClient {

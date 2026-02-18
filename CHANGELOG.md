@@ -14,13 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `cashu-vault-hashi` module for HashiCorp Vault secrets backend using `spring-vault-core` 3.2.0
 - `HashiVaultClient` with CAS-aware KV v2 operations (store, get, delete)
 - `HCKeyVault` and `HCKeySetVault` implementations that store private keys in HashiCorp Vault
-- `DBMigrationService` for migrating existing private keys from PostgreSQL to HashiCorp Vault
+- HashiCorp Vault is the default and only secrets backend for private key material
 - `HashiVaultConfig` with support for Token, AppRole and Kubernetes authentication
 - `HashiVaultRegistrar` for automatic backend registration on startup
 - `VaultClientFactory.Backend` enum with `getVault()` method for backend-agnostic vault access
 - `VaultClientFactory.registerHCVault()` for pluggable HashiCorp Vault registration
 - `vault_path` column on `KeyEntity` for referencing secrets stored in HashiCorp Vault
-- V3 Flyway migration: add `vault_path` column, make `private_key` nullable
+- V3 Flyway migration: add `vault_path` column, drop `private_key` column
 - HashiCorp Vault service and `vault-init` container in Docker Compose
 - `docker.env` / `docker.env.example` for externalized configuration
 - Integration tests for `HashiVaultClient` using Testcontainers VaultContainer
@@ -28,8 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `VaultClientFactory` now supports dual-backend mode (DB and HashiCorp) with fallback
-- `KeyEntity.privateKey` is now nullable to support HashiCorp Vault backend
+- `VaultClientFactory` defaults to HashiCorp Vault backend
+- `KeyEntity.privateKey` is now `@Transient` (not persisted to database)
 - Docker Compose refactored to use `env_file` instead of inline environment variables
 - Docker Compose now includes persistent volumes for PostgreSQL and Vault data
 

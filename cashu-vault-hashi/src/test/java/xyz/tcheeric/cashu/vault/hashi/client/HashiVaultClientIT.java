@@ -16,7 +16,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
-class HashiVaultClientTest {
+class HashiVaultClientIT {
 
     private static final String VAULT_TOKEN = "test-root-token";
 

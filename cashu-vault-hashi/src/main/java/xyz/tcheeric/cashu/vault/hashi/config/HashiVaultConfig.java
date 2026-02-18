@@ -1,6 +1,5 @@
 package xyz.tcheeric.cashu.vault.hashi.config;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +17,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 
 @Configuration
-@ConditionalOnProperty(name = "vault.backend", havingValue = "hashicorp")
 @EnableConfigurationProperties(HashiVaultProperties.class)
 public class HashiVaultConfig {
 

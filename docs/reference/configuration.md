@@ -35,7 +35,7 @@ The `docker.env` file is gitignored to prevent credentials from being committed.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VAULT_BACKEND` | `db` | Secrets backend: `db` or `hashicorp` |
+| `VAULT_BACKEND` | `hashicorp` | Secrets backend (HashiCorp Vault is the default) |
 | `VAULT_DEV_ROOT_TOKEN_ID` | - | Root token for Vault dev mode |
 | `VAULT_HASHI_URI` | `http://hashicorp-vault:8200` | HashiCorp Vault address |
 | `VAULT_HASHI_AUTH_METHOD` | `token` | Auth method: `token`, `approle`, or `kubernetes` |
@@ -49,7 +49,7 @@ The `docker.env` file is gitignored to prevent credentials from being committed.
 | Property | Default | Description |
 |----------|---------|-------------|
 | `vault.base.url` | `http://localhost:3333` | Base URL of the vault service used by `VaultClient` |
-| `vault.backend` | `db` | Secrets backend selection |
+| `vault.backend` | `hashicorp` | Secrets backend selection |
 | `vault.hashi.uri` | `https://vault.internal:8200` | HashiCorp Vault URI |
 | `vault.hashi.auth.method` | `token` | Authentication method |
 | `vault.hashi.auth.token` | - | Token value |
@@ -59,22 +59,14 @@ The `docker.env` file is gitignored to prevent credentials from being committed.
 
 ## Usage Examples
 
-### Run with default database backend
+### Run with default configuration
 
 ```bash
 cp docker.env.example docker.env
 docker compose up --build
 ```
 
-### Enable HashiCorp Vault backend
-
-Set `VAULT_BACKEND=hashicorp` in `docker.env`, then:
-
-```bash
-docker compose up --build
-```
-
-The `vault-init` container automatically configures the KV v2 engine and AppRole auth.
+The `vault-init` container automatically configures the KV v2 engine and AppRole auth. Private keys are stored in HashiCorp Vault by default.
 
 ### Run the service on a custom port
 

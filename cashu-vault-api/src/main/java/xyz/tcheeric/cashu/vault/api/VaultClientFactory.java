@@ -23,7 +23,7 @@ public final class VaultClientFactory {
 
     public enum Backend { DB, HASHICORP }
 
-    private static volatile Backend activeBackend = Backend.DB;
+    private static volatile Backend activeBackend = Backend.HASHICORP;
 
     private static final VaultBaseProperties PROPERTIES = new VaultBaseProperties();
     private static final Map<Class<?>, VaultClient<?>> CLIENTS = new ConcurrentHashMap<>();
