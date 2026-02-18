@@ -57,21 +57,9 @@ To also remove persistent data volumes:
 docker compose down -v
 ```
 
-## Enable HashiCorp Vault Backend
+## HashiCorp Vault
 
-By default, private keys are stored in PostgreSQL. To use HashiCorp Vault:
-
-1. Edit `docker.env` and set:
-   ```properties
-   VAULT_BACKEND=hashicorp
-   ```
-
-2. Restart the services:
-   ```bash
-   docker compose up --build
-   ```
-
-The `vault-init` container automatically configures the KV v2 secrets engine at `cashu/` and sets up AppRole authentication. When keys are created, their private key material is stored in HashiCorp Vault and the database only retains a `vault_path` reference.
+Private keys are stored in HashiCorp Vault by default. The `vault-init` container automatically configures the KV v2 secrets engine at `cashu/` and sets up AppRole authentication. When keys are created, their private key material is stored in HashiCorp Vault and the database only retains a `vault_path` reference.
 
 You can inspect the HashiCorp Vault UI at http://localhost:8200 using the token from `VAULT_DEV_ROOT_TOKEN_ID` in your `docker.env`.
 

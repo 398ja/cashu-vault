@@ -8,6 +8,7 @@ import xyz.tcheeric.cashu.vault.db.config.VaultBaseProperties;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeyEntity;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
+import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.Map;
@@ -95,6 +96,8 @@ public final class VaultClientFactory {
             return (Vault<T>) new xyz.tcheeric.cashu.vault.api.db.impl.DBKeyVault();
         } else if (type == KeySetEntity.class) {
             return (Vault<T>) new xyz.tcheeric.cashu.vault.api.db.impl.DBKeySetVault();
+        } else if (type == MintEntity.class) {
+            return (Vault<T>) new xyz.tcheeric.cashu.vault.api.db.impl.DBMintVault();
         } else if (type == ProofEntity.class) {
             return (Vault<T>) new xyz.tcheeric.cashu.vault.api.db.impl.DBProofVault();
         }

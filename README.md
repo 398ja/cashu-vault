@@ -1,6 +1,6 @@
 # Cashu Vault
 
-Cashu Vault is a Spring Boot service that stores and manages [Cashu](https://cashu.space/) protocol data. It supports PostgreSQL for metadata and proof state, with an optional [HashiCorp Vault](https://www.vaultproject.io/) backend for secure private key storage.
+Cashu Vault is a Spring Boot service that stores and manages [Cashu](https://cashu.space/) protocol data. It uses PostgreSQL for metadata and proof state, and [HashiCorp Vault](https://www.vaultproject.io/) for secure private key storage.
 
 Full documentation is available in the [docs](docs/) directory.
 
@@ -22,9 +22,7 @@ cp docker.env.example docker.env
 docker compose up --build
 ```
 
-The vault service listens on `http://localhost:3333`, PostgreSQL on `5432`, and HashiCorp Vault on `8200`.
-
-To enable the HashiCorp Vault secrets backend, set `VAULT_BACKEND=hashicorp` in `docker.env`.
+The vault service listens on `http://localhost:3333`, PostgreSQL on `5432`, and HashiCorp Vault on `8200`. Private keys are stored in HashiCorp Vault by default.
 
 ## Building
 
@@ -37,7 +35,11 @@ mvn package
 ## Running Tests
 
 ```bash
+# Unit tests
 mvn test
+
+# Unit + integration tests (requires Docker)
+mvn verify -Pintegration-test
 ```
 
 Integration tests for the HashiCorp Vault module use [Testcontainers](https://www.testcontainers.org/) and require Docker.

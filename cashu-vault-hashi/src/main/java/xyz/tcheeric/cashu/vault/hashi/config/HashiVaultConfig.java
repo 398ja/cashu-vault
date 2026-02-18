@@ -3,16 +3,17 @@ package xyz.tcheeric.cashu.vault.hashi.config;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.vault.authentication.AppRoleAuthentication;
 import org.springframework.vault.authentication.AppRoleAuthenticationOptions;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.authentication.KubernetesAuthentication;
 import org.springframework.vault.authentication.KubernetesAuthenticationOptions;
 import org.springframework.vault.authentication.TokenAuthentication;
+import org.springframework.vault.client.VaultClients;
 import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.web.client.RestOperations;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
@@ -49,7 +50,8 @@ public class HashiVaultConfig {
                 .secretId(AppRoleAuthenticationOptions.SecretId.provided(approle.getSecretId()))
                 .path(approle.getPath())
                 .build();
-        RestOperations restOperations = new RestTemplate();
+        RestOperations restOperations = VaultClients.createRestTemplate(
+                vaultEndpoint, new SimpleClientHttpRequestFactory());
         return new AppRoleAuthentication(options, restOperations);
     }
 
@@ -61,7 +63,8 @@ public class HashiVaultConfig {
                 .jwtSupplier(new KubernetesServiceAccountTokenFile(k8s.getTokenPath()))
                 .path(k8s.getPath())
                 .build();
-        RestOperations restOperations = new RestTemplate();
+        RestOperations restOperations = VaultClients.createRestTemplate(
+                vaultEndpoint, new SimpleClientHttpRequestFactory());
         return new KubernetesAuthentication(options, restOperations);
     }
 }
