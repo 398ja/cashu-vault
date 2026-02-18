@@ -63,7 +63,7 @@ public final class HCKeySetVault extends DBVault<KeySetEntity> {
     /**
      * Loads keys for a keyset, enriching private keys from HashiCorp Vault when vault_path is present.
      */
-    public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive,
+    public static KeySet load(@NonNull KeySetEntity keySetEntity,
                               HashiVaultClient hashiClient) throws CashuErrorException {
         Keys keys = new Keys();
         keySetEntity.getKeys().forEach(k -> {

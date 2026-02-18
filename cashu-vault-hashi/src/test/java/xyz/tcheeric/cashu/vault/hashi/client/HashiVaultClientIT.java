@@ -21,7 +21,7 @@ class HashiVaultClientIT {
     private static final String VAULT_TOKEN = "test-root-token";
 
     @Container
-    static VaultContainer<?> vault = new VaultContainer<>("hashicorp/vault:1.18.3")
+    static VaultContainer<?> vault = new VaultContainer<>("hashicorp/vault:1.18")
             .withVaultToken(VAULT_TOKEN)
             .withSecretInVault("secret/testing", "top_secret=password123");
 

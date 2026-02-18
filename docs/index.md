@@ -1,7 +1,7 @@
 # Cashu Vault
 
 Cashu Vault is a Spring Boot service that stores and manages [Cashu](https://cashu.space/) protocol data.
-It provides REST endpoints for persisting **mints**, **key sets**, **keys**, and **proofs**. The project supports two secrets backends: **PostgreSQL** (default) and **HashiCorp Vault** for production-grade key management.
+It provides REST endpoints for persisting **mints**, **key sets**, **keys**, and **proofs**. Private keys are stored in **HashiCorp Vault** (KV v2) by default, while metadata and proof state remain in **PostgreSQL**.
 
 ## Modules
 
@@ -56,9 +56,9 @@ docker compose up --build
 | `hashicorp-vault` | 8200 | HashiCorp Vault (dev mode) |
 | `vault-init` | - | One-shot container that configures the KV v2 engine and AppRole auth |
 
-### Secrets Backend Selection
+### Secrets Backend
 
-By default, all secrets (private keys) are stored in PostgreSQL. To use HashiCorp Vault, set `VAULT_BACKEND=hashicorp` in `docker.env`. See [Configuration Reference](reference/configuration.md) for all options.
+Private keys are stored in HashiCorp Vault by default. The `vault-init` container automatically configures the KV v2 engine and AppRole auth. See [Configuration Reference](reference/configuration.md) for all options.
 
 ## Running Locally
 
@@ -75,7 +75,11 @@ The service will be available at `http://localhost:3333`.
 Unit tests run against an in-memory H2 database. Integration tests for the HashiCorp Vault module use Testcontainers and require Docker.
 
 ```bash
+# Unit tests
 mvn test
+
+# Unit + integration tests (requires Docker)
+mvn verify -Pintegration-test
 ```
 
 ## REST API Overview

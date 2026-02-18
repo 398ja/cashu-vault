@@ -32,6 +32,9 @@ public final class HCKeyVault extends DBVault<KeyEntity> {
 
     @Override
     public KeyEntity store(KeyEntity keyEntity) throws CashuErrorException {
+        if (keyEntity.getPrivateKey() == null) {
+            throw new CashuErrorException("Private key must not be null");
+        }
         keyEntity.setKeySet(getKeySet(keyEntity));
 
         // Store private key in HashiCorp Vault
@@ -73,6 +76,10 @@ public final class HCKeyVault extends DBVault<KeyEntity> {
     }
 
     private void enrichWithVaultSecret(KeyEntity entity) {
+        if (entity.getVaultPath() == null) {
+            log.warn("Key entity {} has no vault path, cannot enrich with secret", entity.getId());
+            return;
+        }
         Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
         if (data != null) {
             entity.setPrivateKey((String) data.get("private_key"));
