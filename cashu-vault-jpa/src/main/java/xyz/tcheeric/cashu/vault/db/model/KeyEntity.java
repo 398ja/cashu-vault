@@ -36,8 +36,13 @@ public class KeyEntity extends BaseEntity {
 
     /** Private key value. */
     @JsonProperty
-    @Column(name = "private_key", nullable = false)
+    @Column(name = "private_key")
     private String privateKey;
+
+    /** Reference to the secret stored in HashiCorp Vault. */
+    @JsonProperty
+    @Column(name = "vault_path", length = 512)
+    private String vaultPath;
 
     /** Owning key set. */
     @JsonProperty

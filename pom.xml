@@ -13,6 +13,7 @@
     <modules>
         <module>cashu-vault-jpa</module>
         <module>cashu-vault-api</module>
+        <module>cashu-vault-hashi</module>
     </modules>
 
     <properties>
