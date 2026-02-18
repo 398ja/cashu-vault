@@ -150,10 +150,11 @@ All endpoints are served under the `/vault` base path.
 - **Path:** `/vault/key`
 - **Body Fields:**
   - `amount` (integer, required)
-  - `privateKey` (string, required)
+  - `privateKey` (string, required when `vault.backend=db`; stored in HashiCorp Vault when `vault.backend=hashicorp`)
   - `keySet.id` (UUID, required)
   - *(optional)* `id`, `archived`, `createdAt`, `updatedAt`, `version`
-- **Example response:**
+  - *(read-only)* `vaultPath` (string) - set automatically when using the HashiCorp Vault backend
+- **Example response (DB backend):**
 ```json
 {
   "id": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
@@ -163,6 +164,21 @@ All endpoints are served under the `/vault` base path.
   "version": 0,
   "amount": 1,
   "privateKey": "priv",
+  "vaultPath": null,
+  "keySet": {"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}
+}
+```
+- **Example response (HashiCorp Vault backend):**
+```json
+{
+  "id": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "archived": false,
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z",
+  "version": 0,
+  "amount": 1,
+  "privateKey": null,
+  "vaultPath": "cashu/keys/11111111-2222-3333-4444-555555555555/abc123/1",
   "keySet": {"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}
 }
 ```

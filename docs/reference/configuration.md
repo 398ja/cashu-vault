@@ -1,27 +1,80 @@
 # Configuration Reference
 
-The service and client can be customized through environment variables and system properties.
+The service and client can be customized through environment variables, system properties and the `docker.env` file.
 
-## Environment variables
+## Environment File
 
-| Name | Default | Description | Example |
-|------|---------|-------------|---------|
-| `cashu_vault_port` | `3333` | Port exposed by the vault service. Also used to build the default base URL. | `cashu_vault_port=8080 java -jar cashu-vault-jpa/target/cashu-vault-jpa-*.jar` |
-| `VAULT_BASE_URL` | `http://localhost:${cashu_vault_port}` (defaults to `http://localhost:3333`) | Base URL of the vault service used by clients and configuration. | `VAULT_BASE_URL=https://vault.example.com java -jar client.jar` |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://db:5432/cashu_vault` | JDBC connection string for the database. | `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/vault ...` |
-| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username. | `SPRING_DATASOURCE_USERNAME=vault` |
-| `SPRING_DATASOURCE_PASSWORD` | `postgres` | Database password. | `SPRING_DATASOURCE_PASSWORD=secret` |
-| `POSTGRES_DB` | `cashu_vault` | Name of the PostgreSQL database when using Docker Compose. | `POSTGRES_DB=cashu_vault` |
-| `POSTGRES_USER` | `postgres` | PostgreSQL user when using Docker Compose. | `POSTGRES_USER=user` |
-| `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password when using Docker Compose. | `POSTGRES_PASSWORD=secret` |
+All Docker Compose services read their configuration from `docker.env`. Copy the example file and edit it:
 
-## System properties
+```bash
+cp docker.env.example docker.env
+```
 
-| Property | Default | Description | Example |
-|----------|---------|-------------|---------|
-| `vault.base.url` | `http://localhost:${cashu_vault_port}` (defaults to `http://localhost:3333`) | Base URL of the vault service used by `VaultClient`. | `java -Dvault.base.url=https://vault.example.com -jar client.jar` |
+The `docker.env` file is gitignored to prevent credentials from being committed.
 
-## Usage examples
+## Cashu Vault Service
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `cashu_vault_port` | `3333` | Port the vault service listens on |
+| `VAULT_BASE_URL` | `http://localhost:3333` | Base URL used by `VaultClient` for REST calls |
+| `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile (`prod` for PostgreSQL, default for H2) |
+
+## PostgreSQL
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_DB` | `cashu_vault` | Database name (Docker Compose) |
+| `POSTGRES_USER` | `postgres` | Database user (Docker Compose) |
+| `POSTGRES_PASSWORD` | `postgres` | Database password (Docker Compose) |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://cashu-vault-db:5432/cashu_vault` | JDBC connection string |
+| `SPRING_DATASOURCE_USERNAME` | `postgres` | Spring datasource username |
+| `SPRING_DATASOURCE_PASSWORD` | `postgres` | Spring datasource password |
+
+## HashiCorp Vault
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VAULT_BACKEND` | `db` | Secrets backend: `db` or `hashicorp` |
+| `VAULT_DEV_ROOT_TOKEN_ID` | - | Root token for Vault dev mode |
+| `VAULT_HASHI_URI` | `http://hashicorp-vault:8200` | HashiCorp Vault address |
+| `VAULT_HASHI_AUTH_METHOD` | `token` | Auth method: `token`, `approle`, or `kubernetes` |
+| `VAULT_HASHI_AUTH_TOKEN` | - | Token for token-based auth |
+| `VAULT_HASHI_AUTH_APPROLE_ROLE_ID` | - | AppRole role ID |
+| `VAULT_HASHI_AUTH_APPROLE_SECRET_ID` | - | AppRole secret ID |
+| `VAULT_HASHI_ENGINE_MOUNT` | `cashu` | KV v2 engine mount path |
+
+## System Properties
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `vault.base.url` | `http://localhost:3333` | Base URL of the vault service used by `VaultClient` |
+| `vault.backend` | `db` | Secrets backend selection |
+| `vault.hashi.uri` | `https://vault.internal:8200` | HashiCorp Vault URI |
+| `vault.hashi.auth.method` | `token` | Authentication method |
+| `vault.hashi.auth.token` | - | Token value |
+| `vault.hashi.auth.approle.role-id` | - | AppRole role ID |
+| `vault.hashi.auth.approle.secret-id` | - | AppRole secret ID |
+| `vault.hashi.engine.mount` | `cashu` | KV v2 engine mount path |
+
+## Usage Examples
+
+### Run with default database backend
+
+```bash
+cp docker.env.example docker.env
+docker compose up --build
+```
+
+### Enable HashiCorp Vault backend
+
+Set `VAULT_BACKEND=hashicorp` in `docker.env`, then:
+
+```bash
+docker compose up --build
+```
+
+The `vault-init` container automatically configures the KV v2 engine and AppRole auth.
 
 ### Run the service on a custom port
 
@@ -37,11 +90,15 @@ VAULT_BASE_URL=https://vault.example.com java -jar client.jar
 java -Dvault.base.url=https://vault.example.com -jar client.jar
 ```
 
-### Customize database connection
+### Use AppRole authentication in production
 
-```bash
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/cashu_vault \
-SPRING_DATASOURCE_USERNAME=vault \
-SPRING_DATASOURCE_PASSWORD=secret \
-java -jar cashu-vault-jpa/target/cashu-vault-jpa-*.jar
+Set the following in `docker.env`:
+
+```properties
+VAULT_BACKEND=hashicorp
+VAULT_HASHI_AUTH_METHOD=approle
+VAULT_HASHI_AUTH_APPROLE_ROLE_ID=<your-role-id>
+VAULT_HASHI_AUTH_APPROLE_SECRET_ID=<your-secret-id>
 ```
+
+The role ID and secret ID are generated by the `vault-init` container and written to `/vault/file/role-id` and `/vault/file/secret-id` on the shared volume.
