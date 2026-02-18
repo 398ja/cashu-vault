@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-18
+
+### Added
+
+- New `cashu-vault-hashi` module for HashiCorp Vault secrets backend using `spring-vault-core` 3.2.0
+- `HashiVaultClient` with CAS-aware KV v2 operations (store, get, delete)
+- `HCKeyVault` and `HCKeySetVault` implementations that store private keys in HashiCorp Vault
+- HashiCorp Vault is the default and only secrets backend for private key material
+- `HashiVaultConfig` with support for Token, AppRole and Kubernetes authentication
+- `HashiVaultRegistrar` for automatic backend registration on startup
+- `VaultClientFactory.Backend` enum with `getVault()` method for backend-agnostic vault access
+- `VaultClientFactory.registerHCVault()` for pluggable HashiCorp Vault registration
+- `vault_path` column on `KeyEntity` for referencing secrets stored in HashiCorp Vault
+- V3 Flyway migration: add `vault_path` column, drop `private_key` column
+- HashiCorp Vault service and `vault-init` container in Docker Compose
+- `docker.env` / `docker.env.example` for externalized configuration
+- Integration tests for `HashiVaultClient` using Testcontainers VaultContainer
+- `application-hashicorp.properties` default profile for HashiCorp Vault backend
+
+### Changed
+
+- `VaultClientFactory` defaults to HashiCorp Vault backend
+- `KeyEntity.privateKey` is now `@Transient` (not persisted to database)
+- Docker Compose refactored to use `env_file` instead of inline environment variables
+- Docker Compose now includes persistent volumes for PostgreSQL and Vault data
+
+### Security
+
+- Private keys can now be stored in HashiCorp Vault with KV v2 versioning and audit logging
+- AppRole least-privilege policy restricts access to `cashu/` mount paths only
+- `docker.env` is gitignored to prevent credential leakage
+
 ## [0.6.0] - 2026-02-03
 
 ### Added
@@ -97,7 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Aligned hibernate-envers version with hibernate-core
 
-[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/398ja/cashu-vault/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/398ja/cashu-vault/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/398ja/cashu-vault/compare/v0.4.6...v0.5.0
 [0.4.6]: https://github.com/398ja/cashu-vault/compare/v0.4.5...v0.4.6

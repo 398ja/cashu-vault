@@ -98,25 +98,6 @@ public class KeyVaultController {
     }
 
     /**
-     * Retrieves a key by its private key value.
-     *
-     * @param privateKey private key string
-     * @return matching key entity
-     * @throws CashuErrorException if no key exists for the private key
-     */
-    @GetMapping("/privatekey/{privateKey}")
-    public ResponseEntity<KeyEntity> getKeyByPrivateKey(
-            @PathVariable("privateKey") @NotBlank @Size(max = 512, message = "Private key exceeds maximum length") String privateKey) throws CashuErrorException {
-        log.info("Retrieving KeyEntity by privateKey");
-        Optional<KeyEntity> keyOpt = keyRepository.findByPrivateKey(privateKey);
-        if (keyOpt.isPresent()) {
-            log.debug("Retrieved KeyEntity by privateKey");
-            return ResponseEntity.ok(keyOpt.get());
-        }
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
      * Retrieves keys belonging to a specific key set.
      *
      * @param id key set identifier

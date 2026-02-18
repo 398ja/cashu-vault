@@ -59,14 +59,4 @@ public class KeyVaultClient extends VaultClient<KeyEntity> {
         return response.getBody();
     }
 
-    /**
-     * Retrieves a key by its private key value.
-     *
-     * @param privateKey private key string
-     * @return matching key entity or {@code null} if none exists
-     */
-    public KeyEntity getByPrivateKey(String privateKey) {
-        log.info("GET {}/vault/key/private/{}", getBaseUrl(), privateKey);
-        return restTemplate.getForObject(getBaseUrl() + "/vault/key/private/" + privateKey, KeyEntity.class);
-    }
 }

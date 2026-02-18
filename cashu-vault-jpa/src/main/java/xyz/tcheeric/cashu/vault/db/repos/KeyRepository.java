@@ -28,11 +28,4 @@ public interface KeyRepository extends JpaRepository<KeyEntity, UUID> {
      */
     Optional<Set<KeyEntity>> findByKeySet_UnitIgnoreCase(String unit);
 
-    /**
-     * Finds a key by its private key string.
-     *
-     * @param privateKey private key value
-     * @return optional matching key entity
-     */
-    Optional<KeyEntity> findByPrivateKey(String privateKey);
 }

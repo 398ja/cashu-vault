@@ -150,9 +150,10 @@ All endpoints are served under the `/vault` base path.
 - **Path:** `/vault/key`
 - **Body Fields:**
   - `amount` (integer, required)
-  - `privateKey` (string, required)
+  - `privateKey` (string, required) - stored in HashiCorp Vault, not persisted to the database
   - `keySet.id` (UUID, required)
   - *(optional)* `id`, `archived`, `createdAt`, `updatedAt`, `version`
+  - *(read-only)* `vaultPath` (string) - set automatically when using the HashiCorp Vault backend
 - **Example response:**
 ```json
 {
@@ -162,7 +163,8 @@ All endpoints are served under the `/vault` base path.
   "updatedAt": "2024-01-01T00:00:00Z",
   "version": 0,
   "amount": 1,
-  "privateKey": "priv",
+  "privateKey": null,
+  "vaultPath": "cashu/keys/11111111-2222-3333-4444-555555555555/abc123/1",
   "keySet": {"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}
 }
 ```
@@ -178,12 +180,6 @@ All endpoints are served under the `/vault` base path.
 - **Path:** `/vault/key/unit/{unit}`
 - **Path Parameters:** `unit` (string, required)
 - **Example response:** array of key objects.
-
-### Retrieve by private key
-- **Method:** `GET`
-- **Path:** `/vault/key/privatekey/{privateKey}`
-- **Path Parameters:** `privateKey` (string, required)
-- **Example response:** key object.
 
 ### List keys by key set
 - **Method:** `GET`
