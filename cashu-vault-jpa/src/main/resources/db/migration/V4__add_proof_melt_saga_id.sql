@@ -34,11 +34,15 @@ CREATE INDEX IF NOT EXISTS ix_proof_melt_saga_id
 -- both `state = 'UNSPENT'` AND `melt_saga_id IS NULL`, so a concurrent
 -- second writer sees rowcount=0 and bails out with melt_in_progress.
 --
--- For defense-in-depth on production PostgreSQL deploys, an additional
--- partial unique index can be created manually post-migration. H2 (used
--- by the test harness even in MODE=PostgreSQL) does not accept the
--- `WHERE` clause on CREATE UNIQUE INDEX, so the partial index is
--- omitted from the universal Flyway migration:
+-- A defense-in-depth CHECK constraint can additionally tie melt_saga_id
+-- to the PENDING state on production PostgreSQL deploys. H2 (used by
+-- the test harness even in MODE=PostgreSQL) doesn't always evaluate
+-- CHECK constraints across MODE configurations, so this is left as an
+-- operator-applied hardening step rather than a universal migration:
 --
---   CREATE UNIQUE INDEX uq_proof_held_by_one_saga
---       ON t_proof (id) WHERE melt_saga_id IS NOT NULL;
+--   ALTER TABLE t_proof
+--     ADD CONSTRAINT chk_proof_saga_state
+--     CHECK ((melt_saga_id IS NULL) OR (state = 'PENDING'));
+--
+-- (A UNIQUE index on `(id)` would be a no-op since `id` is already the
+-- PK; row-level exclusivity is intrinsic to PK uniqueness.)

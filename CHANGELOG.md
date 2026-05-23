@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-23
+
+### Added
+
+- **Melt-saga binding for cashu-mint spec 002 (T010 + T011)** —
+  durable exclusive-hold semantics for proofs participating in a
+  NUT-05 melt saga. The FR-006 contract is "a proof PENDING-held
+  by a melt saga is held by exactly one saga, ever".
+  - V4 Flyway migration: nullable `t_proof.melt_saga_id VARCHAR(64)`
+    column + `ix_proof_melt_saga_id` lookup index +
+    `t_proof_a.melt_saga_id` audit shadow.
+  - `ProofEntity.meltSagaId` field with lifecycle Javadoc.
+  - `ProofRepository.markPending(proofIds, meltSagaId, mintId)` —
+    application-level CAS gated on
+    `state='UNSPENT' AND melt_saga_id IS NULL`.
+  - `ProofRepository.commitSpent(meltSagaId)` — atomic
+    PENDING → SPENT + clear binding.
+  - `ProofRepository.refundToUnspent(meltSagaId)` — atomic
+    PENDING → UNSPENT + clear binding.
+  - `ProofRepository.clearMeltSaga(meltSagaId)` — best-effort
+    cleanup.
+  - `ProofRepository.findByMeltSagaId(meltSagaId)` —
+    operator-visible enumeration.
+  - REST surface on `ProofVaultController`:
+    `POST /vault/proof/mint/{mintId}/saga/{meltSagaId}/mark-pending`
+    (body `List<String>` of proof secrets),
+    `POST /vault/proof/saga/{meltSagaId}/commit-spent`,
+    `POST /vault/proof/saga/{meltSagaId}/refund`. All return the
+    affected rowcount.
+  - `ProofClient` SDK methods `markPending` / `commitSpent` /
+    `refund` over the existing `RestTemplate`.
+  - `DBProofVault` static pass-through helpers
+    `markPendingForSaga` / `commitSpentForSaga` /
+    `refundForSaga` for cashu-mint to consume.
+
+### Fixed
+
+- `ProofVaultController.markPending` guards against null / empty
+  `proofSecrets` and returns 400 BAD_REQUEST instead of letting
+  Hibernate's IN-clause crash with a 500.
+
 ## [0.7.0] - 2026-02-18
 
 ### Added
@@ -129,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Aligned hibernate-envers version with hibernate-core
 
-[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/398ja/cashu-vault/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/398ja/cashu-vault/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/398ja/cashu-vault/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/398ja/cashu-vault/compare/v0.4.6...v0.5.0

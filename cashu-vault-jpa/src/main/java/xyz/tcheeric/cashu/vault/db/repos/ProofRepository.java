@@ -185,21 +185,22 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
 
     /**
      * Spec 002 T011 — atomically marks the named proofs PENDING and binds
-     * them to a single melt saga. The partial unique index
-     * {@code uq_proof_held_by_one_saga} guarantees the binding is
-     * exclusive across the entire proof table; a concurrent claim on any
-     * of the rows will fail with a DataIntegrityViolationException.
+     * them to a single melt saga. Exclusivity is enforced by the UPDATE
+     * predicate itself ({@code state='UNSPENT' AND melt_saga_id IS NULL}):
+     * a concurrent claim on the same row sees rowcount=0 (no exception);
+     * the losing caller bails out by comparing the returned count against
+     * {@code proofIds.size()}.
      *
-     * <p>Returns the number of rows updated. Callers compare against
-     * {@code proofIds.size()} to detect partial application (some proofs
-     * already SPENT, already held by another saga, or missing).
+     * <p>Returns the number of rows updated. A return value less than
+     * {@code proofIds.size()} means partial application — some proofs
+     * already SPENT, already held by another saga, or missing.
      *
      * @param proofIds    Y-coordinate secrets of the proofs to claim
      * @param meltSagaId  saga id that will hold the proofs
      * @param mintId      mint that owns the proofs (scopes the update)
      * @return number of rows actually transitioned UNSPENT → PENDING
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE proof p SET p.state = 'PENDING', p.meltSagaId = :meltSagaId "
             + "WHERE p.mint.id = :mintId "
@@ -219,7 +220,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      *
      * @return number of rows actually cleared
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE proof p SET p.meltSagaId = NULL "
             + "WHERE p.meltSagaId = :meltSagaId")
@@ -232,7 +233,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      *
      * @return number of rows actually transitioned PENDING → SPENT
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE proof p SET p.state = 'SPENT', p.meltSagaId = NULL "
             + "WHERE p.meltSagaId = :meltSagaId "
@@ -247,7 +248,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      *
      * @return number of rows actually transitioned PENDING → UNSPENT
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE proof p SET p.state = 'UNSPENT', p.meltSagaId = NULL "
             + "WHERE p.meltSagaId = :meltSagaId "

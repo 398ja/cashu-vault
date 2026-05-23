@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -247,5 +248,128 @@ class ProofVaultControllerIntegrationTest {
                     "state": "UNSPENT"
                 }
                 """, mintId, secret, commitment, amount);
+    }
+
+    // ---------------------------------------------------------------
+    // cashu-mint spec 002 T011 — melt-saga binding endpoints
+    // ---------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Melt-saga binding endpoint tests")
+    class MeltSagaBindingTests {
+
+        @Test
+        @DisplayName("markPending binds UNSPENT proofs to the saga and reports rowcount")
+        void markPendingHappyPath() throws Exception {
+            String secret1 = "saga-secret-1-" + UUID.randomUUID();
+            String secret2 = "saga-secret-2-" + UUID.randomUUID();
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret1, "c-saga-1-" + UUID.randomUUID(), 1)))
+                    .andExpect(status().isOk());
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret2, "c-saga-2-" + UUID.randomUUID(), 2)))
+                    .andExpect(status().isOk());
+
+            String body = "[\"" + secret1 + "\",\"" + secret2 + "\"]";
+            String response = mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-A/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            assertThat(response.trim()).isEqualTo("2");
+
+            assertThat(proofRepository.findByMeltSagaId("saga-A")).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("markPending rejects empty proofSecrets with 400")
+        void markPendingEmptyListReturns400() throws Exception {
+            mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-empty/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content("[]"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("markPending second claim on the same proof reports rowcount=0 (no exception)")
+        void markPendingExclusiveByCas() throws Exception {
+            String secret = "saga-exclusive-" + UUID.randomUUID();
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret, "c-excl-" + UUID.randomUUID(), 1)))
+                    .andExpect(status().isOk());
+
+            String body = "[\"" + secret + "\"]";
+            mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-B/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            // Second saga can't claim the same proof — CAS predicate fails.
+            mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-C/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("0"));
+
+            // saga-B still holds the proof.
+            assertThat(proofRepository.findByMeltSagaId("saga-B")).hasSize(1);
+            assertThat(proofRepository.findByMeltSagaId("saga-C")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("commitSpent flips PENDING → SPENT and clears the saga binding")
+        void commitSpentTransitionsAndClearsBinding() throws Exception {
+            String secret = "saga-commit-" + UUID.randomUUID();
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret, "c-commit-" + UUID.randomUUID(), 1)))
+                    .andExpect(status().isOk());
+            String body = "[\"" + secret + "\"]";
+            mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-D/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(post("/vault/proof/saga/saga-D/commit-spent"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            assertThat(proofRepository.findByMeltSagaId("saga-D")).isEmpty();
+            assertThat(proofRepository.findBySecret(secret).orElseThrow()
+                    .getState()).isEqualTo(ProofEntity.STATE_SPENT);
+        }
+
+        @Test
+        @DisplayName("refund flips PENDING → UNSPENT and clears the saga binding")
+        void refundTransitionsAndClearsBinding() throws Exception {
+            String secret = "saga-refund-" + UUID.randomUUID();
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret, "c-refund-" + UUID.randomUUID(), 1)))
+                    .andExpect(status().isOk());
+            String body = "[\"" + secret + "\"]";
+            mockMvc.perform(post(
+                            "/vault/proof/mint/" + mintId + "/saga/saga-E/mark-pending")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(post("/vault/proof/saga/saga-E/refund"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            assertThat(proofRepository.findByMeltSagaId("saga-E")).isEmpty();
+            assertThat(proofRepository.findBySecret(secret).orElseThrow()
+                    .getState()).isEqualTo(ProofEntity.STATE_UNSPENT);
+        }
+
+        @Test
+        @DisplayName("commitSpent / refund on an unknown saga reports rowcount=0")
+        void commitAndRefundOnUnknownSagaReportZero() throws Exception {
+            mockMvc.perform(post("/vault/proof/saga/saga-nonexistent/commit-spent"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("0"));
+            mockMvc.perform(post("/vault/proof/saga/saga-nonexistent/refund"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("0"));
+        }
     }
 }

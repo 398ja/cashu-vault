@@ -257,11 +257,11 @@ public class ProofVaultController {
      * (callers compare against {@code proofIds.size()} to detect
      * already-spent / already-held rows).
      */
-    @org.springframework.web.bind.annotation.PostMapping("/mint/{mintId}/saga/{meltSagaId}/mark-pending")
+    @PostMapping("/mint/{mintId}/saga/{meltSagaId}/mark-pending")
     public ResponseEntity<Integer> markPending(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("meltSagaId") @NotBlank String meltSagaId,
-            @org.springframework.web.bind.annotation.RequestBody java.util.List<String> proofSecrets) {
+            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId,
+            @RequestBody List<String> proofSecrets) {
         // Empty / null proof list — Hibernate's IN-clause raises before
         // SQL execution. Guard at the controller so a malformed request
         // returns 400 instead of crashing with a 500.
@@ -279,9 +279,9 @@ public class ProofVaultController {
      * cashu-mint spec 002 T011 — commits a saga's PENDING proofs to
      * SPENT in one statement; clears the {@code melt_saga_id} binding.
      */
-    @org.springframework.web.bind.annotation.PostMapping("/saga/{meltSagaId}/commit-spent")
+    @PostMapping("/saga/{meltSagaId}/commit-spent")
     public ResponseEntity<Integer> commitSpent(
-            @PathVariable("meltSagaId") @NotBlank String meltSagaId) {
+            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId) {
         int updated = proofRepository.commitSpent(meltSagaId);
         log.info("commitSpent saga={} updated={}", meltSagaId, updated);
         return ResponseEntity.ok(updated);
@@ -291,9 +291,9 @@ public class ProofVaultController {
      * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back to
      * UNSPENT and clears the {@code melt_saga_id} binding.
      */
-    @org.springframework.web.bind.annotation.PostMapping("/saga/{meltSagaId}/refund")
+    @PostMapping("/saga/{meltSagaId}/refund")
     public ResponseEntity<Integer> refund(
-            @PathVariable("meltSagaId") @NotBlank String meltSagaId) {
+            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId) {
         int updated = proofRepository.refundToUnspent(meltSagaId);
         log.info("refund saga={} updated={}", meltSagaId, updated);
         return ResponseEntity.ok(updated);
