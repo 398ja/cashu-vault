@@ -87,4 +87,50 @@ public class ProofClient extends VaultClient<ProofEntity> {
         log.info("GET {}/vault/proof/secret/{}", getBaseUrl(), secret);
         return restTemplate.getForObject(getBaseUrl() + "/vault/proof/secret/" + secret, ProofEntity.class);
     }
+
+    // ---------------------------------------------------------------
+    // cashu-mint spec 002 T011 — melt-saga binding REST calls
+    // ---------------------------------------------------------------
+
+    /**
+     * cashu-mint spec 002 T011 — atomically marks proofs PENDING and
+     * binds them to the named melt saga. The vault enforces the
+     * exclusivity at the row level via the application-level CAS in
+     * {@code ProofRepository.markPending}.
+     *
+     * @return number of rows actually transitioned UNSPENT → PENDING
+     */
+    public int markPending(String mintId, String meltSagaId, java.util.List<String> proofSecrets) {
+        log.info("POST {}/vault/proof/mint/{}/saga/{}/mark-pending proofs={}",
+                getBaseUrl(), mintId, meltSagaId, proofSecrets.size());
+        Integer updated = restTemplate.postForObject(
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/saga/" + meltSagaId + "/mark-pending",
+                proofSecrets,
+                Integer.class);
+        return updated == null ? 0 : updated;
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — commits a saga's PENDING proofs as
+     * SPENT and clears the {@code melt_saga_id} binding.
+     */
+    public int commitSpent(String meltSagaId) {
+        log.info("POST {}/vault/proof/saga/{}/commit-spent", getBaseUrl(), meltSagaId);
+        Integer updated = restTemplate.postForObject(
+                getBaseUrl() + "/vault/proof/saga/" + meltSagaId + "/commit-spent",
+                null, Integer.class);
+        return updated == null ? 0 : updated;
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back
+     * to UNSPENT and clears the {@code melt_saga_id} binding.
+     */
+    public int refund(String meltSagaId) {
+        log.info("POST {}/vault/proof/saga/{}/refund", getBaseUrl(), meltSagaId);
+        Integer updated = restTemplate.postForObject(
+                getBaseUrl() + "/vault/proof/saga/" + meltSagaId + "/refund",
+                null, Integer.class);
+        return updated == null ? 0 : updated;
+    }
 }

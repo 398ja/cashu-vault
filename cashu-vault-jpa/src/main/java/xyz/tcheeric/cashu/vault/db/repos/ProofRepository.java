@@ -2,10 +2,14 @@ package xyz.tcheeric.cashu.vault.db.repos;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -174,4 +178,88 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             return !stored;
         }
     }
+
+    // ---------------------------------------------------------------
+    // cashu-mint spec 002 T011 — melt saga binding helpers
+    // ---------------------------------------------------------------
+
+    /**
+     * Spec 002 T011 — atomically marks the named proofs PENDING and binds
+     * them to a single melt saga. The partial unique index
+     * {@code uq_proof_held_by_one_saga} guarantees the binding is
+     * exclusive across the entire proof table; a concurrent claim on any
+     * of the rows will fail with a DataIntegrityViolationException.
+     *
+     * <p>Returns the number of rows updated. Callers compare against
+     * {@code proofIds.size()} to detect partial application (some proofs
+     * already SPENT, already held by another saga, or missing).
+     *
+     * @param proofIds    Y-coordinate secrets of the proofs to claim
+     * @param meltSagaId  saga id that will hold the proofs
+     * @param mintId      mint that owns the proofs (scopes the update)
+     * @return number of rows actually transitioned UNSPENT → PENDING
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE proof p SET p.state = 'PENDING', p.meltSagaId = :meltSagaId "
+            + "WHERE p.mint.id = :mintId "
+            + "AND p.secret IN :proofIds "
+            + "AND p.state = 'UNSPENT' "
+            + "AND p.meltSagaId IS NULL")
+    int markPending(@Param("proofIds") Collection<String> proofIds,
+                    @Param("meltSagaId") String meltSagaId,
+                    @Param("mintId") UUID mintId);
+
+    /**
+     * Spec 002 T011 — clears {@code melt_saga_id} on the named proofs.
+     * Called when a saga transitions out of PROOFS_HELD: either to
+     * COMPLETED (also flips state to SPENT — see
+     * {@link #commitSpent}), to FAILED (rolls back to UNSPENT — see
+     * {@link #refundToUnspent}), or operator-initiated cleanup.
+     *
+     * @return number of rows actually cleared
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE proof p SET p.meltSagaId = NULL "
+            + "WHERE p.meltSagaId = :meltSagaId")
+    int clearMeltSaga(@Param("meltSagaId") String meltSagaId);
+
+    /**
+     * Spec 002 T011 — commits a saga's PENDING proofs as SPENT and clears
+     * the saga binding atomically. Used by {@code MeltTask} on the
+     * happy-path transition {@code PAYMENT_SENT → COMPLETED}.
+     *
+     * @return number of rows actually transitioned PENDING → SPENT
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE proof p SET p.state = 'SPENT', p.meltSagaId = NULL "
+            + "WHERE p.meltSagaId = :meltSagaId "
+            + "AND p.state = 'PENDING'")
+    int commitSpent(@Param("meltSagaId") String meltSagaId);
+
+    /**
+     * Spec 002 T011 — refunds a saga's PENDING proofs back to UNSPENT and
+     * clears the saga binding atomically. Used by {@code MeltTask} on the
+     * compensation transition {@code PROOFS_HELD → FAILED} (and by the
+     * scheduled reconciler's PROOFS_HELD TTL sweep).
+     *
+     * @return number of rows actually transitioned PENDING → UNSPENT
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE proof p SET p.state = 'UNSPENT', p.meltSagaId = NULL "
+            + "WHERE p.meltSagaId = :meltSagaId "
+            + "AND p.state = 'PENDING'")
+    int refundToUnspent(@Param("meltSagaId") String meltSagaId);
+
+    /**
+     * Spec 002 T011 — operator-visible enumeration of proofs currently
+     * held by a saga. Backs the admin saga query endpoint + the daily
+     * SC-002 reconciliation invariant ({@code every COMPLETED saga has 0
+     * still-held proofs}).
+     */
+    @Query("SELECT p FROM proof p WHERE p.meltSagaId = :meltSagaId")
+    List<ProofEntity> findByMeltSagaId(@Param("meltSagaId") String meltSagaId);
 }

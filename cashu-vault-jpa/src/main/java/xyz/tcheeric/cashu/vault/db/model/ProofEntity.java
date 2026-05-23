@@ -86,6 +86,23 @@ public class ProofEntity extends BaseEntity {
     private String state = STATE_UNSPENT;
 
     /**
+     * cashu-mint spec 002 (T010 / FR-006) — the melt saga currently holding
+     * this proof in PENDING state. Null when the row is UNSPENT or SPENT.
+     * The partial unique index {@code uq_proof_held_by_one_saga} guarantees
+     * at most one saga can hold a given proof at a time.
+     *
+     * <p>The lifecycle is mint-driven:
+     * <ul>
+     *   <li>{@code UNSPENT → PENDING} — set to the new saga id.</li>
+     *   <li>{@code PENDING → SPENT} or {@code PENDING → UNSPENT} — cleared
+     *       to null.</li>
+     * </ul>
+     */
+    @JsonProperty
+    @Column(name = "melt_saga_id", length = 64)
+    private String meltSagaId;
+
+    /**
      * SHA-256 fingerprint for token-level duplicate detection.
      * Computed from sorted proof secrets + mint URL.
      */

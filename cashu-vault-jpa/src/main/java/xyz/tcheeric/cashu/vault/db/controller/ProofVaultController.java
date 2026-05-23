@@ -246,4 +246,49 @@ public class ProofVaultController {
         }
         return ResponseEntity.noContent().build();
     }
+
+    // ---------------------------------------------------------------
+    // cashu-mint spec 002 T011 — melt-saga binding REST surface
+    // ---------------------------------------------------------------
+
+    /**
+     * cashu-mint spec 002 T011 — atomically marks proofs PENDING and binds
+     * them to the named saga. Returns the row count actually affected
+     * (callers compare against {@code proofIds.size()} to detect
+     * already-spent / already-held rows).
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/mint/{mintId}/saga/{meltSagaId}/mark-pending")
+    public ResponseEntity<Integer> markPending(
+            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
+            @PathVariable("meltSagaId") @NotBlank String meltSagaId,
+            @org.springframework.web.bind.annotation.RequestBody java.util.List<String> proofSecrets) {
+        log.info("markPending mint={} saga={} proofs={}", mintId, meltSagaId, proofSecrets.size());
+        int updated = proofRepository.markPending(proofSecrets, meltSagaId, UUID.fromString(mintId));
+        log.info("markPending mint={} saga={} updated={}", mintId, meltSagaId, updated);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — commits a saga's PENDING proofs to
+     * SPENT in one statement; clears the {@code melt_saga_id} binding.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/saga/{meltSagaId}/commit-spent")
+    public ResponseEntity<Integer> commitSpent(
+            @PathVariable("meltSagaId") @NotBlank String meltSagaId) {
+        int updated = proofRepository.commitSpent(meltSagaId);
+        log.info("commitSpent saga={} updated={}", meltSagaId, updated);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back to
+     * UNSPENT and clears the {@code melt_saga_id} binding.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/saga/{meltSagaId}/refund")
+    public ResponseEntity<Integer> refund(
+            @PathVariable("meltSagaId") @NotBlank String meltSagaId) {
+        int updated = proofRepository.refundToUnspent(meltSagaId);
+        log.info("refund saga={} updated={}", meltSagaId, updated);
+        return ResponseEntity.ok(updated);
+    }
 }
