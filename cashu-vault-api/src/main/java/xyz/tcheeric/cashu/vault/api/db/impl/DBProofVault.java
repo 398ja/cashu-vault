@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static xyz.tcheeric.cashu.vault.api.VaultClientFactory.getClient;
 
 @Log
-public class DBProofVault extends DBVault<ProofEntity> {
+public final class DBProofVault extends DBVault<ProofEntity> {
 
     private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
@@ -36,6 +36,9 @@ public class DBProofVault extends DBVault<ProofEntity> {
     @Override
     protected ProofEntity retrieveEntity(@NonNull String id) throws CashuErrorException {
         ProofEntity proofEntity = client.retrieve(id);
+        if (proofEntity == null) {
+            throw new CashuErrorException("Proof not found");
+        }
         return proofEntity;
     }
 
@@ -162,5 +165,37 @@ public class DBProofVault extends DBVault<ProofEntity> {
         } finally {
             PROOF_STATE_LOCK.unlock();
         }
+    }
+
+    // ---------------------------------------------------------------
+    // cashu-mint spec 002 T011 — melt-saga binding pass-through
+    // ---------------------------------------------------------------
+
+    /**
+     * cashu-mint spec 002 T011 — atomically marks proofs PENDING and
+     * binds them to the named melt saga via the vault REST API.
+     *
+     * @return number of rows actually transitioned UNSPENT → PENDING
+     */
+    public static int markPendingForSaga(String mintId,
+                                         String meltSagaId,
+                                         java.util.List<String> proofSecrets) {
+        return VaultClientFactory.proofClient().markPending(mintId, meltSagaId, proofSecrets);
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — commits a saga's PENDING proofs as
+     * SPENT and clears the {@code melt_saga_id} binding.
+     */
+    public static int commitSpentForSaga(String meltSagaId) {
+        return VaultClientFactory.proofClient().commitSpent(meltSagaId);
+    }
+
+    /**
+     * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back
+     * to UNSPENT and clears the {@code melt_saga_id} binding.
+     */
+    public static int refundForSaga(String meltSagaId) {
+        return VaultClientFactory.proofClient().refund(meltSagaId);
     }
 }

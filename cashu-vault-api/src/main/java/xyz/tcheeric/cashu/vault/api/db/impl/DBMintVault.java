@@ -14,13 +14,13 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
-public class DBMintVault extends DBVault<MintEntity> {
+public final class DBMintVault extends DBVault<MintEntity> {
 
     public DBMintVault() {
         this(VaultClientFactory.getClient(MintEntity.class));
@@ -112,7 +112,7 @@ public class DBMintVault extends DBVault<MintEntity> {
         }
 
         loaded.getKeySets().forEach(keySetEntity -> {
-            KeySet keySet = null;
+            KeySet keySet;
             try {
                 keySet = DBKeySetVault.load(keySetEntity, archive);
             } catch (CashuErrorException e) {
@@ -163,7 +163,7 @@ public class DBMintVault extends DBVault<MintEntity> {
         return mintEntity.getKeySets().stream()
                 .filter(keySetEntity -> keySetEntity.getUnit().equals(unit))
                 .flatMap(keySetEntity -> keySetEntity.getKeys().stream())
-                .filter(keyEntity -> keyEntity.getAmount().equals(amount))
+                .filter(keyEntity -> amount != null && keyEntity.getAmount().equals(BigInteger.valueOf(amount.longValue())))
                 .map(keyEntity -> PublicKey.fromString(keyEntity.getPrivateKey()).toString())
                 .findFirst()
                 .orElseThrow(() -> new CashuErrorException("Private key for unit " + unit + " and amount " + amount + " not found"));
@@ -175,7 +175,8 @@ public class DBMintVault extends DBVault<MintEntity> {
     }
 
     private static Map<BigInteger, byte[]> getKeys(KeySetEntity keySetEntity) {
-        Map<BigInteger, byte[]> keys = new HashMap<>();
+        // Use TreeMap instead of HashMap to prevent hash collision DoS attacks
+        Map<BigInteger, byte[]> keys = new TreeMap<>();
         keySetEntity.getKeys().forEach(keyEntity -> {
             keys.put(keyEntity.getAmount(), PublicKey.fromString(keyEntity.getPrivateKey()).getBytes());
         });

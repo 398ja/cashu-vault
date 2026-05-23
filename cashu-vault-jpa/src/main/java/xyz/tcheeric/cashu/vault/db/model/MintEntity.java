@@ -12,6 +12,7 @@ import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -36,4 +37,20 @@ public class MintEntity extends BaseEntity {
     @JsonIgnore
     @OneToMany(mappedBy = "mint", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<KeySetEntity> keySets = new LinkedHashSet<>();
+
+    /**
+     * Returns an unmodifiable view of the proofs to prevent external modification.
+     * @return unmodifiable set of proofs
+     */
+    public Set<ProofEntity> getProofs() {
+        return Collections.unmodifiableSet(proofs);
+    }
+
+    /**
+     * Returns an unmodifiable view of the key sets to prevent external modification.
+     * @return unmodifiable set of key sets
+     */
+    public Set<KeySetEntity> getKeySets() {
+        return Collections.unmodifiableSet(keySets);
+    }
 }

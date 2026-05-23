@@ -33,7 +33,15 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment ###
+docker.env
+*.env
+!*.env.example
+
 ### Mac OS ###
 .DS_Store
 /.idea/
 /.jpb/
+/.qodana/
+/.claude/
+/project/
