@@ -262,6 +262,13 @@ public class ProofVaultController {
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
             @PathVariable("meltSagaId") @NotBlank String meltSagaId,
             @org.springframework.web.bind.annotation.RequestBody java.util.List<String> proofSecrets) {
+        // Empty / null proof list — Hibernate's IN-clause raises before
+        // SQL execution. Guard at the controller so a malformed request
+        // returns 400 instead of crashing with a 500.
+        if (proofSecrets == null || proofSecrets.isEmpty()) {
+            log.warn("markPending rejected mint={} saga={} reason=empty_proof_secrets", mintId, meltSagaId);
+            return ResponseEntity.badRequest().build();
+        }
         log.info("markPending mint={} saga={} proofs={}", mintId, meltSagaId, proofSecrets.size());
         int updated = proofRepository.markPending(proofSecrets, meltSagaId, UUID.fromString(mintId));
         log.info("markPending mint={} saga={} updated={}", mintId, meltSagaId, updated);
