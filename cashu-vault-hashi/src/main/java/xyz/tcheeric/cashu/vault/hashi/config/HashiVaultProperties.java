@@ -7,6 +7,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class HashiVaultProperties {
 
+    /**
+     * Master switch for the HashiCorp Vault backend. When {@code false} (the
+     * default), {@code HashiVaultConfig}, {@code HashiVaultRegistrar}, and
+     * {@code HashiVaultClient} skip wiring entirely, letting the JPA service
+     * fall back to the DB-backed {@code VaultClientFactory} clients. Set to
+     * {@code true} in deployments where a HashiCorp Vault is reachable and
+     * configured via the {@code vault.hashi.uri} / {@code auth.*} properties
+     * below; test profiles (which lack a Vault instance) leave it off so the
+     * Spring context boots.
+     */
+    private boolean enabled = false;
+
     private String uri = "https://vault.internal:8200";
 
     private Auth auth = new Auth();

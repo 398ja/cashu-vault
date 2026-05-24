@@ -5,11 +5,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.8.0</version>
+        <version>0.8.1</version>
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>
@@ -73,6 +73,34 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cashu-lib-entities</artifactId>
+        </dependency>
+        <!--
+            cashu-vault-api now owns the db.model entity classes, db.client REST
+            clients, and db.config.VaultBaseProperties (moved 2026-05-24).
+            jpa depends on api for those types; the previous api → jpa edge was
+            removed to break the cycle that prevented wiring cashu-vault-hashi
+            (which also depends on api) into the JPA runtime.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cashu-vault-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!--
+            HashiCorp Vault backend. Brings HashiVaultRegistrar (@Component that
+            flips VaultClientFactory to HASHICORP at startup and registers the
+            HCKeyVault/HCKeySetVault impls) and HashiVaultConfig (VaultTemplate +
+            AppRole/Kubernetes/Token auth). Without this dependency the JPA
+            runtime JAR has only the DB-backed VaultClientFactory clients;
+            KeyEntity.privateKey stays null and minting silently fails — exactly
+            the staging payment-refund symptom observed on 2026-05-24.
+            Gated by vault.hashi.enabled (default false) so tests don't need
+            a Vault instance.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cashu-vault-hashi</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.orm</groupId>

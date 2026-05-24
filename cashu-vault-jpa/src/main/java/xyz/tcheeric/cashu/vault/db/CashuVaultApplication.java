@@ -13,8 +13,15 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 /**
  * Spring Boot application configuration for the Cashu vault.
+ *
+ * <p>{@code scanBasePackages} is widened to {@code xyz.tcheeric.cashu.vault} so the
+ * cashu-vault-hashi module's {@code HashiVaultRegistrar} (a {@code @Component} that
+ * flips {@code VaultClientFactory} to HASHICORP backend at startup) is picked up
+ * when {@code vault.hashi.enabled=true}. Without the wider scan the default
+ * rooted at {@code xyz.tcheeric.cashu.vault.db} would miss the hashi package and
+ * the runtime would silently fall through to the DB-only clients.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "xyz.tcheeric.cashu.vault")
 @RequiredArgsConstructor
 public class CashuVaultApplication {
 
