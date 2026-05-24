@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
+import xyz.tcheeric.cashu.vault.api.KeyVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
@@ -16,7 +17,7 @@ import java.math.BigInteger;
 import java.util.Map;
 
 @Slf4j
-public final class HCKeyVault extends DBVault<KeyEntity> {
+public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
 
     private final HashiVaultClient hashiClient;
 

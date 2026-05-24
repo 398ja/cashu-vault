@@ -5,6 +5,7 @@ import xyz.tcheeric.cashu.common.Keys;
 import xyz.tcheeric.cashu.common.PrivateKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
+import xyz.tcheeric.cashu.vault.api.KeyVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
@@ -14,7 +15,7 @@ import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
 import java.math.BigInteger;
 
-public final class DBKeyVault extends DBVault<KeyEntity> {
+public final class DBKeyVault extends DBVault<KeyEntity> implements KeyVault {
 
     public DBKeyVault() {
         this(VaultClientFactory.getClient(KeyEntity.class));
