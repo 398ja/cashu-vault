@@ -7,6 +7,7 @@ import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
+import xyz.tcheeric.cashu.vault.db.dto.TombstoneResponse;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
@@ -42,31 +43,16 @@ public final class DBProofVault extends DBVault<ProofEntity> {
         return proofEntity;
     }
 
-/*
-    public static DBProofVault retrieveProof(@NonNull String id) throws CashuErrorException {
-        DBProofVault proofVault = new DBProofVault(null);
-        return new DBProofVault(proofVault.retrieveEntity(id));
-    }
-*/
-
-    public static ProofEntity retrieveProof(@NonNull String secret) throws CashuErrorException {
-        ProofClient client = VaultClientFactory.proofClient();
-        return retrieveProof(secret, client);
-    }
-
-    public static ProofEntity retrieveProof(@NonNull String secret, ProofClient client) throws CashuErrorException {
-        ProofEntity proofEntity = client.getBySecret(secret);
-        return proofEntity;
-    }
-
+    /**
+     * Spec 001 / FR-005 — global secret lookup REMOVED. Use {@link #retrieveProof(String, String)} instead.
+     */
     public static ProofEntity retrieveProof(@NonNull String mintId, @NonNull String secret) throws CashuErrorException {
         ProofClient client = VaultClientFactory.proofClient();
         return retrieveProof(mintId, secret, client);
     }
 
     public static ProofEntity retrieveProof(@NonNull String mintId, @NonNull String secret, ProofClient client) throws CashuErrorException {
-        ProofEntity proofEntity = client.getByMintIdAndSecret(mintId, secret);
-        return proofEntity;
+        return client.getByMintIdAndSecret(mintId, secret);
     }
 
     public static ProofEntity retrieveProof(String mintId, Integer amount) throws CashuErrorException {
@@ -75,24 +61,21 @@ public final class DBProofVault extends DBVault<ProofEntity> {
     }
 
     public static ProofEntity retrieveProof(String mintId, Integer amount, ProofClient client) throws CashuErrorException {
-        ProofEntity proofEntity = client.getByMintAndAmount(mintId, amount);
-        return proofEntity;
+        return client.getByMintAndAmount(mintId, amount);
     }
 
     public static ProofEntity retrieveProofByUnblindedSignature(@NonNull String mintId,
-            @NonNull String unblindedSignature) throws CashuErrorException {
+                                                                @NonNull String unblindedSignature) throws CashuErrorException {
         ProofClient client = new ProofClient();
-        ProofEntity proofEntity = client.getByMintAndUnblindedSignature(mintId, unblindedSignature);
-        return proofEntity;
+        return client.getByMintAndUnblindedSignature(mintId, unblindedSignature);
     }
 
     public ProofEntity storePending(@NonNull ProofEntity proofEntity) throws CashuErrorException {
         VaultClient<ProofEntity> client = getClient(ProofEntity.class);
-
         proofEntity.setMint(getMint(proofEntity));
-        proofEntity.setState(ProofEntity.STATE_PENDING);
-
-        return client.store(proofEntity);
+        // FR-008 — never re-save with mutated state; insert via store then transition via /state.
+        ProofEntity stored = client.store(proofEntity);
+        return transitionState(stored, ProofEntity.STATE_PENDING);
     }
 
     private MintEntity getMint(ProofEntity proofEntity) {
@@ -100,43 +83,9 @@ public final class DBProofVault extends DBVault<ProofEntity> {
         return mintVaultClient.retrieve(proofEntity.getMint().getId().toString());
     }
 
-
-/*
-    public String retrieveSignature(@NonNull String secret, boolean archived) throws CashuErrorException {
-        VaultClient<ProofEntity> client = getClient();
-        client.re
-        if (!secret.equals(proofEntity.getSecret())) {
-            throw new CashuErrorException("Secret does not match for the proof");
-        }
-
-        return proofEntity.isArchived() != archived ? null : proofEntity.getUnblindedSignature();
-    }
-
-    public String retrievePending(@NonNull String secret) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
-        if (!secret.equals(proofEntity.getSecret())) {
-            throw new CashuErrorException("Secret does not match for the proof");
-        }
-
-        return proofEntity.getUnblindedSignature();
-    }
-*/
-
-/*
-    public String retrieveWitness(@NonNull String secret) throws CashuErrorException {
-        ProofEntity proofEntity = retrieveEntity();
-        if (!secret.equals(proofEntity.getSecret())) {
-            throw new CashuErrorException("Secret does not match for the proof");
-        }
-
-        return proofEntity.getWitness();
-    }
-*/
-
     @Override
     public ProofEntity archive(String id) throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
-
         try {
             ProofClient proofClient = VaultClientFactory.proofClient();
             ProofEntity proofEntity = retrieveEntity(id);
@@ -148,22 +97,45 @@ public final class DBProofVault extends DBVault<ProofEntity> {
         }
     }
 
+    /**
+     * Spec 001 / FR-001 — physical deletion is forbidden. Use {@link #tombstone(String, String, String, boolean)} instead.
+     */
     @Override
     public void delete(String id) throws CashuErrorException {
-        ProofClient client = VaultClientFactory.proofClient();
-        client.delete(id);
+        throw new UnsupportedOperationException(
+                "Use DBProofVault.tombstone(mintId, secret, reason, force) — physical deletion of proofs is forbidden");
     }
 
+    /**
+     * Spec 001 / FR-002, FR-003 — admin tombstone.
+     */
+    public TombstoneResponse tombstone(@NonNull String mintId, @NonNull String secret,
+                                       @NonNull String reason, boolean force) throws CashuErrorException {
+        ProofClient client = VaultClientFactory.proofClient();
+        return client.tombstone(mintId, secret, reason, force);
+    }
+
+    /**
+     * Spec 001 / FR-008 — state-only transition through the dedicated /state endpoint.
+     */
     public ProofEntity invalidate(String id) throws CashuErrorException {
         PROOF_STATE_LOCK.lock();
         try {
-            ProofClient proofClient = VaultClientFactory.proofClient();
             ProofEntity proofEntity = retrieveEntity(id);
-            proofEntity.setState(ProofEntity.STATE_SPENT);
-            proofClient.store(proofEntity);
-            return proofEntity;
+            return transitionState(proofEntity, ProofEntity.STATE_SPENT);
         } finally {
             PROOF_STATE_LOCK.unlock();
         }
+    }
+
+    private static ProofEntity transitionState(ProofEntity proof, String toState) throws CashuErrorException {
+        ProofClient proofClient = VaultClientFactory.proofClient();
+        String mintId = proof.getMint() != null && proof.getMint().getId() != null
+                ? proof.getMint().getId().toString()
+                : null;
+        if (mintId == null) {
+            throw new CashuErrorException("proof has no mint");
+        }
+        return proofClient.transitionState(mintId, proof.getSecret(), toState);
     }
 }

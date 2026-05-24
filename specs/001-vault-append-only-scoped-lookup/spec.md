@@ -5,17 +5,29 @@
 **Status**: Draft
 **Input**: Backend Token Integrity Review (2026-05-22) — finding "Medium: Vault has strong uniqueness constraints, but administrative deletion and unscoped proof lookup are risky".
 **Source Repository**: `cashu-vault`
-**Code Touch Points**:
-- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/jpa/ProofEntity.java:38`
+**Code Touch Points** (paths corrected 2026-05-24 per `/speckit.analyze` finding I2):
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/model/ProofEntity.java:38`
   — existing `(mint_id, secret)` and `(mint_id, c)` unique
   constraints (load-bearing, retained)
-- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/jpa/ProofRepository.java:122`
-  — proof lookup by `secret` without `mint_id` scoping
-- `cashu-vault-api/src/main/java/xyz/tcheeric/cashu/vault/api/controller/ProofVaultController.java:51`
-  — physical proof deletion endpoint
-- `ProofVaultController.java:131` — additional delete / mutation
-  surface
-- `ProofVaultController.java:237` — global-secret-keyed read path
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/repos/ProofRepository.java:122`
+  — proof `insertIfNotExists` (the catch-block targeted by FR-009)
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/repos/ProofRepository.java:24`
+  — `findBySecret(String secret)` global-lookup overload to be
+  removed (FR-005)
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/controller/ProofVaultController.java:51`
+  — proof insert endpoint (`POST /vault/proof`)
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/controller/ProofVaultController.java:131`
+  — `GET /vault/proof/secret/{secret}` global-secret-keyed read
+  path (FR-005, to become a 400 stub)
+- `cashu-vault-jpa/src/main/java/xyz/tcheeric/cashu/vault/db/controller/ProofVaultController.java:237`
+  — `DELETE /vault/proof/{id}` physical deletion endpoint (FR-001,
+  to be removed and replaced with admin tombstone)
+
+> **Note:** the controllers currently live in `cashu-vault-jpa`
+> rather than `cashu-vault-api`. This is acknowledged by the
+> Constitution v1.0.0 governance as a pre-existing structural
+> debt; the relocation is out of scope for this spec and tracked
+> for a follow-up consolidation spec.
 
 ## Constitution Alignment
 
@@ -283,7 +295,12 @@ the tombstone timeline and the audit trail for a given
   proposed insertion before treating the conflict as
   idempotent success; mismatch MUST be rejected as a
   data-integrity violation and surfaced as an operator
-  alert. [Constitution I]
+  alert via a structured log line with
+  `event=proof_insert_mismatch outcome=integrity_mismatch
+  severity=high` plus a SIEM rule wired to this
+  event/outcome pair. The same channel applies to the
+  id-collision pre-check variant
+  (`reason=id_collision`). [Constitution I]
 - **FR-010**: Hibernate Envers MUST capture every state
   transition on `ProofEntity`, including tombstoning.
   Schema changes that add audited columns MUST update
@@ -291,18 +308,48 @@ the tombstone timeline and the audit trail for a given
 - **FR-011**: Every rejected mutation (unauthorised
   delete, scope violation, missing `mint_id`,
   data-integrity mismatch) MUST be logged with structured
-  fields suitable for SIEM ingestion.
-- **FR-012**: Tombstone and state-transition timestamps
+  fields suitable for SIEM ingestion. Concretely, every
+  rejection log line MUST carry at minimum:
+  `event=<event-name> outcome=<code> principal=<auth.name
+  or "anonymous"> path=<request path> method=<HTTP verb>`,
+  plus event-specific fields. For scope violations the
+  four spec-mandated fields are:
+  `outcome=scope_violation requested_mint_id=<uuid>
+  lookup_secret_prefix=<first 6 chars> principal_id=<auth
+  .name>`. The log channel MUST be wired to the operator
+  SIEM with alert rules on `outcome ∈ {scope_violation,
+  integrity_mismatch, tombstone_attempt_rejected}`.
+- **FR-012**: The live `t_proof.tombstoned_at` value
   MUST come from the database (`now()`), not the JVM
-  clock. [Constitution II — audit clock]
+  clock. The live `t_proof.updated_at` value, when
+  written by a state-transition (`POST .../state`),
+  MUST come from the database (`now()`) — implemented
+  via the `updateState` native query in
+  `ProofRepository`. Hibernate Envers audit-row
+  timestamps (`t_proof_a.tombstoned_at`,
+  `t_proof_a.updated_at`, and the `revinfo.revtstmp`
+  revision timestamp) capture the entity state at JPA
+  flush time and are sub-second JVM-clock
+  approximations of the canonical live values — this
+  is acceptable since the audit row is forensic
+  evidence of the operation, not the authoritative
+  source of truth (the live row is). The
+  `ProofTombstoneIT.tombstonedAtIsDbClockOnLiveRow`
+  test brackets the tombstone call with two `SELECT
+  now()` samples and asserts the live row's
+  `tombstoned_at` falls inside the window. [Constitution
+  II — audit clock; live-row strict, audit-row
+  approximation documented]
 - **FR-013**: An admin-only audit endpoint MUST return
   the Envers timeline and tombstone metadata for a
   given `(mint_id, secret)`. The endpoint MUST require
   admin authentication.
 - **FR-014**: The vault REST API MUST NOT be exposed on
   a public network; documentation MUST explicitly state
-  this requirement, and deployment manifests SHOULD
-  enforce it. [Constitution Security]
+  this requirement, and deployment manifests MUST
+  enforce it (network policy, service-mesh mTLS, private
+  subnet — at least one MUST be in place; SHOULD-strength
+  combination is preferred). [Constitution Security]
 - **FR-015**: All amount-bearing fields (if any are
   introduced by this spec or related migrations) MUST
   use `long`; this spec does not introduce new
@@ -364,10 +411,19 @@ the tombstone timeline and the audit trail for a given
   callers already pass `mint_id` in most paths. Where
   they don't, a coordinated change is tracked separately
   but assumed deliverable in lock-step.
-- Admin authentication is service-account-based and
-  already integrated; this spec does not introduce a new
-  auth mechanism, only enforces existing controls on the
-  tombstone endpoint.
+- Admin authentication is service-account-based and is
+  **introduced by this spec** via Spring Security HTTP
+  Basic with property-driven user accounts. Each user
+  carries `ROLE_<role>` granted authorities and
+  (for `ROLE_SERVICE` accounts) a `MINT:<mintScope>`
+  granted authority used by the controller-layer
+  cross-check (FR-006). Production credentials MUST be
+  sourced from environment variables or HashiCorp
+  Vault. The earlier draft of this Assumption stated
+  auth was already integrated — that was factually
+  incorrect; corrected on 2026-05-24 per
+  `/speckit.analyze` finding A1. See `research.md` §1
+  and `plan.md` for the resolved decision (CL-01).
 - The Spring Data REST surface (if any was inadvertently
   exposing `ProofRepository`) MUST be disabled as part
   of this spec; the controller path is the only
