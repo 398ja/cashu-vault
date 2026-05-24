@@ -263,4 +263,90 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Query("SELECT p FROM proof p WHERE p.meltSagaId = :meltSagaId")
     List<ProofEntity> findByMeltSagaId(@Param("meltSagaId") String meltSagaId);
+
+    /**
+     * Spec 005 — atomic insert-or-claim used by the melt saga to durably
+     * hold a proof before any external Lightning payment is attempted.
+     *
+     * <p>Replaces the prior two-step "insert as PENDING, then UPDATE
+     * UNSPENT → PENDING" sequence, which could never claim a freshly
+     * inserted PENDING row and would therefore leave {@code bound = 0}
+     * for the first-time melt of a proof — letting the saga proceed to
+     * {@code lightningPaymentPort.pay} with no durable hold.
+     *
+     * <p>Behaviour, per proof:
+     * <ol>
+     *   <li>UPDATE existing row to PENDING + this saga id, gated on
+     *       {@code state='UNSPENT' AND melt_saga_id IS NULL}. Matches an
+     *       existing UNSPENT row owned by no saga.</li>
+     *   <li>If the UPDATE matched zero rows AND no row exists for
+     *       {@code (mint_id, secret)}: INSERT a fresh row in state
+     *       {@code PENDING} with {@code melt_saga_id = sagaId}.</li>
+     *   <li>If the INSERT loses a race to the uniqueness constraint
+     *       {@code uk_proof_mint_secret}: re-attempt the UPDATE. If the
+     *       racing row is UNSPENT we claim it; if it is PENDING/SPENT we
+     *       lose and return 0 for this proof.</li>
+     * </ol>
+     *
+     * <p>The caller MUST submit Y-coordinate-normalised secrets (see
+     * {@link ProofEntity#fromProof}). Mixing raw secrets and Y values
+     * here would let two rows refer to the same logical proof.
+     *
+     * <p>Returns the total number of proofs durably bound to
+     * {@code meltSagaId} after this call. Caller compares the returned
+     * count to {@code proofs.size()} and aborts (and releases any
+     * partial holds via {@code refundToUnspent}) on mismatch.
+     *
+     * <p>The DB unique constraint {@code uk_proof_mint_secret} is the
+     * race guard. The retry-once pattern is sufficient: the racing
+     * transaction has committed by the time we see
+     * {@link DataIntegrityViolationException}, so the retry sees a
+     * settled row.
+     *
+     * @param proofs       proofs to claim, already Y-normalised
+     * @param meltSagaId   saga id to bind successfully claimed rows to
+     * @param mintId       mint scope for the claim
+     * @return number of proofs actually bound to {@code meltSagaId}
+     */
+    @Transactional
+    default int insertOrClaimForSaga(@org.springframework.lang.NonNull List<ProofEntity> proofs,
+                                     @org.springframework.lang.NonNull String meltSagaId,
+                                     @org.springframework.lang.NonNull UUID mintId) {
+        int bound = 0;
+        for (ProofEntity proof : proofs) {
+            if (claimOne(proof, meltSagaId, mintId)) {
+                bound++;
+            }
+        }
+        return bound;
+    }
+
+    /** Single-proof claim helper for {@link #insertOrClaimForSaga}. */
+    private boolean claimOne(ProofEntity proof, String meltSagaId, UUID mintId) {
+        String secret = proof.getSecret();
+        // Step 1 — try to claim an existing UNSPENT row.
+        int updated = markPending(List.of(secret), meltSagaId, mintId);
+        if (updated > 0) {
+            return true;
+        }
+        // Step 2 — no UNSPENT row found. If a row exists at all under
+        // (mint_id, secret), it is PENDING or SPENT; we cannot claim it.
+        if (existsByMint_IdAndSecret(mintId, secret)) {
+            return false;
+        }
+        // Step 3 — fresh proof: INSERT as PENDING already bound to this saga.
+        proof.setState(ProofEntity.STATE_PENDING);
+        proof.setMeltSagaId(meltSagaId);
+        try {
+            save(proof);
+            return true;
+        } catch (DataIntegrityViolationException race) {
+            // Step 4 — lost the (mint_id, secret) uniqueness race against
+            // a concurrent inserter. If their row turned out to be
+            // UNSPENT (unlikely but possible if they refunded), claim
+            // it; otherwise lose.
+            int retry = markPending(List.of(secret), meltSagaId, mintId);
+            return retry > 0;
+        }
+    }
 }

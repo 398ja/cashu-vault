@@ -372,4 +372,141 @@ class ProofVaultControllerIntegrationTest {
                     .andExpect(content().string("0"));
         }
     }
+
+    // ---------------------------------------------------------------
+    // Spec 005 — insert-or-claim binding
+    // ---------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Spec 005 — insertOrClaim binding endpoint")
+    class InsertOrClaimTests {
+
+        @Test
+        @DisplayName("insertOrClaim inserts a fresh proof in PENDING bound to the saga")
+        void insertOrClaimFreshProof() throws Exception {
+            String secret = "ioc-fresh-" + UUID.randomUUID();
+            String body = "[" + proofBodyJson(secret, "c-fresh-" + UUID.randomUUID(), 8) + "]";
+
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-ioc-1/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            ProofEntity stored = proofRepository.findBySecret(secret).orElseThrow();
+            assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
+            assertThat(stored.getMeltSagaId()).isEqualTo("saga-ioc-1");
+            assertThat(proofRepository.findByMeltSagaId("saga-ioc-1")).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("insertOrClaim claims an existing UNSPENT row (no second insert)")
+        void insertOrClaimClaimsExistingUnspent() throws Exception {
+            String secret = "ioc-existing-" + UUID.randomUUID();
+            // Seed an UNSPENT row via the legacy /vault/proof endpoint.
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret, "c-existing-" + UUID.randomUUID(), 4)))
+                    .andExpect(status().isOk());
+
+            String body = "[" + proofBodyJson(secret, "c-claim-" + UUID.randomUUID(), 4) + "]";
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-ioc-2/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            // Same single row, now PENDING + bound. No raw-secret duplicate row created.
+            assertThat(proofRepository.findByMeltSagaId("saga-ioc-2")).hasSize(1);
+            assertThat(proofRepository.findBySecret(secret)).isPresent();
+        }
+
+        @Test
+        @DisplayName("insertOrClaim returns partial count when one proof is already PENDING for another saga")
+        void insertOrClaimPartialOnPriorBinding() throws Exception {
+            String secret1 = "ioc-partial-1-" + UUID.randomUUID();
+            String secret2 = "ioc-partial-2-" + UUID.randomUUID();
+            // Pre-bind secret1 to saga-X.
+            mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
+                    .content(createProofJson(mintId, secret1, "c-partial-1-" + UUID.randomUUID(), 2)))
+                    .andExpect(status().isOk());
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-X/mark-pending")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("[\"" + secret1 + "\"]"))
+                    .andExpect(status().isOk());
+
+            String body = "["
+                    + proofBodyJson(secret1, "c-partial-1b-" + UUID.randomUUID(), 2) + ","
+                    + proofBodyJson(secret2, "c-partial-2-" + UUID.randomUUID(), 4) + "]";
+
+            // saga-Y can only bind the fresh secret2; secret1 stays with saga-X.
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-Y/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            assertThat(proofRepository.findByMeltSagaId("saga-X")).hasSize(1);
+            assertThat(proofRepository.findByMeltSagaId("saga-Y")).hasSize(1);
+            assertThat(proofRepository.findByMeltSagaId("saga-Y").get(0).getSecret()).isEqualTo(secret2);
+        }
+
+        @Test
+        @DisplayName("insertOrClaim canonical identity: two calls with same secret leave exactly one row")
+        void insertOrClaimCanonicalIdentity() throws Exception {
+            String secret = "ioc-canonical-" + UUID.randomUUID();
+            String body1 = "[" + proofBodyJson(secret, "c-can-1-" + UUID.randomUUID(), 1) + "]";
+            String body2 = "[" + proofBodyJson(secret, "c-can-2-" + UUID.randomUUID(), 1) + "]";
+
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-can-A/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body1))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            // Second call: row already PENDING → saga-can-A; saga-can-B claims nothing.
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-can-B/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body2))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("0"));
+
+            // Exactly one t_proof row exists for this secret.
+            assertThat(proofRepository.findAll().stream()
+                    .filter(p -> secret.equals(p.getSecret()))
+                    .count())
+                    .isEqualTo(1L);
+            assertThat(proofRepository.findByMeltSagaId("saga-can-A")).hasSize(1);
+            assertThat(proofRepository.findByMeltSagaId("saga-can-B")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("insertOrClaim rejects empty body with 400")
+        void insertOrClaimEmptyBodyReturns400() throws Exception {
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-empty/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content("[]"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("insertOrClaim rejects unknown mint with 400")
+        void insertOrClaimUnknownMintReturns400() throws Exception {
+            String body = "[" + proofBodyJson("ioc-bad-mint-" + UUID.randomUUID(),
+                    "c-bad-mint-" + UUID.randomUUID(), 1) + "]";
+            mockMvc.perform(post("/vault/proof/mint/" + UUID.randomUUID()
+                            + "/saga/saga-unknown-mint/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+
+        /**
+         * Builds the JSON for a single proof body element. The mint is
+         * resolved server-side from the path variable, so {@code mint} is
+         * omitted here.
+         */
+        private String proofBodyJson(String secret, String commitment, int amount) {
+            return String.format("""
+                    {
+                        "secret": "%s",
+                        "unblindedSignature": "%s",
+                        "amount": %d,
+                        "state": "UNSPENT"
+                    }
+                    """, secret, commitment, amount);
+        }
+    }
 }

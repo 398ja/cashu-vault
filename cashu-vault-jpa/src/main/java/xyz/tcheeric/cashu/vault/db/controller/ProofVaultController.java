@@ -252,6 +252,43 @@ public class ProofVaultController {
     // ---------------------------------------------------------------
 
     /**
+     * Spec 005 — atomic insert-or-claim. The caller supplies fully
+     * populated {@link ProofEntity} rows (with Y-normalised secrets);
+     * the repository inserts or claims each as PENDING bound to
+     * {@code meltSagaId}, returning the total bound count.
+     *
+     * <p>Replaces the prior two-step {@code POST /store} + {@code POST
+     * /mark-pending} sequence used by the melt saga, which could not
+     * bind freshly-inserted rows.
+     */
+    @PostMapping("/mint/{mintId}/saga/{meltSagaId}/insert-or-claim")
+    public ResponseEntity<Integer> insertOrClaimForSaga(
+            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
+            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId,
+            @RequestBody List<ProofEntity> proofs) {
+        if (proofs == null || proofs.isEmpty()) {
+            log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, meltSagaId);
+            return ResponseEntity.badRequest().build();
+        }
+        UUID mintUuid = UUID.fromString(mintId);
+        // Resolve managed mint reference + sanity-check tenancy so a
+        // mismatched mint scope can't sneak past the per-proof CAS.
+        Optional<MintEntity> mintOpt = mintRepository.findById(mintUuid);
+        if (mintOpt.isEmpty()) {
+            log.warn("insertOrClaim rejected mint={} saga={} reason=unknown_mint", mintId, meltSagaId);
+            return ResponseEntity.badRequest().build();
+        }
+        MintEntity managedMint = mintOpt.get();
+        for (ProofEntity p : proofs) {
+            p.setMint(managedMint);
+        }
+        log.info("insertOrClaim mint={} saga={} proofs={}", mintId, meltSagaId, proofs.size());
+        int bound = proofRepository.insertOrClaimForSaga(proofs, meltSagaId, mintUuid);
+        log.info("insertOrClaim mint={} saga={} bound={}", mintId, meltSagaId, bound);
+        return ResponseEntity.ok(bound);
+    }
+
+    /**
      * cashu-mint spec 002 T011 — atomically marks proofs PENDING and binds
      * them to the named saga. Returns the row count actually affected
      * (callers compare against {@code proofIds.size()} to detect
