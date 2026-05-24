@@ -172,6 +172,17 @@ public final class DBProofVault extends DBVault<ProofEntity> {
     // ---------------------------------------------------------------
 
     /**
+     * Spec 005 — atomic insert-or-claim pass-through. Submits already
+     * Y-normalised {@link ProofEntity} rows; returns the total proof
+     * count actually bound to {@code meltSagaId}.
+     */
+    public static int insertOrClaimForSaga(String mintId,
+                                           String meltSagaId,
+                                           java.util.List<ProofEntity> proofs) {
+        return VaultClientFactory.proofClient().insertOrClaimForSaga(mintId, meltSagaId, proofs);
+    }
+
+    /**
      * cashu-mint spec 002 T011 — atomically marks proofs PENDING and
      * binds them to the named melt saga via the vault REST API.
      *

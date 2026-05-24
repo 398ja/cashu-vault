@@ -93,6 +93,26 @@ public class ProofClient extends VaultClient<ProofEntity> {
     // ---------------------------------------------------------------
 
     /**
+     * Spec 005 — atomic insert-or-claim. Submits already Y-normalised
+     * {@link ProofEntity} rows; the vault inserts or claims each in
+     * state PENDING bound to {@code meltSagaId} and returns the total
+     * bound count.
+     *
+     * <p>Callers compare the returned count against {@code proofs.size()}
+     * and abort (releasing any partial holds via {@link #refund}) on
+     * mismatch, before any external payment is initiated.
+     */
+    public int insertOrClaimForSaga(String mintId, String meltSagaId, java.util.List<ProofEntity> proofs) {
+        log.info("POST {}/vault/proof/mint/{}/saga/{}/insert-or-claim proofs={}",
+                getBaseUrl(), mintId, meltSagaId, proofs.size());
+        Integer bound = restTemplate.postForObject(
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/saga/" + meltSagaId + "/insert-or-claim",
+                proofs,
+                Integer.class);
+        return bound == null ? 0 : bound;
+    }
+
+    /**
      * cashu-mint spec 002 T011 — atomically marks proofs PENDING and
      * binds them to the named melt saga. The vault enforces the
      * exclusivity at the row level via the application-level CAS in

@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-05-24
+
+### Security
+
+- **Mass-assignment guard on `insert-or-claim`.** The insert path now builds
+  a fresh server-side `ProofEntity` (new id / version / timestamps) instead
+  of persisting the request-body entity, so a caller-supplied `id` can no
+  longer turn `save()` into a merge that overwrites an unrelated proof row.
+
+### Fixed
+
+- **Idempotent re-claim for the same saga.** When a proof is already
+  `PENDING` and bound to the *requesting* `meltSagaId`, `insertOrClaimForSaga`
+  now counts it as bound (client retry after timeout) instead of reporting
+  it unclaimable.
+- **Narrowed integrity-violation handling.** Only `uk_proof_mint_secret`
+  uniqueness violations are treated as the insert race; NOT NULL / FK /
+  `(mint_id, c)` violations now propagate instead of being silently counted
+  as "not bound".
+- **400 on malformed proofs.** Blank `secret` / null `amount` / blank
+  `unblindedSignature` are rejected up front (previously a blank secret
+  NPE'd into a 500, and missing fields surfaced as a quiet partial-bind).
+
+## [0.9.0] - 2026-05-24
+
+### Added
+
+- **Atomic insert-or-claim for melt-saga proof holds (cashu-mint spec 005)** —
+  closes the highest-priority finding in the 2026-05-24 backend token
+  integrity review: the melt saga's `PROOFS_HELD` guarantee was not
+  actually enforced before external Lightning payment.
+  - `ProofRepository.insertOrClaimForSaga(proofs, meltSagaId, mintId)`:
+    per proof, claims an existing `UNSPENT` row (via the existing
+    `markPending` CAS) or inserts a fresh `PENDING` row already bound
+    to the saga, returning the total count durably bound. The existing
+    `uk_proof_mint_secret` unique constraint is the race guard; the
+    INSERT path retries the claim once on a `(mint_id, secret)`
+    conflict so a concurrent inserter never produces a duplicate row.
+  - New endpoint `POST /vault/proof/mint/{mintId}/saga/{meltSagaId}/insert-or-claim`
+    accepting Y-normalised `ProofEntity` rows; the mint scope is
+    resolved server-side so a malformed body cannot bind into a
+    different tenant.
+  - `ProofClient.insertOrClaimForSaga` + `DBProofVault.insertOrClaimForSaga`
+    pass-throughs.
+  - 6 integration tests: fresh insert, claim-existing-UNSPENT (no
+    duplicate row), partial bind when one proof is held by another
+    saga, canonical-identity regression (two calls leave exactly one
+    row), empty-body 400, unknown-mint 400.
+  - No schema migration — reuses the V4 `melt_saga_id` column and the
+    `uk_proof_mint_secret` constraint.
+
 ## [0.8.0] - 2026-05-23
 
 ### Added
