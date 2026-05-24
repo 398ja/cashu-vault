@@ -5,11 +5,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.8.2</version>
+        <version>0.9.0</version>
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>0.8.2</version>
+    <version>0.9.0</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>
