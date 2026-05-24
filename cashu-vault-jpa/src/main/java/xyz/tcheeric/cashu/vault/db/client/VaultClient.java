@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.web.client.RestTemplate;
 import xyz.tcheeric.cashu.vault.db.model.BaseEntity;
 
@@ -54,6 +55,43 @@ public class VaultClient<T extends BaseEntity> {
         this.entityType = entityType;
         this.pathSegment = pathSegment;
         this.baseUrl = baseUrl;
+        configureAuth(this.restTemplate);
+    }
+
+    /**
+     * Wires HTTP Basic credentials onto every outgoing request when the calling environment
+     * supplies them. Spec 001 / FR-003 + FR-006 require every write/admin endpoint to be
+     * authenticated; service-account credentials are loaded from {@code VAULT_USERNAME} +
+     * {@code VAULT_PASSWORD} env vars or {@code vault.username} + {@code vault.password}
+     * system properties.
+     *
+     * <p>When no credentials are configured (legacy tests, local dev with security disabled)
+     * the client falls back to unauthenticated requests — the server-side
+     * {@code cashu.vault.security.enabled=false} path will accept them; production deployments
+     * with security enabled will return 401, which is the intended fail-loud behavior.
+     */
+    private static void configureAuth(RestTemplate template) {
+        String user = loadProperty("VAULT_USERNAME", "vault.username");
+        String pass = loadProperty("VAULT_PASSWORD", "vault.password");
+        if (user != null && pass != null) {
+            template.getInterceptors().add(new BasicAuthenticationInterceptor(user, pass));
+            log.debug("VaultClient configured with HTTP Basic auth for user '{}'", user);
+        } else {
+            log.warn("VaultClient running WITHOUT credentials — set VAULT_USERNAME/VAULT_PASSWORD "
+                    + "(or vault.username/vault.password system properties) for production deployments");
+        }
+    }
+
+    private static String loadProperty(String envVar, String systemProperty) {
+        String env = System.getenv(envVar);
+        if (env != null && !env.isBlank()) {
+            return env;
+        }
+        String prop = System.getProperty(systemProperty);
+        if (prop != null && !prop.isBlank()) {
+            return prop;
+        }
+        return null;
     }
 
     /**

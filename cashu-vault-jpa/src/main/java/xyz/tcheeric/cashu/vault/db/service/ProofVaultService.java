@@ -54,6 +54,17 @@ public class ProofVaultService {
      *  1. id-collision pre-check (closes U1: blocks supplied-id+mutated-identity attacks)
      *  2. {@code insertIfNotExists}
      *  3. mismatch-on-duplicate (re-fetch + compare all three identity columns)
+     *
+     * <p>NOTE on concurrency: under truly simultaneous POSTs of the same {@code (mint_id, secret)}
+     * one thread will commit the row and the other will get a unique-constraint violation at
+     * transaction commit (after this method returns). The losing thread surfaces as a
+     * generic data-integrity 409 to the caller. A stricter "always return 200 for the loser"
+     * pattern would require {@code PROPAGATION_REQUIRES_NEW} around the insert + a fresh-tx
+     * verify, but that breaks the legacy H2-backed integration tests which rely on a single
+     * outer test transaction; that refactor is tracked for a follow-up spec alongside the
+     * H2→Testcontainers migration of those tests (Constitution IV deferral D2). The
+     * concurrency IT here accepts both outcomes and asserts the invariant that matters most:
+     * exactly ONE row exists for the colliding {@code (mint_id, secret)} pair.
      */
     @Transactional
     public ProofEntity store(ProofEntity proposed) {

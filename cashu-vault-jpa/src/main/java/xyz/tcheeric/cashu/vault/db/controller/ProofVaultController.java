@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.validation.annotation.Validated;
@@ -66,18 +67,24 @@ public class ProofVaultController {
      * Stores a new proof entity with duplicate detection and identity-column mismatch rejection.
      */
     @PostMapping
-    public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof, Authentication auth) throws CashuErrorException {
+    public ResponseEntity<?> store(@RequestBody ProofEntity proof, Authentication auth) throws CashuErrorException {
         log.info("Storing ProofEntity");
 
-        if (proof.getMint() != null && proof.getMint().getId() != null) {
-            assertMintScope(proof.getMint().getId(), auth);
-            Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
-            if (mintOpt.isPresent()) {
-                proof.setMint(mintOpt.get());
-            } else {
-                log.warn("Mint not found for ID: {}", proof.getMint().getId());
-                return ResponseEntity.badRequest().build();
-            }
+        // FR-007 — reject missing mint.id with 400 BEFORE any DB access.
+        if (proof.getMint() == null || proof.getMint().getId() == null) {
+            log.warn("event=rejected_request outcome=mint_required path=/vault/proof method=POST");
+            return ResponseEntity.badRequest().body(new ErrorEnvelope(
+                    "MINT_REQUIRED", "request body must include mint.id"));
+        }
+
+        assertMintScope(proof.getMint().getId(), auth);
+        Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
+        if (mintOpt.isPresent()) {
+            proof.setMint(mintOpt.get());
+        } else {
+            log.warn("Mint not found for ID: {}", proof.getMint().getId());
+            return ResponseEntity.badRequest().body(new ErrorEnvelope(
+                    "MINT_NOT_FOUND", "no mint exists for id " + proof.getMint().getId()));
         }
 
         // FR-009 — delegate to service so id-collision + mismatch guards are enforced.
@@ -266,8 +273,10 @@ public class ProofVaultController {
     // Service accounts MUST carry a MINT:<uuid> GrantedAuthority matching the requested mintId.
     // -------------------------------------------------------------------------
     private static void assertMintScope(UUID requestedMintId, Authentication auth) {
-        if (auth == null) {
-            // Security disabled (test profile) — skip.
+        // Security disabled (legacy H2 test profile) is signalled by either a null Authentication
+        // OR an AnonymousAuthenticationToken (Spring Security still injects an anonymous principal
+        // even when the filter chain is permit-all). Skip the check in both cases.
+        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
             return;
         }
         boolean admin = false;

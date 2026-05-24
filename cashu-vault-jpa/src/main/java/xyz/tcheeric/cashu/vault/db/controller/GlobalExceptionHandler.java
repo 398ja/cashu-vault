@@ -120,8 +120,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorEnvelope> handleResponseStatus(ResponseStatusException ex,
                                                               HttpServletRequest req) {
         String reason = ex.getReason() != null ? ex.getReason() : ex.getStatusCode().toString();
+        // FR-011 — outcome must be a single token suitable for SIEM `key=value` parsing.
+        // When the reason text is a free-form sentence (e.g. "no proof for (mintId, secret)"),
+        // log a stable outcome code and put the human-readable reason into a separate `detail` field.
         String code = looksLikeCode(reason) ? reason : "REQUEST_REJECTED";
-        logStructured(reason, req, Map.of());
+        String outcome = looksLikeCode(reason) ? reason.toLowerCase() : "request_rejected";
+        logStructured(outcome, req, Map.of("detail", reason));
         return ResponseEntity.status(ex.getStatusCode())
                 .body(new ErrorEnvelope(code, reason));
     }
@@ -186,9 +190,29 @@ public class GlobalExceptionHandler {
         }
         sb.append(" principal=").append(principalName());
         for (Map.Entry<String, Object> e : extra.entrySet()) {
-            sb.append(' ').append(e.getKey()).append('=').append(e.getValue());
+            sb.append(' ').append(e.getKey()).append('=').append(quoteIfNeeded(e.getValue()));
         }
         log.warn(sb.toString());
+    }
+
+    /**
+     * logfmt convention — values containing whitespace, quotes, or {@code =} are
+     * double-quoted with embedded quotes escaped. Keeps the structured-log line parseable
+     * by SIEM tools when free-form reason text is included (FR-011).
+     */
+    private static String quoteIfNeeded(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String s = value.toString();
+        boolean needsQuoting = s.isEmpty()
+                || s.indexOf(' ') >= 0
+                || s.indexOf('"') >= 0
+                || s.indexOf('=') >= 0;
+        if (!needsQuoting) {
+            return s;
+        }
+        return '"' + s.replace("\\", "\\\\").replace("\"", "\\\"") + '"';
     }
 
     private static String principalName() {
