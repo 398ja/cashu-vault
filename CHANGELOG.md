@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-05-24
+
+### Security
+
+- **Mass-assignment guard on `insert-or-claim`.** The insert path now builds
+  a fresh server-side `ProofEntity` (new id / version / timestamps) instead
+  of persisting the request-body entity, so a caller-supplied `id` can no
+  longer turn `save()` into a merge that overwrites an unrelated proof row.
+
+### Fixed
+
+- **Idempotent re-claim for the same saga.** When a proof is already
+  `PENDING` and bound to the *requesting* `meltSagaId`, `insertOrClaimForSaga`
+  now counts it as bound (client retry after timeout) instead of reporting
+  it unclaimable.
+- **Narrowed integrity-violation handling.** Only `uk_proof_mint_secret`
+  uniqueness violations are treated as the insert race; NOT NULL / FK /
+  `(mint_id, c)` violations now propagate instead of being silently counted
+  as "not bound".
+- **400 on malformed proofs.** Blank `secret` / null `amount` / blank
+  `unblindedSignature` are rejected up front (previously a blank secret
+  NPE'd into a 500, and missing fields surfaced as a quiet partial-bind).
+
 ## [0.9.0] - 2026-05-24
 
 ### Added

@@ -270,6 +270,19 @@ public class ProofVaultController {
             log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, meltSagaId);
             return ResponseEntity.badRequest().build();
         }
+        // Per-proof field validation: a blank secret would NPE the
+        // List.of(secret) claim, and a missing amount / signature would hit
+        // a NOT NULL constraint that the repository would otherwise surface
+        // as a quiet partial-bind. Fail malformed requests with 400 up front.
+        for (ProofEntity p : proofs) {
+            if (p.getSecret() == null || p.getSecret().isBlank()
+                    || p.getAmount() == null
+                    || p.getUnblindedSignature() == null || p.getUnblindedSignature().isBlank()) {
+                log.warn("insertOrClaim rejected mint={} saga={} reason=invalid_proof_fields",
+                        mintId, meltSagaId);
+                return ResponseEntity.badRequest().build();
+            }
+        }
         UUID mintUuid = UUID.fromString(mintId);
         // Resolve managed mint reference + sanity-check tenancy so a
         // mismatched mint scope can't sneak past the per-proof CAS.

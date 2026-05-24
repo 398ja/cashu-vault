@@ -329,24 +329,90 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         if (updated > 0) {
             return true;
         }
-        // Step 2 — no UNSPENT row found. If a row exists at all under
-        // (mint_id, secret), it is PENDING or SPENT; we cannot claim it.
+        // Step 2 — the UNSPENT CAS matched nothing. Either a row already
+        // exists under (mint_id, secret) — PENDING or SPENT — or none does.
+        // If one exists and is already PENDING-held by THIS saga, treat the
+        // call as idempotent (a client retry after a timeout re-submits the
+        // same proofs); return true. Any other existing state (held by a
+        // different saga, or SPENT) is unclaimable.
         if (existsByMint_IdAndSecret(mintId, secret)) {
-            return false;
+            return heldByThisSaga(mintId, secret, meltSagaId);
         }
-        // Step 3 — fresh proof: INSERT as PENDING already bound to this saga.
-        proof.setState(ProofEntity.STATE_PENDING);
-        proof.setMeltSagaId(meltSagaId);
+        // Step 3 — fresh proof: INSERT a server-built PENDING row bound to
+        // this saga. Build the row from scratch so a caller-supplied id /
+        // version / archived / timestamps can never turn save() into a
+        // merge that overwrites an unrelated proof row (mass-assignment
+        // guard — the secret + amount + signature + mint are the only
+        // caller-controlled fields that matter for a hold).
+        ProofEntity holdRow = buildHoldRow(proof, meltSagaId);
         try {
-            save(proof);
+            save(holdRow);
             return true;
-        } catch (DataIntegrityViolationException race) {
-            // Step 4 — lost the (mint_id, secret) uniqueness race against
-            // a concurrent inserter. If their row turned out to be
-            // UNSPENT (unlikely but possible if they refunded), claim
-            // it; otherwise lose.
+        } catch (DataIntegrityViolationException e) {
+            // Only a (mint_id, secret) uniqueness violation is the expected
+            // race against a concurrent inserter. Any other integrity error
+            // (NOT NULL, FK, (mint_id, c) collision) is a real fault and must
+            // fail fast rather than being silently counted as "not bound".
+            if (!isMintSecretUniqueViolation(e)) {
+                throw e;
+            }
+            // Step 4 — lost the race. Retry the UNSPENT claim once; the racer
+            // has committed by now. If their row is UNSPENT we claim it; if
+            // it is PENDING-held by this same saga, idempotent success; else
+            // lose.
             int retry = markPending(List.of(secret), meltSagaId, mintId);
-            return retry > 0;
+            if (retry > 0) {
+                return true;
+            }
+            return heldByThisSaga(mintId, secret, meltSagaId);
         }
+    }
+
+    /**
+     * True iff a row exists for {@code (mintId, secret)} that is currently
+     * {@code PENDING} and bound to {@code meltSagaId} — the idempotent
+     * re-claim case for a single saga.
+     */
+    private boolean heldByThisSaga(UUID mintId, String secret, String meltSagaId) {
+        return findByMint_IdAndSecret(mintId, secret)
+                .map(row -> ProofEntity.STATE_PENDING.equals(row.getState())
+                        && meltSagaId.equals(row.getMeltSagaId()))
+                .orElse(false);
+    }
+
+    /**
+     * Builds a fresh PENDING hold row for the insert path, copying only the
+     * caller-meaningful proof fields. Server-managed identity / audit fields
+     * (id, version, archived, timestamps) keep their {@code BaseEntity}
+     * defaults so {@code save()} performs an INSERT, never a merge.
+     */
+    private static ProofEntity buildHoldRow(ProofEntity src, String meltSagaId) {
+        ProofEntity row = new ProofEntity();
+        row.setMint(src.getMint());
+        row.setAmount(src.getAmount());
+        row.setSecret(src.getSecret());
+        row.setUnblindedSignature(src.getUnblindedSignature());
+        row.setWitness(src.getWitness());
+        row.setState(ProofEntity.STATE_PENDING);
+        row.setMeltSagaId(meltSagaId);
+        return row;
+    }
+
+    /**
+     * Narrow check: is this integrity violation specifically the
+     * {@code uk_proof_mint_secret} uniqueness constraint? Mirrors the
+     * matching in {@link #insertIfNotExists} but scoped to the secret
+     * constraint only (the commitment constraint and NOT NULL / FK
+     * violations must propagate, not be swallowed as a claim race).
+     */
+    private static boolean isMintSecretUniqueViolation(DataIntegrityViolationException e) {
+        String message = e.getMessage();
+        if (message == null) {
+            Throwable cause = e.getCause();
+            message = cause != null ? cause.getMessage() : "";
+        }
+        String lower = message == null ? "" : message.toLowerCase();
+        return lower.contains(CONSTRAINT_MINT_SECRET.toLowerCase())
+                || (lower.contains("unique") && lower.contains("secret"));
     }
 }

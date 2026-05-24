@@ -392,10 +392,81 @@ class ProofVaultControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
-            ProofEntity stored = proofRepository.findBySecret(secret).orElseThrow();
+            ProofEntity stored = proofRepository
+                    .findByMint_IdAndSecret(UUID.fromString(mintId), secret).orElseThrow();
             assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
             assertThat(stored.getMeltSagaId()).isEqualTo("saga-ioc-1");
             assertThat(proofRepository.findByMeltSagaId("saga-ioc-1")).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("insertOrClaim is idempotent for the same saga (client retry)")
+        void insertOrClaimIdempotentForSameSaga() throws Exception {
+            String secret = "ioc-idem-" + UUID.randomUUID();
+            String body = "[" + proofBodyJson(secret, "c-idem-" + UUID.randomUUID(), 16) + "]";
+
+            // First claim binds the fresh proof to the saga.
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-idem/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            // Retry with the SAME saga re-reports the proof as bound (count=1),
+            // not 0, and does not create a duplicate row.
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-idem/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            assertThat(proofRepository.findAll().stream()
+                    .filter(p -> secret.equals(p.getSecret()))
+                    .count())
+                    .isEqualTo(1L);
+            assertThat(proofRepository.findByMeltSagaId("saga-idem")).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("insertOrClaim rejects a proof with a blank secret with 400")
+        void insertOrClaimBlankSecretReturns400() throws Exception {
+            String body = """
+                    [{"secret": "", "unblindedSignature": "c-blank", "amount": 1, "state": "UNSPENT"}]
+                    """;
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-blank/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("insertOrClaim ignores a caller-supplied id (no merge-overwrite)")
+        void insertOrClaimIgnoresCallerSuppliedId() throws Exception {
+            // Seed an unrelated SPENT proof we must not let the caller clobber.
+            String victimSecret = "ioc-victim-" + UUID.randomUUID();
+            String victimResp = mockMvc.perform(post("/vault/proof")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(createProofJson(mintId, victimSecret, "c-victim-" + UUID.randomUUID(), 99)))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            String victimId = objectMapper.readTree(victimResp).get("id").asText();
+
+            // Attacker submits a fresh-secret hold but reuses the victim's id.
+            String attackSecret = "ioc-attack-" + UUID.randomUUID();
+            String body = String.format("""
+                    [{"id": "%s", "secret": "%s", "unblindedSignature": "c-attack-%s", "amount": 1, "state": "UNSPENT"}]
+                    """, victimId, attackSecret, UUID.randomUUID());
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-attack/insert-or-claim")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+
+            // Victim row is untouched: still its original secret/amount/state.
+            ProofEntity victim = proofRepository.findById(UUID.fromString(victimId)).orElseThrow();
+            assertThat(victim.getSecret()).isEqualTo(victimSecret);
+            assertThat(victim.getAmount()).isEqualTo(99);
+            assertThat(victim.getMeltSagaId()).isNull();
+            // The new hold landed on its own row, bound to the saga.
+            assertThat(proofRepository.findByMeltSagaId("saga-attack")).hasSize(1);
+            assertThat(proofRepository.findByMeltSagaId("saga-attack").get(0).getSecret())
+                    .isEqualTo(attackSecret);
         }
 
         @Test
