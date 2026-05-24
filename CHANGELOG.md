@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — spec 001 (Append-Only Proof Storage and Mint-Scoped Lookup)
+
+- Spring Security (`spring-boot-starter-security`) — HTTP Basic auth on every `/vault/**` write/admin endpoint and mint-scoped read; `ROLE_ADMIN` / `ROLE_SERVICE` + `MINT:<uuid>` granted authority for scope cross-checks (FR-003, FR-006)
+- Admin tombstone endpoint `POST /vault/proof/mint/{mintId}/secret/{secret}/tombstone` — replaces physical `DELETE /vault/proof/{id}` (FR-001, FR-002, FR-003). Tombstone is one-way; re-tombstone returns 409 `ALREADY_TOMBSTONED`. UNSPENT proofs require an explicit `force=true` request-body flag, emitting a high-severity log line
+- State-transition endpoint `POST /vault/proof/mint/{mintId}/secret/{secret}/state` — JPA-managed UPDATE that touches only `state` + `updated_at`; identity columns are now immutable post-insert (FR-008)
+- Admin audit timeline endpoint `GET /vault/proof/mint/{mintId}/secret/{secret}/audit` — returns full Envers revision list with `principalId` per revision plus current tombstone metadata (FR-013)
+- `ProofVaultService` — sole entry point for proof mutations; enforces `insertIfNotExists` with id-collision pre-check + value-mismatch comparison on duplicate (FR-009)
+- `RevisionInfo.principalId` — Envers revision rows now carry the Spring Security principal id via a custom `PrincipalRevisionListener` (FR-013 attribution)
+- Migration `V4__add_proof_tombstone_columns.sql` — nullable `tombstoned_at`/`tombstoned_by` on `t_proof` and `t_proof_a`; `principal_id` on `revinfo`
+- Testcontainers PostgreSQL test base (`PostgresIntegrationTest`) for new write-path ITs (Constitution IV)
+- New ITs covering FR-001 through FR-013 acceptance scenarios: `ProofTombstoneIT`, `ProofInsertMismatchIT`, `ProofStateTransitionIT`, `ProofScopeViolationIT`, `ProofAuditTimelineIT`, `ProofRepositoryContractTest`
+- README "Security & Network Posture" section (FR-014)
+
+### Changed
+
+- `ProofEntity.secret`, `unblindedSignature`, and `mint` are now `updatable=false` — DB-level backstop for FR-008 ("no silent overwrite"). Service-layer guard (`ProofVaultService.store`) catches the same attempt explicitly with 409 `IDENTITY_CONFLICT`
+- `ProofVaultController.store(...)` now delegates to `ProofVaultService.store(...)` (FR-009)
+- `DBProofVault.invalidate(...)` and `storePending(...)` route through the new state-transition REST helper instead of re-saving the entity (FR-008)
+- `GlobalExceptionHandler` returns the new `ErrorEnvelope` shape for all 4xx/5xx, with explicit mappings for `DataIntegrityViolationException → 409 IDENTITY_CONFLICT`, `AccessDeniedException → 403 SCOPE_VIOLATION` (with the four spec-mandated structured-log fields), `HttpRequestMethodNotSupportedException → 405 METHOD_NOT_ALLOWED`, and `ResponseStatusException → ErrorEnvelope` wrapping
+
+### Removed
+
+- `ProofRepository.findBySecret(String)` — global secret lookup violated Constitution I (FR-005)
+- `ProofClient.getBySecret(String)` and `DBProofVault.retrieveProof(String secret)` two-arg overloads
+- `DELETE /vault/proof/{id}` — physical deletion is forbidden (FR-001); `DBProofVault.delete(...)` throws `UnsupportedOperationException`
+- All `JpaRepository` `delete*` mutators on `ProofRepository` are overridden to throw `UnsupportedOperationException`
+
+### Deprecated
+
+- `GET /vault/proof/secret/{secret}` — returns 400 `MINT_SCOPE_REQUIRED` with a deprecation envelope; removed entirely in v0.8.0
+
+### Security
+
+- Append-only history for proofs enforced at three layers: removed delete endpoint, repository delete-method lockdown, identity-column `updatable=false` at the JPA mapping
+- Every rejected mutation (scope violation, identity conflict, tombstone rejection) emits a structured log line with `outcome=<code>`, `principal_id`, and request-scoped fields suitable for SIEM ingestion (FR-011)
+- Vault REST API documented as service-only (private network); README adds a Security & Network Posture section (FR-014)
+
+### Notes
+
+- **FR-012 — strict on the live row, approximate on the audit row.** `ProofVaultService.tombstone` now does a JPA setter+save (so Envers fires) **followed by** an immediate native `UPDATE t_proof SET tombstoned_at = now() WHERE id = :id` and an `em.refresh(...)`. The live row's `tombstoned_at` carries the DB clock (asserted by `ProofTombstoneIT.tombstonedAtIsDbClockOnLiveRow` which brackets the call with two `SELECT now()` samples). The audit row's `tombstoned_at` carries the JPA-managed value at flush time — a sub-second JVM-clock approximation of the canonical live value, acceptable since the audit row is forensic evidence and the live row is the authoritative source. State-transition `updated_at` values are already DB-clock via the `updateState` native query.
+- **Constitution III (controllers in `cashu-vault-api`) — documented deferral**: controllers remain in `cashu-vault-jpa` per plan.md Complexity Tracking. Tracked for a follow-up consolidation spec.
+
 ## [0.7.0] - 2026-02-18
 
 ### Added

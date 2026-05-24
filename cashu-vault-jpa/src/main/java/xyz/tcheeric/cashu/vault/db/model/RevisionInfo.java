@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.db.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,13 +11,16 @@ import lombok.Data;
 import org.hibernate.envers.RevisionEntity;
 import org.hibernate.envers.RevisionNumber;
 import org.hibernate.envers.RevisionTimestamp;
+import xyz.tcheeric.cashu.vault.db.config.PrincipalRevisionListener;
 
 /**
  * Revision entity for Hibernate Envers auditing.
+ * The {@link PrincipalRevisionListener} populates {@code principalId} from the
+ * Spring Security {@code Authentication} at revision creation (spec 001 / FR-013).
  */
 @Entity
 @Table(name = "revinfo")
-@RevisionEntity
+@RevisionEntity(PrincipalRevisionListener.class)
 @Data
 public class RevisionInfo {
 
@@ -32,4 +36,8 @@ public class RevisionInfo {
 
     @RevisionTimestamp
     private Long revtstmp;
+
+    /** Authenticated principal that produced this revision; null for system/migration revisions. */
+    @Column(name = "principal_id", length = 255)
+    private String principalId;
 }

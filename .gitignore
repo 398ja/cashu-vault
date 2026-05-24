@@ -45,3 +45,5 @@ docker.env
 /.qodana/
 /.claude/
 /project/
+/specs/
+/CLAUDE.md

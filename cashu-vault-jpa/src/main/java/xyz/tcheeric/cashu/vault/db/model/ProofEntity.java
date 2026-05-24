@@ -24,6 +24,7 @@ import xyz.tcheeric.cashu.crypto.BDHKEUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 
 /**
  * Entity representing a spendable proof issued by a mint.
@@ -54,9 +55,9 @@ public class ProofEntity extends BaseEntity {
     /** Spent state constant. */
     public static final String STATE_SPENT = "SPENT";
 
-    /** Mint that issued this proof. */
+    /** Mint that issued this proof. FR-008: identity column, immutable post-insert. */
     @ManyToOne(cascade = CascadeType.ALL, optional = false)
-    @JoinColumn(name = "mint_id", nullable = false)
+    @JoinColumn(name = "mint_id", nullable = false, updatable = false)
     @JsonProperty
     private MintEntity mint;
 
@@ -65,14 +66,14 @@ public class ProofEntity extends BaseEntity {
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
-    /** Secret value of the proof. */
+    /** Secret value of the proof. FR-008: identity column, immutable post-insert. */
     @JsonProperty
-    @Column(name = "secret", nullable = false)
+    @Column(name = "secret", nullable = false, updatable = false)
     private String secret;
 
-    /** Unblinded signature associated with the proof. */
+    /** Unblinded signature associated with the proof. FR-008: identity column, immutable post-insert. */
     @JsonProperty
-    @Column(name = "C", nullable = false)
+    @Column(name = "C", nullable = false, updatable = false)
     private String unblindedSignature;
 
     /** Optional witness identifier. */
@@ -92,6 +93,26 @@ public class ProofEntity extends BaseEntity {
     @JsonProperty
     @Column(name = "fingerprint", length = 64)
     private String fingerprint;
+
+    /**
+     * Tombstone timestamp. FR-012 (live row, strict): the live {@code t_proof.tombstoned_at}
+     * value MUST come from the database via a native UPDATE using {@code now()}. The JPA
+     * setter is used only as a dirty marker to fire Hibernate Envers; the value the setter
+     * writes is overwritten by an immediate native UPDATE in {@code ProofVaultService.tombstone}.
+     * The audit row ({@code t_proof_a.tombstoned_at}) captures the JPA-managed value at flush
+     * time — a sub-second JVM-clock approximation of the canonical live value, acceptable
+     * since the audit row is forensic evidence of the operation, not the authoritative source.
+     */
+    @JsonProperty
+    @Column(name = "tombstoned_at")
+    private Instant tombstonedAt;
+
+    /**
+     * Tombstone principal id (from {@code Authentication.getName()}).
+     */
+    @JsonProperty
+    @Column(name = "tombstoned_by", length = 255)
+    private String tombstonedBy;
 
     /**
      * Ensures fingerprint is computed before persisting.

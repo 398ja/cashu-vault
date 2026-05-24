@@ -9,10 +9,15 @@ import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.ProofClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
+import xyz.tcheeric.cashu.vault.db.dto.TombstoneResponse;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,90 +27,75 @@ import static org.mockito.Mockito.*;
 class DBProofVaultTest {
 
     @Test
-    void storeArchiveDeleteUseClients() throws Exception {
+    void storeUsesClient() throws Exception {
         MintEntity mint = new MintEntity();
         ProofEntity entity = new ProofEntity();
         entity.setMint(mint);
+
+        @SuppressWarnings("unchecked")
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
+        @SuppressWarnings("unchecked")
+        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
+        when(mintClient.retrieve(anyString())).thenReturn(mint);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
+
+            DBProofVault vault = new DBProofVault(client);
+            vault.store(entity);
+            verify(mintClient).retrieve(mint.getId().toString());
+            verify(client).store(entity);
+        }
+    }
+
+    @Test
+    void archiveSetsArchivedAndPersists() throws Exception {
+        ProofEntity entity = new ProofEntity();
+        entity.setMint(new MintEntity());
 
         @SuppressWarnings("unchecked")
         VaultClient<ProofEntity> client = mock(VaultClient.class);
         when(client.retrieve(anyString())).thenReturn(entity);
-        @SuppressWarnings("unchecked")
-        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
-        when(mintClient.retrieve(anyString())).thenReturn(mint);
         ProofClient proofClient = mock(ProofClient.class);
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
             factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
             DBProofVault vault = new DBProofVault(client);
-
-            vault.store(entity);
-            verify(mintClient).retrieve(mint.getId().toString());
-            verify(client).store(entity);
-
             vault.archive(entity.getId().toString());
             verify(client).retrieve(entity.getId().toString());
             verify(proofClient).store(argThat(ProofEntity::isArchived));
-
-            vault.delete(entity.getId().toString());
-            verify(proofClient).delete(entity.getId().toString());
         }
     }
 
     @Test
-    void storePendingSetsStatePending() throws Exception {
-        MintEntity mint = new MintEntity();
-        ProofEntity entity = new ProofEntity();
-        entity.setMint(mint);
-
+    void deleteThrowsBecausePhysicalDeletionIsForbidden() {
+        // Spec 001 / FR-001 — physical deletion is forbidden. delete(id) now throws.
         @SuppressWarnings("unchecked")
         VaultClient<ProofEntity> client = mock(VaultClient.class);
-        when(client.store(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        DBProofVault vault = new DBProofVault(client);
+        assertThatThrownBy(() -> vault.delete(UUID.randomUUID().toString()))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("tombstone");
+    }
+
+    @Test
+    void tombstoneDelegatesToProofClient() throws Exception {
         @SuppressWarnings("unchecked")
-        VaultClient<MintEntity> mintClient = mock(VaultClient.class);
-        when(mintClient.retrieve(anyString())).thenReturn(mint);
-
-        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(() -> VaultClientFactory.getClient(ProofEntity.class)).thenReturn(client);
-            factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
-
-            DBProofVault vault = new DBProofVault(mock(VaultClient.class));
-
-            ProofEntity stored = vault.storePending(entity);
-            verify(client).store(entity);
-            assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
-        }
-    }
-
-    @Test
-    void retrieveProofBySecretReturnsWrappedEntity() throws Exception {
-        ProofEntity entity = new ProofEntity();
-        entity.setMint(new MintEntity());
+        VaultClient<ProofEntity> client = mock(VaultClient.class);
         ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.getBySecret(anyString())).thenReturn(entity);
-
-        ProofEntity result = DBProofVault.retrieveProof("secret", proofClient);
-        verify(proofClient).getBySecret("secret");
-        assertThat(result).isEqualTo(entity);
-    }
-
-    @Test
-    void retrieveProofBySecretUsesFactoryClient() throws Exception {
-        ProofEntity entity = new ProofEntity();
-        entity.setMint(new MintEntity());
-        ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.getBySecret("secret")).thenReturn(entity);
+        TombstoneResponse resp = new TombstoneResponse(
+                UUID.randomUUID(), "secret", Instant.now(), "admin");
+        when(proofClient.tombstone(anyString(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(resp);
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
-            ProofEntity proofEntity = DBProofVault.retrieveProof("secret");
-
-            factory.verify(VaultClientFactory::proofClient);
-            verify(proofClient).getBySecret("secret");
-            assertThat(proofEntity).isEqualTo(entity);
+            DBProofVault vault = new DBProofVault(client);
+            TombstoneResponse out = vault.tombstone("mint-1", "secret-1", "operator action", false);
+            verify(proofClient).tombstone("mint-1", "secret-1", "operator action", false);
+            assertThat(out).isEqualTo(resp);
         }
     }
 
@@ -120,7 +110,6 @@ class DBProofVaultTest {
             factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
             ProofEntity proofEntity = DBProofVault.retrieveProof("mint", "secret");
-
             verify(proofClient).getByMintIdAndSecret("mint", "secret");
             assertThat(proofEntity).isEqualTo(entity);
         }
@@ -154,53 +143,4 @@ class DBProofVaultTest {
             assertThat(proofEntity).isEqualTo(entity);
         }
     }
-
-/*
-    @Test
-    void retrieveProofBySecretThrowsWhenMissing() {
-        ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.getBySecret(anyString())).thenReturn(null);
-
-        assertThrows(CashuErrorException.class,
-                () -> DBProofVault.retrieveProof("missing", proofClient));
-        verify(proofClient).getBySecret("missing");
-    }
-*/
-
-/*
-    @Test
-    void retrieveProofByMintAndSecretThrowsWhenMissing() {
-        ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.getByMintIdAndSecret(anyString(), anyString())).thenReturn(null);
-
-        assertThrows(CashuErrorException.class,
-                () -> DBProofVault.retrieveProof("mint", "missing", proofClient));
-        verify(proofClient).getByMintIdAndSecret("mint", "missing");
-    }
-*/
-
-/*
-    @Test
-    void retrieveProofByMintAndAmountThrowsWhenMissing() {
-        ProofClient proofClient = mock(ProofClient.class);
-        when(proofClient.getByMintAndAmount(anyString(), anyInt())).thenReturn(null);
-
-        assertThrows(CashuErrorException.class,
-                () -> DBProofVault.retrieveProof("mint", 1, proofClient));
-        verify(proofClient).getByMintAndAmount("mint", 1);
-    }
-*/
-
-    /*
-    @Test
-    void retrieveProofByMintAndSignatureThrowsWhenMissing() {
-        try (MockedConstruction<ProofClient> proofMock = mockConstruction(ProofClient.class,
-                (m, ctx) -> when(m.getByMintAndUnblindedSignature(anyString(), anyString())).thenReturn(null));
-             MockedConstruction<VaultClient> vaultMock = mockConstruction(VaultClient.class)) {
-            assertThrows(CashuErrorException.class,
-                    () -> DBProofVault.retrieveProofByUnblindedSignature("mint", "sig"));
-            verify(proofMock.constructed().get(0)).getByMintAndUnblindedSignature("mint", "sig");
-        }
-    }
-*/
 }
