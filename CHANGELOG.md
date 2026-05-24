@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-24
+
 ### Added — spec 001 (Append-Only Proof Storage and Mint-Scoped Lookup)
 
 - Spring Security (`spring-boot-starter-security`) — HTTP Basic auth on every `/vault/**` write/admin endpoint and mint-scoped read; `ROLE_ADMIN` / `ROLE_SERVICE` + `MINT:<uuid>` granted authority for scope cross-checks (FR-003, FR-006)
