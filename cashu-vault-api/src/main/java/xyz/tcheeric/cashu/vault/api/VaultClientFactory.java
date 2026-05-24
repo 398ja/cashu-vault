@@ -146,6 +146,17 @@ public final class VaultClientFactory {
     }
 
     /**
+     * Returns the active-backend {@link KeyVault} for amount-keyed lookups
+     * with secret enrichment. Use this in preference to
+     * {@code new DBKeyVault()} — direct instantiation bypasses the
+     * HashiCorp Vault backend and yields {@link KeyEntity#getPrivateKey()}
+     * = null even when {@code activeBackend == HASHICORP}.
+     */
+    public static KeyVault keyVault() {
+        return (KeyVault) getVault(KeyEntity.class);
+    }
+
+    /**
      * Returns a singleton {@link ProofClient} instance.
      *
      * @return configured proof client
