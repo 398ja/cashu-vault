@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Operational notes (no code change)
+
+- **V3 (`add_vault_path_to_key.sql`) is not idempotent across existing data.**
+  Surfaced on 2026-05-24 during the staging rollout from 0.7.0 → 0.8.0 against
+  a database that still had legacy rows in `t_key`. V3 adds
+  `vault_path VARCHAR(512) NOT NULL` in a single statement; PostgreSQL aborts
+  with `column "vault_path" of relation "t_key" contains null values` when any
+  row is present. **Patching V3 in place would change its checksum and break
+  every deployment that already ran the original V3**, so V3 is left untouched.
+  **Operational fix when V3 fails on a legacy DB:**
+  1. `psql ... -c "TRUNCATE TABLE t_key CASCADE;"` (private keys are now the
+     source-of-truth in HashiCorp Vault; legacy `t_key` rows are stale
+     references and the cascade clears `t_key_a` audit rows too).
+  2. Re-run the deploy. With `SPRING_FLYWAY_OUT_OF_ORDER=true` set on the
+     vault env, Flyway applies V3 + V4 + V999 cleanly on the empty table.
+  3. If any of the dropped keys are still active, re-register them from
+     HashiCorp Vault — the keys themselves persist; only the `t_key`
+     references were cleared.
+
 ## [0.8.0] - 2026-05-24
 
 ### Added — spec 001 (Append-Only Proof Storage and Mint-Scoped Lookup)
