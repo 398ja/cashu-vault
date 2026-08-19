@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-19
+
+### Fixed
+
+- **A mint can hold more than one keyset per unit, so rotation is possible.**
+  `UNIQUE (unit, mint_id)` on `t_keyset` allowed a mint exactly one keyset per
+  unit ever, so a replacement keyset could not be inserted while the keyset it
+  replaced still existed. Deleting the old one to free the slot is not an
+  option: NUT-02 archived keysets must go on verifying and redeeming, so
+  removing one strands every token it signed. The constraint is now on active
+  keysets only — a mint still has at most one keyset signing per unit, while
+  archived keysets accumulate freely. Identity is unchanged;
+  `idx_keyset_key_set_mint_unq` still prevents a keyset id being registered
+  twice for a mint. (#126)
+
+  Expressed per engine, because H2 has no partial indexes: PostgreSQL uses a
+  partial unique index, H2 a generated column that is null while archived.
+  Engine-specific migrations live in `db/vendor/{vendor}`, outside the
+  recursively scanned `db/migration`.
+
+### Changed
+
+- Updated cashu-lib to 0.21.0 (NUT-11 P2PK secret validation). Validation is fail-closed:
+  a malformed P2PK lock is now rejected at parse time rather than accepted and misbehaving later.
+
 ## [0.9.1] - 2026-05-24
 
 ### Security
@@ -221,7 +246,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Aligned hibernate-envers version with hibernate-core
 
-[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/398ja/cashu-vault/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/398ja/cashu-vault/compare/v0.9.1...v0.10.0
 [0.8.0]: https://github.com/398ja/cashu-vault/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/398ja/cashu-vault/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/398ja/cashu-vault/compare/v0.5.0...v0.6.0

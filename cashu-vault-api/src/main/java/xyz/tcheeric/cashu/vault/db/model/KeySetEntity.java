@@ -25,7 +25,10 @@ import java.util.Set;
  */
 @Entity(name = "keyset")
 @Table(name = "t_keyset", indexes = {
-        @Index(name = "idx_keyset_unit_mint_unq", columnList = "unit, mint_id", unique = true),
+        // Not unique here: a mint may hold many archived keysets for a unit, and at
+        // most one active one. That is a partial constraint, which JPA cannot
+        // express, so it lives in the V5 migration as idx_keyset_unit_mint_active_unq.
+        @Index(name = "idx_keyset_unit_mint", columnList = "unit, mint_id"),
         @Index(name = "idx_keyset_key_set_mint_unq", columnList = "key_set_id, mint_id", unique = true)
 })
 @Data
