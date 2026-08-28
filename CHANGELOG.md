@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-08-28
+
+### Fixed
+
+- **`VaultClient.retrieveAll()` can deserialise its own entities.** The call
+  described its response as `ParameterizedTypeReference<List<T>>`, but `T` is
+  erased at that point, so Jackson was handed the abstract `BaseEntity` and
+  refused with "no Creators, like default constructor, exist". Every caller
+  died on it, including `DBMintVault.load(archive)` — which is every mint
+  reading its keysets from the vault, so no mint could be vault-backed at all.
+  The response is now requested as an array of the concrete entity type the
+  client already holds, which survives erasure.
+
 ## [0.10.0] - 2026-08-19
 
 ### Fixed

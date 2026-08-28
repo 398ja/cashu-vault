@@ -4,11 +4,11 @@
     <parent>
         <groupId>xyz.tcheeric</groupId>
         <artifactId>cashu-vault</artifactId>
-        <version>0.10.0</version>
+        <version>0.10.1</version>
     </parent>
 
     <artifactId>cashu-vault-api</artifactId>
-    <version>0.10.0</version>
+    <version>0.10.1</version>
     <packaging>jar</packaging>
 
     <name>cashu-vault-api</name>
@@ -111,6 +111,33 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- MockRestServiceServer, so the vault clients can be exercised against a
+             real RestTemplate and a real response body rather than a mock that
+             would not have caught the deserialisation defect this covers. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- BaseEntity carries Instant timestamps. Consumers of this client run with
+             jackson-datatype-jsr310 on the classpath (Spring Boot brings it), so the
+             test classpath needs it too to represent them faithfully. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- MockRestRequestMatchers returns hamcrest matchers in its signatures. -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

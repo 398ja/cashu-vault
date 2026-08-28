@@ -3,7 +3,6 @@ package xyz.tcheeric.cashu.vault.db.client;
 import jakarta.persistence.Entity;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -141,13 +140,19 @@ public class VaultClient<T extends BaseEntity> {
      */
     public List<T> retrieveAll() {
         log.info("GET {}/vault/{}/", baseUrl, pathSegment);
-        ResponseEntity<List<T>> response = restTemplate.exchange(
+        // Asked for as an array of the concrete entity type rather than as
+        // ParameterizedTypeReference<List<T>>: T is erased there, so Jackson was
+        // handed the abstract BaseEntity and refused to construct it. entityType
+        // is the real class, and an array of it survives erasure.
+        @SuppressWarnings("unchecked")
+        Class<T[]> arrayType = (Class<T[]>) entityType.arrayType();
+        ResponseEntity<T[]> response = restTemplate.exchange(
                 baseUrl + "/vault/" + pathSegment,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<T>>() {}
+                arrayType
         );
-        List<T> body = response.getBody();
-        return body != null ? body : Collections.emptyList();
+        T[] body = response.getBody();
+        return body != null ? List.of(body) : Collections.emptyList();
     }
 }
