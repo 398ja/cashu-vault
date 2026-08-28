@@ -6,6 +6,7 @@ import xyz.tcheeric.cashu.common.Mint;
 import xyz.tcheeric.cashu.common.PublicKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.crypto.util.KeySetDerivation;
+import org.springframework.web.client.HttpClientErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
@@ -105,23 +106,35 @@ public final class DBMintVault extends DBVault<MintEntity> {
             return mint;
         }
 
-        VaultClient<MintEntity> vaultClient = VaultClientFactory.getClient(MintEntity.class);
-        MintEntity loaded = vaultClient.retrieve(mintEntity.getId().toString());
-        if (loaded == null) {
-            throw new CashuErrorException("Mint not found");
+        // Fetched through the keyset endpoint rather than read off
+        // MintEntity.getKeySets(): that relation is @JsonIgnore, so a mint retrieved
+        // over REST always reports no keysets and this returned an empty mint.
+        for (KeySetEntity keySetEntity : keySetsOf(mintEntity.getId().toString())) {
+            // archive selects which generation is wanted: the active keyset, or the
+            // retired ones that must go on redeeming (NUT-02).
+            if (keySetEntity.isArchived() != archive) {
+                continue;
+            }
+            mint.addKeySet(DBKeySetVault.load(keySetEntity, archive));
         }
 
-        loaded.getKeySets().forEach(keySetEntity -> {
-            KeySet keySet;
-            try {
-                keySet = DBKeySetVault.load(keySetEntity, archive);
-            } catch (CashuErrorException e) {
-                throw new RuntimeException(e);
-            }
-            mint.addKeySet(keySet);
-        });
-
         return mint;
+    }
+
+    /**
+     * A mint's keysets, with "this mint has none" answered as an empty set.
+     *
+     * <p>The client signals that by throwing rather than by answering empty: the
+     * vault answers 404, and a 200 carrying an empty body raises
+     * IllegalArgumentException. A mint nobody has provisioned yet holds none, which
+     * is an answer rather than a failure.
+     */
+    private static Set<KeySetEntity> keySetsOf(String mintId) {
+        try {
+            return VaultClientFactory.keySetClient().getByMintId(mintId);
+        } catch (HttpClientErrorException.NotFound | IllegalArgumentException e) {
+            return Set.of();
+        }
     }
 
     public static Mint load(@NonNull MintEntity mintEntity, String keySetId, boolean archive, boolean lazy) throws CashuErrorException {

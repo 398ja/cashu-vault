@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A mint loaded over REST carries its keysets and their keys.**
+  `DBMintVault.load` read `MintEntity.getKeySets()` and `DBKeySetVault.load` read
+  `KeySetEntity.getKeys()`. Both relations are `@JsonIgnore`, so a client that
+  reached those entities over the REST API always saw them empty and built a mint
+  advertising no keysets at all. Both now fetch through the endpoints the vault
+  serves for exactly this (`/vault/keyset/mint/{mintId}` and
+  `/vault/key/keyset/{id}`), and `load(mintId, archive)` honours `archive` so the
+  active keyset and the retired ones can be asked for separately.
+
+- **A keyset publishes public keys, not private ones reinterpreted as public.**
+  `DBKeySetVault.load` called `PublicKey.fromString(k.getPrivateKey())`, taking a
+  private key's bytes as though they were a public key. It now derives the public
+  key from the signing key, read through the backend-aware vault: the REST
+  representation of a key carries `privateKey: null`, because under the HashiCorp
+  backend the row only points at the secret.
+
 - **`VaultClient.retrieveAll()` can deserialise its own entities.** The call
   described its response as `ParameterizedTypeReference<List<T>>`, but `T` is
   erased at that point, so Jackson was handed the abstract `BaseEntity` and

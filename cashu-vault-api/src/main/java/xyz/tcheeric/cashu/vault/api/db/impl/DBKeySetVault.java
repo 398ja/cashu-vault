@@ -3,9 +3,10 @@ package xyz.tcheeric.cashu.vault.api.db.impl;
 import lombok.NonNull;
 import xyz.tcheeric.cashu.common.KeySet;
 import xyz.tcheeric.cashu.common.Keys;
-import xyz.tcheeric.cashu.common.PublicKey;
+import xyz.tcheeric.cashu.common.PrivateKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
+import xyz.tcheeric.cashu.vault.api.KeyVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
@@ -63,9 +64,37 @@ public final class DBKeySetVault extends DBVault<KeySetEntity> {
         return keySetEntity;
     }
 
+    /**
+     * Loads a keyset and the public keys it advertises.
+     *
+     * <p>The keys are fetched by keyset id rather than read off
+     * {@code keySetEntity.getKeys()}: that relation is {@code @JsonIgnore}, so a
+     * client that reached this entity over REST always sees it empty and would
+     * build a keyset advertising no denominations at all.
+     *
+     * <p>What is published is the *public* key derived from the signing key. The
+     * private key is read through {@link VaultClientFactory#keyVault()}, which under
+     * the HashiCorp backend resolves the secret the row points at; the REST
+     * representation of a key carries {@code privateKey: null}.
+     */
     public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive) throws CashuErrorException {
         Keys keys = new Keys();
-        keySetEntity.getKeys().forEach(k -> keys.put(k.getAmount(), PublicKey.fromString(k.getPrivateKey())));
-        return KeySet.builder().id(keySetEntity.getKeySetId()).keys(keys).build();
+        KeyVault keyVault = VaultClientFactory.keyVault();
+        for (KeyEntity key : VaultClientFactory.keyClient()
+                .getKeysByKeySetId(keySetEntity.getId().toString())) {
+            KeyEntity resolved = keyVault.retrieve(key.getId().toString());
+            String privateKeyHex = resolved != null ? resolved.getPrivateKey() : null;
+            if (privateKeyHex == null) {
+                throw new CashuErrorException(
+                        "No key material for amount " + key.getAmount() + " of keyset "
+                                + keySetEntity.getKeySetId());
+            }
+            keys.put(key.getAmount(), PrivateKey.derivePublicKey(PrivateKey.fromString(privateKeyHex)));
+        }
+        return KeySet.builder()
+                .id(keySetEntity.getKeySetId())
+                .unit(keySetEntity.getUnit())
+                .keys(keys)
+                .build();
     }
 }
