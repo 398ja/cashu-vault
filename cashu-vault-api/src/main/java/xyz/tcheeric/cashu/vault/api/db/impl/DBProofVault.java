@@ -174,12 +174,12 @@ public final class DBProofVault extends DBVault<ProofEntity> {
     /**
      * Spec 005 — atomic insert-or-claim pass-through. Submits already
      * Y-normalised {@link ProofEntity} rows; returns the total proof
-     * count actually bound to {@code meltSagaId}.
+     * count actually bound to {@code holdId}.
      */
-    public static int insertOrClaimForSaga(String mintId,
-                                           String meltSagaId,
+    public static int insertOrClaimForHold(String mintId,
+                                           String holdId,
                                            java.util.List<ProofEntity> proofs) {
-        return VaultClientFactory.proofClient().insertOrClaimForSaga(mintId, meltSagaId, proofs);
+        return VaultClientFactory.proofClient().insertOrClaimForHold(mintId, holdId, proofs);
     }
 
     /**
@@ -188,25 +188,25 @@ public final class DBProofVault extends DBVault<ProofEntity> {
      *
      * @return number of rows actually transitioned UNSPENT → PENDING
      */
-    public static int markPendingForSaga(String mintId,
-                                         String meltSagaId,
+    public static int markPendingForHold(String mintId,
+                                         String holdId,
                                          java.util.List<String> proofSecrets) {
-        return VaultClientFactory.proofClient().markPending(mintId, meltSagaId, proofSecrets);
+        return VaultClientFactory.proofClient().markPending(mintId, holdId, proofSecrets);
     }
 
     /**
      * cashu-mint spec 002 T011 — commits a saga's PENDING proofs as
-     * SPENT and clears the {@code melt_saga_id} binding.
+     * SPENT and clears the {@code hold_id} binding.
      */
-    public static int commitSpentForSaga(String meltSagaId) {
-        return VaultClientFactory.proofClient().commitSpent(meltSagaId);
+    public static int commitSpentForHold(String holdId) {
+        return VaultClientFactory.proofClient().commitSpent(holdId);
     }
 
     /**
      * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back
-     * to UNSPENT and clears the {@code melt_saga_id} binding.
+     * to UNSPENT and clears the {@code hold_id} binding.
      */
-    public static int refundForSaga(String meltSagaId) {
-        return VaultClientFactory.proofClient().refund(meltSagaId);
+    public static int refundForHold(String holdId) {
+        return VaultClientFactory.proofClient().refund(holdId);
     }
 }

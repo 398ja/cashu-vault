@@ -255,19 +255,19 @@ public class ProofVaultController {
      * Spec 005 — atomic insert-or-claim. The caller supplies fully
      * populated {@link ProofEntity} rows (with Y-normalised secrets);
      * the repository inserts or claims each as PENDING bound to
-     * {@code meltSagaId}, returning the total bound count.
+     * {@code holdId}, returning the total bound count.
      *
      * <p>Replaces the prior two-step {@code POST /store} + {@code POST
      * /mark-pending} sequence used by the melt saga, which could not
      * bind freshly-inserted rows.
      */
-    @PostMapping("/mint/{mintId}/saga/{meltSagaId}/insert-or-claim")
-    public ResponseEntity<Integer> insertOrClaimForSaga(
+    @PostMapping("/mint/{mintId}/hold/{holdId}/insert-or-claim")
+    public ResponseEntity<Integer> insertOrClaimForHold(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId,
+            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId,
             @RequestBody List<ProofEntity> proofs) {
         if (proofs == null || proofs.isEmpty()) {
-            log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, meltSagaId);
+            log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, holdId);
             return ResponseEntity.badRequest().build();
         }
         // Per-proof field validation: a blank secret would NPE the
@@ -279,7 +279,7 @@ public class ProofVaultController {
                     || p.getAmount() == null
                     || p.getUnblindedSignature() == null || p.getUnblindedSignature().isBlank()) {
                 log.warn("insertOrClaim rejected mint={} saga={} reason=invalid_proof_fields",
-                        mintId, meltSagaId);
+                        mintId, holdId);
                 return ResponseEntity.badRequest().build();
             }
         }
@@ -288,16 +288,16 @@ public class ProofVaultController {
         // mismatched mint scope can't sneak past the per-proof CAS.
         Optional<MintEntity> mintOpt = mintRepository.findById(mintUuid);
         if (mintOpt.isEmpty()) {
-            log.warn("insertOrClaim rejected mint={} saga={} reason=unknown_mint", mintId, meltSagaId);
+            log.warn("insertOrClaim rejected mint={} saga={} reason=unknown_mint", mintId, holdId);
             return ResponseEntity.badRequest().build();
         }
         MintEntity managedMint = mintOpt.get();
         for (ProofEntity p : proofs) {
             p.setMint(managedMint);
         }
-        log.info("insertOrClaim mint={} saga={} proofs={}", mintId, meltSagaId, proofs.size());
-        int bound = proofRepository.insertOrClaimForSaga(proofs, meltSagaId, mintUuid);
-        log.info("insertOrClaim mint={} saga={} bound={}", mintId, meltSagaId, bound);
+        log.info("insertOrClaim mint={} saga={} proofs={}", mintId, holdId, proofs.size());
+        int bound = proofRepository.insertOrClaimForHold(proofs, holdId, mintUuid);
+        log.info("insertOrClaim mint={} saga={} bound={}", mintId, holdId, bound);
         return ResponseEntity.ok(bound);
     }
 
@@ -307,45 +307,45 @@ public class ProofVaultController {
      * (callers compare against {@code proofIds.size()} to detect
      * already-spent / already-held rows).
      */
-    @PostMapping("/mint/{mintId}/saga/{meltSagaId}/mark-pending")
+    @PostMapping("/mint/{mintId}/hold/{holdId}/mark-pending")
     public ResponseEntity<Integer> markPending(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId,
+            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId,
             @RequestBody List<String> proofSecrets) {
         // Empty / null proof list — Hibernate's IN-clause raises before
         // SQL execution. Guard at the controller so a malformed request
         // returns 400 instead of crashing with a 500.
         if (proofSecrets == null || proofSecrets.isEmpty()) {
-            log.warn("markPending rejected mint={} saga={} reason=empty_proof_secrets", mintId, meltSagaId);
+            log.warn("markPending rejected mint={} saga={} reason=empty_proof_secrets", mintId, holdId);
             return ResponseEntity.badRequest().build();
         }
-        log.info("markPending mint={} saga={} proofs={}", mintId, meltSagaId, proofSecrets.size());
-        int updated = proofRepository.markPending(proofSecrets, meltSagaId, UUID.fromString(mintId));
-        log.info("markPending mint={} saga={} updated={}", mintId, meltSagaId, updated);
+        log.info("markPending mint={} saga={} proofs={}", mintId, holdId, proofSecrets.size());
+        int updated = proofRepository.markPending(proofSecrets, holdId, UUID.fromString(mintId));
+        log.info("markPending mint={} saga={} updated={}", mintId, holdId, updated);
         return ResponseEntity.ok(updated);
     }
 
     /**
      * cashu-mint spec 002 T011 — commits a saga's PENDING proofs to
-     * SPENT in one statement; clears the {@code melt_saga_id} binding.
+     * SPENT in one statement; clears the {@code hold_id} binding.
      */
-    @PostMapping("/saga/{meltSagaId}/commit-spent")
+    @PostMapping("/hold/{holdId}/commit-spent")
     public ResponseEntity<Integer> commitSpent(
-            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId) {
-        int updated = proofRepository.commitSpent(meltSagaId);
-        log.info("commitSpent saga={} updated={}", meltSagaId, updated);
+            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId) {
+        int updated = proofRepository.commitSpent(holdId);
+        log.info("commitSpent saga={} updated={}", holdId, updated);
         return ResponseEntity.ok(updated);
     }
 
     /**
      * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back to
-     * UNSPENT and clears the {@code melt_saga_id} binding.
+     * UNSPENT and clears the {@code hold_id} binding.
      */
-    @PostMapping("/saga/{meltSagaId}/refund")
+    @PostMapping("/hold/{holdId}/refund")
     public ResponseEntity<Integer> refund(
-            @PathVariable("meltSagaId") @NotBlank @Size(max = 64, message = "melt_saga_id must be at most 64 chars") String meltSagaId) {
-        int updated = proofRepository.refundToUnspent(meltSagaId);
-        log.info("refund saga={} updated={}", meltSagaId, updated);
+            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId) {
+        int updated = proofRepository.refundToUnspent(holdId);
+        log.info("refund saga={} updated={}", holdId, updated);
         return ResponseEntity.ok(updated);
     }
 }

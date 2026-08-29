@@ -95,18 +95,18 @@ public class ProofClient extends VaultClient<ProofEntity> {
     /**
      * Spec 005 — atomic insert-or-claim. Submits already Y-normalised
      * {@link ProofEntity} rows; the vault inserts or claims each in
-     * state PENDING bound to {@code meltSagaId} and returns the total
+     * state PENDING bound to {@code holdId} and returns the total
      * bound count.
      *
      * <p>Callers compare the returned count against {@code proofs.size()}
      * and abort (releasing any partial holds via {@link #refund}) on
      * mismatch, before any external payment is initiated.
      */
-    public int insertOrClaimForSaga(String mintId, String meltSagaId, java.util.List<ProofEntity> proofs) {
-        log.info("POST {}/vault/proof/mint/{}/saga/{}/insert-or-claim proofs={}",
-                getBaseUrl(), mintId, meltSagaId, proofs.size());
+    public int insertOrClaimForHold(String mintId, String holdId, java.util.List<ProofEntity> proofs) {
+        log.info("POST {}/vault/proof/mint/{}/hold/{}/insert-or-claim proofs={}",
+                getBaseUrl(), mintId, holdId, proofs.size());
         Integer bound = restTemplate.postForObject(
-                getBaseUrl() + "/vault/proof/mint/" + mintId + "/saga/" + meltSagaId + "/insert-or-claim",
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/hold/" + holdId + "/insert-or-claim",
                 proofs,
                 Integer.class);
         return bound == null ? 0 : bound;
@@ -120,11 +120,11 @@ public class ProofClient extends VaultClient<ProofEntity> {
      *
      * @return number of rows actually transitioned UNSPENT → PENDING
      */
-    public int markPending(String mintId, String meltSagaId, java.util.List<String> proofSecrets) {
-        log.info("POST {}/vault/proof/mint/{}/saga/{}/mark-pending proofs={}",
-                getBaseUrl(), mintId, meltSagaId, proofSecrets.size());
+    public int markPending(String mintId, String holdId, java.util.List<String> proofSecrets) {
+        log.info("POST {}/vault/proof/mint/{}/hold/{}/mark-pending proofs={}",
+                getBaseUrl(), mintId, holdId, proofSecrets.size());
         Integer updated = restTemplate.postForObject(
-                getBaseUrl() + "/vault/proof/mint/" + mintId + "/saga/" + meltSagaId + "/mark-pending",
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/hold/" + holdId + "/mark-pending",
                 proofSecrets,
                 Integer.class);
         return updated == null ? 0 : updated;
@@ -132,24 +132,24 @@ public class ProofClient extends VaultClient<ProofEntity> {
 
     /**
      * cashu-mint spec 002 T011 — commits a saga's PENDING proofs as
-     * SPENT and clears the {@code melt_saga_id} binding.
+     * SPENT and clears the {@code hold_id} binding.
      */
-    public int commitSpent(String meltSagaId) {
-        log.info("POST {}/vault/proof/saga/{}/commit-spent", getBaseUrl(), meltSagaId);
+    public int commitSpent(String holdId) {
+        log.info("POST {}/vault/proof/hold/{}/commit-spent", getBaseUrl(), holdId);
         Integer updated = restTemplate.postForObject(
-                getBaseUrl() + "/vault/proof/saga/" + meltSagaId + "/commit-spent",
+                getBaseUrl() + "/vault/proof/hold/" + holdId + "/commit-spent",
                 null, Integer.class);
         return updated == null ? 0 : updated;
     }
 
     /**
      * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back
-     * to UNSPENT and clears the {@code melt_saga_id} binding.
+     * to UNSPENT and clears the {@code hold_id} binding.
      */
-    public int refund(String meltSagaId) {
-        log.info("POST {}/vault/proof/saga/{}/refund", getBaseUrl(), meltSagaId);
+    public int refund(String holdId) {
+        log.info("POST {}/vault/proof/hold/{}/refund", getBaseUrl(), holdId);
         Integer updated = restTemplate.postForObject(
-                getBaseUrl() + "/vault/proof/saga/" + meltSagaId + "/refund",
+                getBaseUrl() + "/vault/proof/hold/" + holdId + "/refund",
                 null, Integer.class);
         return updated == null ? 0 : updated;
     }

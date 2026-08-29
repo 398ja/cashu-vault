@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+import xyz.tcheeric.cashu.vault.db.model.HoldKind;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.Collection;
@@ -186,7 +187,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
     /**
      * Spec 002 T011 — atomically marks the named proofs PENDING and binds
      * them to a single melt saga. Exclusivity is enforced by the UPDATE
-     * predicate itself ({@code state='UNSPENT' AND melt_saga_id IS NULL}):
+     * predicate itself ({@code state='UNSPENT' AND hold_id IS NULL}):
      * a concurrent claim on the same row sees rowcount=0 (no exception);
      * the losing caller bails out by comparing the returned count against
      * {@code proofIds.size()}.
@@ -196,23 +197,23 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * already SPENT, already held by another saga, or missing.
      *
      * @param proofIds    Y-coordinate secrets of the proofs to claim
-     * @param meltSagaId  saga id that will hold the proofs
+     * @param holdId  saga id that will hold the proofs
      * @param mintId      mint that owns the proofs (scopes the update)
      * @return number of rows actually transitioned UNSPENT → PENDING
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.state = 'PENDING', p.meltSagaId = :meltSagaId "
+    @Query("UPDATE proof p SET p.state = 'PENDING', p.holdId = :holdId "
             + "WHERE p.mint.id = :mintId "
             + "AND p.secret IN :proofIds "
             + "AND p.state = 'UNSPENT' "
-            + "AND p.meltSagaId IS NULL")
+            + "AND p.holdId IS NULL")
     int markPending(@Param("proofIds") Collection<String> proofIds,
-                    @Param("meltSagaId") String meltSagaId,
+                    @Param("holdId") String holdId,
                     @Param("mintId") UUID mintId);
 
     /**
-     * Spec 002 T011 — clears {@code melt_saga_id} on the named proofs.
+     * Spec 002 T011 — clears {@code hold_id} on the named proofs.
      * Called when a saga transitions out of PROOFS_HELD: either to
      * COMPLETED (also flips state to SPENT — see
      * {@link #commitSpent}), to FAILED (rolls back to UNSPENT — see
@@ -222,9 +223,9 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.meltSagaId = NULL "
-            + "WHERE p.meltSagaId = :meltSagaId")
-    int clearMeltSaga(@Param("meltSagaId") String meltSagaId);
+    @Query("UPDATE proof p SET p.holdId = NULL "
+            + "WHERE p.holdId = :holdId")
+    int clearHold(@Param("holdId") String holdId);
 
     /**
      * Spec 002 T011 — commits a saga's PENDING proofs as SPENT and clears
@@ -235,10 +236,10 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.state = 'SPENT', p.meltSagaId = NULL "
-            + "WHERE p.meltSagaId = :meltSagaId "
+    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL "
+            + "WHERE p.holdId = :holdId "
             + "AND p.state = 'PENDING'")
-    int commitSpent(@Param("meltSagaId") String meltSagaId);
+    int commitSpent(@Param("holdId") String holdId);
 
     /**
      * Spec 002 T011 — refunds a saga's PENDING proofs back to UNSPENT and
@@ -250,10 +251,10 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.state = 'UNSPENT', p.meltSagaId = NULL "
-            + "WHERE p.meltSagaId = :meltSagaId "
+    @Query("UPDATE proof p SET p.state = 'UNSPENT', p.holdId = NULL "
+            + "WHERE p.holdId = :holdId "
             + "AND p.state = 'PENDING'")
-    int refundToUnspent(@Param("meltSagaId") String meltSagaId);
+    int refundToUnspent(@Param("holdId") String holdId);
 
     /**
      * Spec 002 T011 — operator-visible enumeration of proofs currently
@@ -261,8 +262,8 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * SC-002 reconciliation invariant ({@code every COMPLETED saga has 0
      * still-held proofs}).
      */
-    @Query("SELECT p FROM proof p WHERE p.meltSagaId = :meltSagaId")
-    List<ProofEntity> findByMeltSagaId(@Param("meltSagaId") String meltSagaId);
+    @Query("SELECT p FROM proof p WHERE p.holdId = :holdId")
+    List<ProofEntity> findByMeltSagaId(@Param("holdId") String holdId);
 
     /**
      * Spec 005 — atomic insert-or-claim used by the melt saga to durably
@@ -277,11 +278,11 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * <p>Behaviour, per proof:
      * <ol>
      *   <li>UPDATE existing row to PENDING + this saga id, gated on
-     *       {@code state='UNSPENT' AND melt_saga_id IS NULL}. Matches an
+     *       {@code state='UNSPENT' AND hold_id IS NULL}. Matches an
      *       existing UNSPENT row owned by no saga.</li>
      *   <li>If the UPDATE matched zero rows AND no row exists for
      *       {@code (mint_id, secret)}: INSERT a fresh row in state
-     *       {@code PENDING} with {@code melt_saga_id = sagaId}.</li>
+     *       {@code PENDING} with {@code hold_id = sagaId}.</li>
      *   <li>If the INSERT loses a race to the uniqueness constraint
      *       {@code uk_proof_mint_secret}: re-attempt the UPDATE. If the
      *       racing row is UNSPENT we claim it; if it is PENDING/SPENT we
@@ -293,7 +294,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * here would let two rows refer to the same logical proof.
      *
      * <p>Returns the total number of proofs durably bound to
-     * {@code meltSagaId} after this call. Caller compares the returned
+     * {@code holdId} after this call. Caller compares the returned
      * count to {@code proofs.size()} and aborts (and releases any
      * partial holds via {@code refundToUnspent}) on mismatch.
      *
@@ -304,28 +305,28 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * settled row.
      *
      * @param proofs       proofs to claim, already Y-normalised
-     * @param meltSagaId   saga id to bind successfully claimed rows to
+     * @param holdId   saga id to bind successfully claimed rows to
      * @param mintId       mint scope for the claim
-     * @return number of proofs actually bound to {@code meltSagaId}
+     * @return number of proofs actually bound to {@code holdId}
      */
     @Transactional
-    default int insertOrClaimForSaga(@org.springframework.lang.NonNull List<ProofEntity> proofs,
-                                     @org.springframework.lang.NonNull String meltSagaId,
+    default int insertOrClaimForHold(@org.springframework.lang.NonNull List<ProofEntity> proofs,
+                                     @org.springframework.lang.NonNull String holdId,
                                      @org.springframework.lang.NonNull UUID mintId) {
         int bound = 0;
         for (ProofEntity proof : proofs) {
-            if (claimOne(proof, meltSagaId, mintId)) {
+            if (claimOne(proof, holdId, mintId)) {
                 bound++;
             }
         }
         return bound;
     }
 
-    /** Single-proof claim helper for {@link #insertOrClaimForSaga}. */
-    private boolean claimOne(ProofEntity proof, String meltSagaId, UUID mintId) {
+    /** Single-proof claim helper for {@link #insertOrClaimForHold}. */
+    private boolean claimOne(ProofEntity proof, String holdId, UUID mintId) {
         String secret = proof.getSecret();
         // Step 1 — try to claim an existing UNSPENT row.
-        int updated = markPending(List.of(secret), meltSagaId, mintId);
+        int updated = markPending(List.of(secret), holdId, mintId);
         if (updated > 0) {
             return true;
         }
@@ -336,7 +337,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         // same proofs); return true. Any other existing state (held by a
         // different saga, or SPENT) is unclaimable.
         if (existsByMint_IdAndSecret(mintId, secret)) {
-            return heldByThisSaga(mintId, secret, meltSagaId);
+            return heldByThisHold(mintId, secret, holdId);
         }
         // Step 3 — fresh proof: INSERT a server-built PENDING row bound to
         // this saga. Build the row from scratch so a caller-supplied id /
@@ -344,7 +345,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         // merge that overwrites an unrelated proof row (mass-assignment
         // guard — the secret + amount + signature + mint are the only
         // caller-controlled fields that matter for a hold).
-        ProofEntity holdRow = buildHoldRow(proof, meltSagaId);
+        ProofEntity holdRow = buildHoldRow(proof, holdId);
         try {
             save(holdRow);
             return true;
@@ -360,23 +361,23 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             // has committed by now. If their row is UNSPENT we claim it; if
             // it is PENDING-held by this same saga, idempotent success; else
             // lose.
-            int retry = markPending(List.of(secret), meltSagaId, mintId);
+            int retry = markPending(List.of(secret), holdId, mintId);
             if (retry > 0) {
                 return true;
             }
-            return heldByThisSaga(mintId, secret, meltSagaId);
+            return heldByThisHold(mintId, secret, holdId);
         }
     }
 
     /**
      * True iff a row exists for {@code (mintId, secret)} that is currently
-     * {@code PENDING} and bound to {@code meltSagaId} — the idempotent
+     * {@code PENDING} and bound to {@code holdId} — the idempotent
      * re-claim case for a single saga.
      */
-    private boolean heldByThisSaga(UUID mintId, String secret, String meltSagaId) {
+    private boolean heldByThisHold(UUID mintId, String secret, String holdId) {
         return findByMint_IdAndSecret(mintId, secret)
                 .map(row -> ProofEntity.STATE_PENDING.equals(row.getState())
-                        && meltSagaId.equals(row.getMeltSagaId()))
+                        && holdId.equals(row.getHoldId()))
                 .orElse(false);
     }
 
@@ -386,7 +387,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * (id, version, archived, timestamps) keep their {@code BaseEntity}
      * defaults so {@code save()} performs an INSERT, never a merge.
      */
-    private static ProofEntity buildHoldRow(ProofEntity src, String meltSagaId) {
+    private static ProofEntity buildHoldRow(ProofEntity src, String holdId) {
         ProofEntity row = new ProofEntity();
         row.setMint(src.getMint());
         row.setAmount(src.getAmount());
@@ -394,7 +395,8 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         row.setUnblindedSignature(src.getUnblindedSignature());
         row.setWitness(src.getWitness());
         row.setState(ProofEntity.STATE_PENDING);
-        row.setMeltSagaId(meltSagaId);
+        row.setHoldId(holdId);
+        row.setHoldKind(HoldKind.forHoldId(holdId));
         return row;
     }
 

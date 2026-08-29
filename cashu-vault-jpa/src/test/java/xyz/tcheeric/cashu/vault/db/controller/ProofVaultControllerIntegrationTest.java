@@ -272,7 +272,7 @@ class ProofVaultControllerIntegrationTest {
 
             String body = "[\"" + secret1 + "\",\"" + secret2 + "\"]";
             String response = mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-A/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-A/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
@@ -285,7 +285,7 @@ class ProofVaultControllerIntegrationTest {
         @DisplayName("markPending rejects empty proofSecrets with 400")
         void markPendingEmptyListReturns400() throws Exception {
             mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-empty/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-empty/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content("[]"))
                     .andExpect(status().isBadRequest());
         }
@@ -300,14 +300,14 @@ class ProofVaultControllerIntegrationTest {
 
             String body = "[\"" + secret + "\"]";
             mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-B/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-B/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
             // Second saga can't claim the same proof — CAS predicate fails.
             mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-C/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-C/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("0"));
@@ -326,11 +326,11 @@ class ProofVaultControllerIntegrationTest {
                     .andExpect(status().isOk());
             String body = "[\"" + secret + "\"]";
             mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-D/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-D/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/vault/proof/saga/saga-D/commit-spent"))
+            mockMvc.perform(post("/vault/proof/hold/saga-D/commit-spent"))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
@@ -348,11 +348,11 @@ class ProofVaultControllerIntegrationTest {
                     .andExpect(status().isOk());
             String body = "[\"" + secret + "\"]";
             mockMvc.perform(post(
-                            "/vault/proof/mint/" + mintId + "/saga/saga-E/mark-pending")
+                            "/vault/proof/mint/" + mintId + "/hold/saga-E/mark-pending")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/vault/proof/saga/saga-E/refund"))
+            mockMvc.perform(post("/vault/proof/hold/saga-E/refund"))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
@@ -364,10 +364,10 @@ class ProofVaultControllerIntegrationTest {
         @Test
         @DisplayName("commitSpent / refund on an unknown saga reports rowcount=0")
         void commitAndRefundOnUnknownSagaReportZero() throws Exception {
-            mockMvc.perform(post("/vault/proof/saga/saga-nonexistent/commit-spent"))
+            mockMvc.perform(post("/vault/proof/hold/saga-nonexistent/commit-spent"))
                     .andExpect(status().isOk())
                     .andExpect(content().string("0"));
-            mockMvc.perform(post("/vault/proof/saga/saga-nonexistent/refund"))
+            mockMvc.perform(post("/vault/proof/hold/saga-nonexistent/refund"))
                     .andExpect(status().isOk())
                     .andExpect(content().string("0"));
         }
@@ -387,7 +387,7 @@ class ProofVaultControllerIntegrationTest {
             String secret = "ioc-fresh-" + UUID.randomUUID();
             String body = "[" + proofBodyJson(secret, "c-fresh-" + UUID.randomUUID(), 8) + "]";
 
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-ioc-1/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-ioc-1/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
@@ -395,7 +395,7 @@ class ProofVaultControllerIntegrationTest {
             ProofEntity stored = proofRepository
                     .findByMint_IdAndSecret(UUID.fromString(mintId), secret).orElseThrow();
             assertThat(stored.getState()).isEqualTo(ProofEntity.STATE_PENDING);
-            assertThat(stored.getMeltSagaId()).isEqualTo("saga-ioc-1");
+            assertThat(stored.getHoldId()).isEqualTo("saga-ioc-1");
             assertThat(proofRepository.findByMeltSagaId("saga-ioc-1")).hasSize(1);
         }
 
@@ -406,14 +406,14 @@ class ProofVaultControllerIntegrationTest {
             String body = "[" + proofBodyJson(secret, "c-idem-" + UUID.randomUUID(), 16) + "]";
 
             // First claim binds the fresh proof to the saga.
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-idem/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-idem/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
             // Retry with the SAME saga re-reports the proof as bound (count=1),
             // not 0, and does not create a duplicate row.
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-idem/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-idem/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
@@ -431,7 +431,7 @@ class ProofVaultControllerIntegrationTest {
             String body = """
                     [{"secret": "", "unblindedSignature": "c-blank", "amount": 1, "state": "UNSPENT"}]
                     """;
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-blank/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-blank/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
@@ -453,7 +453,7 @@ class ProofVaultControllerIntegrationTest {
             String body = String.format("""
                     [{"id": "%s", "secret": "%s", "unblindedSignature": "c-attack-%s", "amount": 1, "state": "UNSPENT"}]
                     """, victimId, attackSecret, UUID.randomUUID());
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-attack/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-attack/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
@@ -462,7 +462,7 @@ class ProofVaultControllerIntegrationTest {
             ProofEntity victim = proofRepository.findById(UUID.fromString(victimId)).orElseThrow();
             assertThat(victim.getSecret()).isEqualTo(victimSecret);
             assertThat(victim.getAmount()).isEqualTo(99);
-            assertThat(victim.getMeltSagaId()).isNull();
+            assertThat(victim.getHoldId()).isNull();
             // The new hold landed on its own row, bound to the saga.
             assertThat(proofRepository.findByMeltSagaId("saga-attack")).hasSize(1);
             assertThat(proofRepository.findByMeltSagaId("saga-attack").get(0).getSecret())
@@ -479,7 +479,7 @@ class ProofVaultControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             String body = "[" + proofBodyJson(secret, "c-claim-" + UUID.randomUUID(), 4) + "]";
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-ioc-2/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-ioc-2/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
@@ -498,7 +498,7 @@ class ProofVaultControllerIntegrationTest {
             mockMvc.perform(post("/vault/proof").contentType(MediaType.APPLICATION_JSON)
                     .content(createProofJson(mintId, secret1, "c-partial-1-" + UUID.randomUUID(), 2)))
                     .andExpect(status().isOk());
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-X/mark-pending")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-X/mark-pending")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("[\"" + secret1 + "\"]"))
                     .andExpect(status().isOk());
@@ -508,7 +508,7 @@ class ProofVaultControllerIntegrationTest {
                     + proofBodyJson(secret2, "c-partial-2-" + UUID.randomUUID(), 4) + "]";
 
             // saga-Y can only bind the fresh secret2; secret1 stays with saga-X.
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-Y/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-Y/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
@@ -525,13 +525,13 @@ class ProofVaultControllerIntegrationTest {
             String body1 = "[" + proofBodyJson(secret, "c-can-1-" + UUID.randomUUID(), 1) + "]";
             String body2 = "[" + proofBodyJson(secret, "c-can-2-" + UUID.randomUUID(), 1) + "]";
 
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-can-A/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-can-A/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body1))
                     .andExpect(status().isOk())
                     .andExpect(content().string("1"));
 
             // Second call: row already PENDING → saga-can-A; saga-can-B claims nothing.
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-can-B/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-can-B/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body2))
                     .andExpect(status().isOk())
                     .andExpect(content().string("0"));
@@ -548,7 +548,7 @@ class ProofVaultControllerIntegrationTest {
         @Test
         @DisplayName("insertOrClaim rejects empty body with 400")
         void insertOrClaimEmptyBodyReturns400() throws Exception {
-            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/saga/saga-empty/insert-or-claim")
+            mockMvc.perform(post("/vault/proof/mint/" + mintId + "/hold/saga-empty/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content("[]"))
                     .andExpect(status().isBadRequest());
         }
@@ -559,7 +559,7 @@ class ProofVaultControllerIntegrationTest {
             String body = "[" + proofBodyJson("ioc-bad-mint-" + UUID.randomUUID(),
                     "c-bad-mint-" + UUID.randomUUID(), 1) + "]";
             mockMvc.perform(post("/vault/proof/mint/" + UUID.randomUUID()
-                            + "/saga/saga-unknown-mint/insert-or-claim")
+                            + "/hold/saga-unknown-mint/insert-or-claim")
                             .contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }

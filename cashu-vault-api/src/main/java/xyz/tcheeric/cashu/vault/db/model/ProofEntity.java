@@ -3,6 +3,8 @@ package xyz.tcheeric.cashu.vault.db.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -86,21 +88,36 @@ public class ProofEntity extends BaseEntity {
     private String state = STATE_UNSPENT;
 
     /**
-     * cashu-mint spec 002 (T010 / FR-006) — the melt saga currently holding
-     * this proof in PENDING state. Null when the row is UNSPENT or SPENT.
-     * The partial unique index {@code uq_proof_held_by_one_saga} guarantees
-     * at most one saga can hold a given proof at a time.
+     * The exclusive hold on this proof while it is PENDING, or null when the row is UNSPENT or
+     * SPENT.
+     *
+     * <p>A melt saga (cashu-mint spec 002, T010 / FR-006) and a swap across its signing step
+     * (cashu-mint#400) both bind here. Sharing one binding is deliberate: it is what makes a swap
+     * hold block a melt on the same proof and vice versa. {@link #holdKind} says which flow it is,
+     * because the two resolve differently.
      *
      * <p>The lifecycle is mint-driven:
      * <ul>
-     *   <li>{@code UNSPENT → PENDING} — set to the new saga id.</li>
+     *   <li>{@code UNSPENT → PENDING} — set to the new hold id.</li>
      *   <li>{@code PENDING → SPENT} or {@code PENDING → UNSPENT} — cleared
      *       to null.</li>
      * </ul>
      */
-    @JsonProperty
-    @Column(name = "melt_saga_id", length = 64)
-    private String meltSagaId;
+    @JsonProperty("hold_id")
+    @Column(name = "hold_id", length = 64)
+    private String holdId;
+
+    /**
+     * Which flow holds this proof, when one does.
+     *
+     * <p>Null exactly when {@link #holdId} is null. It is recorded rather than inferred from the
+     * id, because a melt hold and a swap hold resolve in opposite directions and guessing wrong on
+     * a swap hold spends the same value twice.
+     */
+    @JsonProperty("hold_kind")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "hold_kind", length = 8)
+    private HoldKind holdKind;
 
     /**
      * SHA-256 fingerprint for token-level duplicate detection.

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING CHANGE: `t_proof.melt_saga_id` is now `hold_id`, with a new `hold_kind` column.** Two
+  flows take an exclusive hold on a proof: the melt saga the column was named for, and the swap hold
+  added for cashu-mint#400. Sharing one binding is deliberate, since it is what makes a swap hold
+  block a melt on the same proof, but the name said only one of them and the two resolve in
+  opposite directions: a stale melt hold is released, while a stale swap hold that reached signing
+  must be committed. An operator had to infer which flow produced a row from a `swap-` prefix
+  before they could know which action was safe, and the wrong action on a swap hold is a double
+  spend. `hold_kind` states it outright.
+- The proof vault's REST paths move from `/saga/{id}` to `/hold/{id}`, and the client methods from
+  `*ForSaga` to `*ForHold`, for the same reason. Client and server ship together.
+
+## [Unreleased]
+
 ## [0.10.1] - 2026-08-28
 
 ### Fixed
