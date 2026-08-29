@@ -4,11 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import xyz.tcheeric.cashu.common.KeySet;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
+import xyz.tcheeric.cashu.vault.db.client.KeyVaultClient;
 import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
+
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -57,5 +62,57 @@ class DBKeySetVaultTest {
         KeySetEntity result = vault.retrieve("id");
         verify(client).retrieve("id");
         assertThat(result).isEqualTo(entity);
+    }
+
+    /**
+     * Checks that the NUT-02 fee stored on a keyset survives being loaded. The mint charges
+     * swaps from the loaded keyset and publishes it on /v1/keysets, so a fee dropped here
+     * would silently price every transaction at zero however the operator configured it.
+     */
+    @Test
+    void loadCarriesTheConfiguredInputFee() throws Exception {
+        KeySetEntity entity = new KeySetEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setKeySetId("009a1f293253e41e");
+        entity.setUnit("sat");
+        entity.setInputFeePpk(100);
+
+        KeyVaultClient keyClient = mock(KeyVaultClient.class);
+        when(keyClient.getKeysByKeySetId(anyString())).thenReturn(Set.of());
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::keyClient).thenReturn(keyClient);
+            factory.when(VaultClientFactory::keyVault).thenReturn(mock(xyz.tcheeric.cashu.vault.api.KeyVault.class));
+
+            KeySet loaded = DBKeySetVault.load(entity, false);
+
+            assertThat(loaded.getPartPerThousand())
+                .as("the fee an operator configured must reach the mint that charges it")
+                .isEqualTo(100);
+        }
+    }
+
+    /**
+     * Checks that a keyset nobody has priced loads as free. Fees are off unless configured,
+     * so an unconfigured mint keeps behaving exactly as it did before fees existed.
+     */
+    @Test
+    void loadDefaultsToNoFee() throws Exception {
+        KeySetEntity entity = new KeySetEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setKeySetId("009a1f293253e41e");
+        entity.setUnit("sat");
+
+        KeyVaultClient keyClient = mock(KeyVaultClient.class);
+        when(keyClient.getKeysByKeySetId(anyString())).thenReturn(Set.of());
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::keyClient).thenReturn(keyClient);
+            factory.when(VaultClientFactory::keyVault).thenReturn(mock(xyz.tcheeric.cashu.vault.api.KeyVault.class));
+
+            assertThat(DBKeySetVault.load(entity, false).getPartPerThousand())
+                .as("a keyset nobody priced charges nothing")
+                .isZero();
+        }
     }
 }

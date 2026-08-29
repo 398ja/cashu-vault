@@ -53,6 +53,18 @@ public class KeySetEntity extends BaseEntity {
     @Column(name = "unit", nullable = false, length = 5)
     private String unit;
 
+    /**
+     * NUT-02 fee charged per thousand inputs spent from this key set.
+     *
+     * <p>Zero means the key set charges no fee, which is what every key set does until an
+     * operator sets one. It is stored with the key set rather than beside it because under
+     * keyset id v2 the fee is an input to the id preimage, so a different fee is a different
+     * key set.
+     */
+    @JsonProperty("input_fee_ppk")
+    @Column(name = "input_fee_ppk", nullable = false)
+    private int inputFeePpk;
+
     /** Mint to which this key set belongs. */
     @JsonProperty
     @ManyToOne(cascade = CascadeType.ALL)

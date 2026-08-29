@@ -76,6 +76,10 @@ public final class DBKeySetVault extends DBVault<KeySetEntity> {
      * private key is read through {@link VaultClientFactory#keyVault()}, which under
      * the HashiCorp backend resolves the secret the row points at; the REST
      * representation of a key carries {@code privateKey: null}.
+     *
+     * <p>The NUT-02 {@code input_fee_ppk} is carried through as stored. It is what the
+     * mint charges on a swap and what it publishes on {@code /v1/keysets}, so dropping
+     * it here would price every transaction at zero however the keyset was configured.
      */
     public static KeySet load(@NonNull KeySetEntity keySetEntity, boolean archive) throws CashuErrorException {
         Keys keys = new Keys();
@@ -95,6 +99,7 @@ public final class DBKeySetVault extends DBVault<KeySetEntity> {
                 .id(keySetEntity.getKeySetId())
                 .unit(keySetEntity.getUnit())
                 .keys(keys)
+                .partPerThousand(keySetEntity.getInputFeePpk())
                 .build();
     }
 }
