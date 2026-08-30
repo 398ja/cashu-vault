@@ -2,7 +2,9 @@
 
 Cashu Vault is a Spring Boot service that stores and manages [Cashu](https://cashu.space/) protocol data. It uses PostgreSQL for metadata and proof state, and [HashiCorp Vault](https://www.vaultproject.io/) for secure private key storage.
 
-Full documentation is available in the [docs](docs/) directory.
+Full documentation is available in the [docs](docs/) directory. Start at
+[docs/index.md](docs/index.md); the [proof holds guide](docs/how-to/work-with-proof-holds.md)
+covers the melt/swap hold semantics that operators need before resolving a stuck row.
 
 ## Modules
 

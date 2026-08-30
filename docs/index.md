@@ -14,7 +14,7 @@ It provides REST endpoints for persisting **mints**, **key sets**, **keys**, and
 ## Documentation
 
 - [Tutorials](tutorials/) - Step-by-step guides to get started
-- [How-To Guides](how-to/) - Solutions for common tasks
+- [How-To Guides](how-to/) - Solutions for common tasks, including [proof holds](how-to/work-with-proof-holds.md)
 - [Reference](reference/) - API and configuration details
 - [Explanation](explanation/) - Architecture and design decisions
 

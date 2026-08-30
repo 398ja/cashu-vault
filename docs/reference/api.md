@@ -277,3 +277,51 @@ All endpoints are served under the `/vault` base path.
 - **Path Parameters:** `id` (UUID, required)
 - **Example response:** `204 No Content`
 
+
+## Proof holds
+
+A hold is an exclusive claim on a proof, taken by a flow part-way through spending
+it. The melt saga and the swap flow share one `hold_id` column so that a swap hold
+blocks a melt on the same proof and vice versa; `hold_kind` (`MELT` or `SWAP`)
+records which flow took it.
+
+The two resolve in **opposite** directions when stale. See
+[Work with proof holds](../how-to/work-with-proof-holds.md) before resolving one.
+
+### Insert or claim for hold
+- **Method:** `POST`
+- **Path:** `/vault/proof/mint/{mintId}/hold/{holdId}/insert-or-claim`
+- **Path Parameters:** `mintId` (UUID, required), `holdId` (string, required, max 64 chars)
+- **Body:** array of proof objects with Y-normalised secrets. Each requires a
+  non-blank `secret`, a non-null `amount`, and a non-blank `unblindedSignature`.
+- **Behaviour:** atomically inserts or claims each proof as `PENDING` bound to
+  `holdId`. Replaces the earlier two-step store-then-mark-pending sequence, which
+  could not bind freshly-inserted rows.
+- **Example response:** `200` with the integer count of proofs bound.
+- **Errors:** `400` for an empty list or any proof missing a required field.
+
+### Mark pending for hold
+- **Method:** `POST`
+- **Path:** `/vault/proof/mint/{mintId}/hold/{holdId}/mark-pending`
+- **Path Parameters:** `mintId` (UUID, required), `holdId` (string, required, max 64 chars)
+- **Behaviour:** binds already-stored proofs to the hold. Prefer `insert-or-claim`
+  for proofs that may not exist yet.
+- **Example response:** `200` with the integer count bound.
+
+### Commit spent
+- **Method:** `POST`
+- **Path:** `/vault/proof/hold/{holdId}/commit-spent`
+- **Path Parameters:** `holdId` (string, required, max 64 chars)
+- **Behaviour:** moves the hold's `PENDING` proofs to spent. Correct for a settled
+  melt, and for **any swap hold that reached signing**.
+- **Example response:** `200` with the integer count updated.
+
+### Refund
+- **Method:** `POST`
+- **Path:** `/vault/proof/hold/{holdId}/refund`
+- **Path Parameters:** `holdId` (string, required, max 64 chars)
+- **Behaviour:** returns the hold's `PENDING` proofs to `UNSPENT` and clears the
+  `hold_id` binding. Correct for a melt whose payment never went out. **Not** safe
+  for a swap hold that reached signing: an output may already be redeemable, and
+  releasing the inputs on top of it is a double spend.
+- **Example response:** `200` with the integer count updated.
