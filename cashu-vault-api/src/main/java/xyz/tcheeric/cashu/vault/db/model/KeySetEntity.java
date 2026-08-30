@@ -45,7 +45,7 @@ public class KeySetEntity extends BaseEntity {
 
     /** External key set identifier. */
     @JsonProperty
-    @Column(name = "key_set_id", nullable = false, length = 16)
+    @Column(name = "key_set_id", nullable = false, length = 66)
     private String keySetId;
 
     /** Monetary unit associated with the key set. */

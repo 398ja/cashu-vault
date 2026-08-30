@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] - 2026-08-30
+
+### Fixed
+
+- **`t_keyset.key_set_id` widened from 16 to 66 characters, so a NUT-02 v2 keyset id fits.** A v2 id
+  is the version byte `01` followed by a SHA-256 digest in hex, which is 66 characters against the
+  16 of a v1 id. The column was sized for v1, so provisioning a mint whose keyset id was derived
+  under v2 aborted with `value too long for type character varying(16)` and the provisioning outbox
+  retried until it exhausted its attempts, leaving the mint with no keyset at all. `KeySetEntity`
+  carried the same 16 in its `@Column(length)` and is widened to match.
+
 ## [0.11.0] - 2026-08-29
 
 ### Changed
