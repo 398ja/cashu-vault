@@ -57,6 +57,31 @@ The `docker.env` file is gitignored to prevent credentials from being committed.
 | `vault.hashi.auth.approle.secret-id` | - | AppRole secret ID |
 | `vault.hashi.engine.mount` | `cashu` | KV v2 engine mount path |
 
+## Environment variable names that differ from the deployment ⚠️
+
+`cashu-mint/docker-compose.prod.yml`, which is what actually deploys this service,
+sets several names the application does not bind. They are silently ignored, and
+the affected setting falls back to its default.
+
+| Set in the deployment | What the application binds | Effect if only the left name is set |
+|-----------------------|---------------------------|--------------------------------------|
+| `VAULT_HASHI_ROLE_ID` | `VAULT_HASHI_AUTH_APPROLE_ROLE_ID` | AppRole role id stays empty |
+| `VAULT_HASHI_SECRET_ID` | `VAULT_HASHI_AUTH_APPROLE_SECRET_ID` | AppRole secret id stays empty |
+| `SPRING_DATASOURCE_URL` | `DATABASE_URL` (under the `prod` profile) | Falls back to `jdbc:postgresql://localhost:5432/cashu_vault` |
+| `SPRING_DATASOURCE_USERNAME` | `DATABASE_USER` | Falls back to `cashu` |
+| `SPRING_DATASOURCE_PASSWORD` | `DATABASE_PASSWORD` | Falls back to empty |
+
+The datasource case is worth understanding: `SPRING_DATASOURCE_URL` normally binds
+`spring.datasource.url` by relaxed binding, but `application-prod.properties`
+declares that property explicitly as `${DATABASE_URL:...}`, and an explicit
+property wins over the environment variable. Under the `prod` profile the
+`SPRING_DATASOURCE_*` names therefore have no effect.
+
+**Use the names in the middle column.** The deployment currently sets both
+`DATASOURCE_*` and `SPRING_DATASOURCE_*` for this service, neither of which is
+`DATABASE_*`, so verify the connection actually points where you intend rather
+than at the localhost default.
+
 ## Usage Examples
 
 ### Run with default configuration
