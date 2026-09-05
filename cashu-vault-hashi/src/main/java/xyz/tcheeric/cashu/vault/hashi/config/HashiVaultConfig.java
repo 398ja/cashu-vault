@@ -70,12 +70,36 @@ public class HashiVaultConfig {
         return new VaultTemplate(vaultEndpoint, clientAuthentication);
     }
 
+    /**
+     * Resolves the AppRole secret-id, unwrapping a response-wrapping token when one is given.
+     *
+     * <p>The provisioning job creates the secret-id with {@code -wrap-ttl} so that the credential
+     * itself never lands on disk, and writes the wrapping token instead. Only
+     * {@code SecretId.provided} existed here, so that wrapping token would have been sent to Vault
+     * as if it were the secret-id and rejected; the hardened provisioning flow had no consumer and
+     * the credential it produced was unusable. {@code SecretId.wrapped} is the other half.
+     */
+    private AppRoleAuthenticationOptions.SecretId secretId(HashiVaultProperties.AppRole approle) {
+        final String wrapped = approle.getWrappedSecretId();
+        if (wrapped != null && !wrapped.isBlank()) {
+            if (approle.getSecretId() != null && !approle.getSecretId().isBlank()) {
+                throw new IllegalStateException(
+                        "Set either vault.hashi.auth.approle.secret-id or .wrapped-secret-id, "
+                                + "not both: which one is authoritative would otherwise be "
+                                + "decided by this code rather than by the deployment.");
+            }
+            return AppRoleAuthenticationOptions.SecretId.wrapped(
+                    org.springframework.vault.support.VaultToken.of(wrapped.trim()));
+        }
+        return AppRoleAuthenticationOptions.SecretId.provided(approle.getSecretId());
+    }
+
     private ClientAuthentication appRoleAuthentication(HashiVaultProperties properties,
                                                        VaultEndpoint vaultEndpoint) {
         HashiVaultProperties.AppRole approle = properties.getAuth().getApprole();
         AppRoleAuthenticationOptions options = AppRoleAuthenticationOptions.builder()
                 .roleId(AppRoleAuthenticationOptions.RoleId.provided(approle.getRoleId()))
-                .secretId(AppRoleAuthenticationOptions.SecretId.provided(approle.getSecretId()))
+                .secretId(secretId(approle))
                 .path(approle.getPath())
                 .build();
         RestOperations restOperations = VaultClients.createRestTemplate(

@@ -37,6 +37,16 @@ public class HashiVaultProperties {
     public static class AppRole {
         private String roleId;
         private String secretId;
+        /**
+         * A response-wrapping token to unwrap into the secret-id, instead of the secret-id itself.
+         *
+         * <p>The provisioning job creates the secret-id with {@code -wrap-ttl}, so what it can
+         * safely hand over is a single-use wrapping token rather than the credential. Nothing
+         * consumed that: the application only read {@code secret-id}, so the wrapped value the
+         * job produced had no supported path into the configuration and expired ten minutes
+         * later. Set this instead of {@code secret-id} to complete that flow.
+         */
+        private String wrappedSecretId;
         private String path = "approle";
     }
 

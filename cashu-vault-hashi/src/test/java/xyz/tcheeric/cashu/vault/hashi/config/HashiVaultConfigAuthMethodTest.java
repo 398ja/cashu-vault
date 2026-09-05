@@ -73,6 +73,34 @@ class HashiVaultConfigAuthMethodTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    @DisplayName("a wrapped secret-id is accepted, completing the provisioning flow")
+    void wrappedSecretIdIsAccepted() {
+        // The init job creates the secret-id with -wrap-ttl so the credential never lands on
+        // disk, and writes the wrapping token instead. Nothing consumed it: only
+        // SecretId.provided existed, so the wrapping token would have been sent to Vault as if
+        // it were the secret-id and rejected. The hardened flow produced an unusable credential.
+        HashiVaultProperties properties = properties("approle");
+        properties.getAuth().getApprole().setSecretId(null);
+        properties.getAuth().getApprole().setWrappedSecretId("hvs.wrappingtokenvalue");
+
+        assertThat(config.clientAuthentication(properties, endpoint))
+                .isInstanceOf(AppRoleAuthentication.class);
+    }
+
+    @Test
+    @DisplayName("setting both a secret-id and a wrapped one is refused")
+    void bothSecretIdFormsIsRefused() {
+        // Picking one silently would put the choice in this code rather than in the deployment,
+        // and the wrong choice is an authentication failure far from its cause.
+        HashiVaultProperties properties = properties("approle");
+        properties.getAuth().getApprole().setWrappedSecretId("hvs.wrappingtokenvalue");
+
+        assertThatThrownBy(() -> config.clientAuthentication(properties, endpoint))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not both");
+    }
+
     private static HashiVaultProperties properties(String method) {
         HashiVaultProperties properties = new HashiVaultProperties();
         properties.getAuth().setMethod(method);
