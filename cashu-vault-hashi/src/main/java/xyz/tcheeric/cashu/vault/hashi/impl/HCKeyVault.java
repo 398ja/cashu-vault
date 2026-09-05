@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.hashi.impl;
 
+import xyz.tcheeric.cashu.vault.hashi.KeyVaultPaths;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
@@ -87,39 +88,16 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
         // Authentication closed the front door; this closes the path itself, because a read path
         // assembled from stored data should not be able to escape its prefix regardless of who
         // wrote it.
-        if (!isWithinKeysPrefix(entity.getVaultPath())) {
-            log.error("Key entity {} has a vault path outside the keys/ prefix: refusing to read",
+        if (!KeyVaultPaths.isPathForEntity(entity.getVaultPath(), entity)) {
+            log.error("Key entity {} has a vault path that is not its own: refusing to read",
                     entity.getId());
             throw new IllegalStateException(
-                    "Refusing to read a vault path outside the keys/ prefix");
+                    "Refusing to read a vault path that does not belong to this key");
         }
         Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
         if (data != null) {
             entity.setPrivateKey((String) data.get("private_key"));
         }
-    }
-
-    /**
-     * Whether a stored path is one {@link #buildPath} could have produced.
-     *
-     * <p>{@code buildPath} writes {@code keys/<mint>/<keyset>/<amount>} and
-     * {@code HashiVaultClient.storeSecret} returns it prefixed with the engine mount, so a
-     * legitimate stored path is {@code <mount>/keys/...}. The mount varies by deployment, so the
-     * check is that {@code keys/} appears as a path segment, plus a refusal of traversal,
-     * absolute paths and backslashes.
-     *
-     * <p>Deliberately a whitelist of shape rather than a blacklist of characters: the only paths
-     * this class writes are of that one form, so anything else is wrong however it got there.
-     */
-    private static boolean isWithinKeysPrefix(String path) {
-        if (path == null || path.isBlank()) {
-            return false;
-        }
-        String normalised = path.strip();
-        if (normalised.startsWith("/") || normalised.contains("\\") || normalised.contains("..")) {
-            return false;
-        }
-        return normalised.startsWith("keys/") || normalised.contains("/keys/");
     }
 
     private KeySetEntity getKeySet(KeyEntity keyEntity) {
@@ -128,9 +106,6 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
     }
 
     private String buildPath(KeyEntity key) {
-        return String.format("keys/%s/%s/%s",
-                key.getKeySet().getMint().getId(),
-                key.getKeySet().getKeySetId(),
-                key.getAmount());
+        return KeyVaultPaths.buildPath(key);
     }
 }

@@ -1,6 +1,9 @@
 package xyz.tcheeric.cashu.vault.db.config;
 
 import jakarta.annotation.PostConstruct;
+
+import java.util.Locale;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class VaultBackendStartupValidator {
 
+    /**
+     * Spellings accepted as "use HashiCorp Vault".
+     *
+     * <p>Deliberately generous, and paired with refusing anything outside these sets. The
+     * alternative, matching one exact string and treating everything else as JPA, is what let
+     * VAULT_BACKEND=HASHICORP-with-a-typo start the service on database storage.
+     */
+    private static final Set<String> HASHICORP_ALIASES =
+            Set.of("hashicorp", "hashi", "vault", "hashicorp-vault", "hashivault");
+
+    /** Spellings accepted as "store in the database". */
+    private static final Set<String> JPA_ALIASES =
+            Set.of("jpa", "db", "database", "postgres", "postgresql");
+
     @Value("${vault.backend:}")
     private String requestedBackend;
 
@@ -40,7 +57,24 @@ public class VaultBackendStartupValidator {
             }
             return;
         }
-        boolean wantsHashi = "hashicorp".equalsIgnoreCase(requestedBackend.trim());
+        final String backend = requestedBackend.trim();
+        final boolean wantsHashi = HASHICORP_ALIASES.contains(backend.toLowerCase(Locale.ROOT));
+        final boolean wantsJpa = JPA_ALIASES.contains(backend.toLowerCase(Locale.ROOT));
+
+        // An unrecognised value must not be read as "not hashicorp". Matching only the exact
+        // string "hashicorp" meant VAULT_BACKEND=HASHI, or VAULT, or a typo, fell through to the
+        // warn-only branch and the service started on JPA while the operator believed otherwise.
+        // That is precisely the M-16 incident this validator exists to prevent, reachable through
+        // any spelling but one. Refusing an unknown value is the only safe reading, because the
+        // deployment plainly intended something.
+        if (!wantsHashi && !wantsJpa) {
+            throw new IllegalStateException(
+                    "vault.backend=" + requestedBackend + " is not a recognised backend. Use one "
+                            + "of " + HASHICORP_ALIASES + " for HashiCorp Vault, or "
+                            + JPA_ALIASES + " for database storage. An unrecognised value is "
+                            + "refused rather than assumed, because assuming meant silently "
+                            + "storing keyset private keys in the database.");
+        }
         if (wantsHashi && !hashiEnabled) {
             throw new IllegalStateException(
                     "vault.backend=" + requestedBackend + " requests the HashiCorp backend, but "
@@ -49,7 +83,7 @@ public class VaultBackendStartupValidator {
                             + "VAULT_HASHI_ENABLED=true (and the vault.hashi.* properties), or "
                             + "drop vault.backend to acknowledge the JPA backend.");
         }
-        if (!wantsHashi && hashiEnabled) {
+        if (wantsJpa && hashiEnabled) {
             log.warn("vault.backend={} but vault.hashi.enabled=true; the HashiCorp backend is "
                     + "active and takes precedence.", requestedBackend);
         }
