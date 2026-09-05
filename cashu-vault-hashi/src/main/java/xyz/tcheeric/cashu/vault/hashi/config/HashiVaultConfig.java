@@ -28,13 +28,39 @@ public class HashiVaultConfig {
         return VaultEndpoint.from(URI.create(properties.getUri()));
     }
 
+    /**
+     * Chooses the Vault authentication method.
+     *
+     * <p>The match is case-insensitive, and an unrecognised value is refused rather than treated
+     * as token auth. Previously this switched on the exact lowercase literal with a
+     * {@code default} that fell through to {@code TokenAuthentication}, so
+     * {@code VAULT_HASHI_AUTH_METHOD=APPROLE} silently became token authentication with a null
+     * token: the deployment asked for AppRole, was given something else, and found out from a
+     * failed Vault call rather than from a startup error. Any typo behaved the same way.
+     *
+     * <p>Token auth must now be requested by name, so it is a choice instead of a fallback.
+     */
     @Bean
     public ClientAuthentication clientAuthentication(HashiVaultProperties properties,
                                                      VaultEndpoint vaultEndpoint) {
-        return switch (properties.getAuth().getMethod()) {
+        final String method = properties.getAuth().getMethod();
+        final String normalised = method == null ? "" : method.trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (normalised) {
             case "approle" -> appRoleAuthentication(properties, vaultEndpoint);
             case "kubernetes" -> kubernetesAuthentication(properties, vaultEndpoint);
-            default -> new TokenAuthentication(properties.getAuth().getToken());
+            case "token" -> {
+                if (properties.getAuth().getToken() == null
+                        || properties.getAuth().getToken().isBlank()) {
+                    throw new IllegalStateException(
+                            "vault.hashi.auth.method=token but vault.hashi.auth.token is not set");
+                }
+                yield new TokenAuthentication(properties.getAuth().getToken());
+            }
+            default -> throw new IllegalStateException(
+                    "Unrecognised vault.hashi.auth.method=" + method
+                            + ". Use approle, kubernetes or token. An unrecognised method is "
+                            + "refused rather than defaulted, because defaulting to token auth "
+                            + "with no token silently ignored what the deployment asked for.");
         };
     }
 
