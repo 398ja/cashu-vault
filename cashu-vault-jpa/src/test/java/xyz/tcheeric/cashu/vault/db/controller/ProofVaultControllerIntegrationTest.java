@@ -28,6 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+// The vault API now requires authentication (audit C-2). These tests are about controller
+// behaviour, so they run as an authenticated client; VaultApiAuthenticationTest covers the
+// boundary itself.
+@org.springframework.security.test.context.support.WithMockUser(roles = "VAULT_CLIENT")
 @Transactional
 class ProofVaultControllerIntegrationTest {
 

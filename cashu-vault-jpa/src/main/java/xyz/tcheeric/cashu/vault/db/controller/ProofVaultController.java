@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -131,10 +132,10 @@ public class ProofVaultController {
     @GetMapping("/secret/{secret}")
     public ResponseEntity<ProofEntity> retrieveBySecret(
             @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length") String secret) throws CashuErrorException {
-        log.debug("Retrieving ProofEntity by secret {}", secret);
+        log.debug("Retrieving ProofEntity by secret {}", SecretLogId.of(secret));
         Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by secret {}", secret);
+            log.debug("Retrieved ProofEntity by secret {}", SecretLogId.of(secret));
             return ResponseEntity.ok(proof.get());
         }
         log.warn("No ProofEntity found for the specified secret");
@@ -153,10 +154,10 @@ public class ProofVaultController {
     public ResponseEntity<ProofEntity> retrieveByMintAndSecret(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
             @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length") String secret) throws CashuErrorException {
-        log.info("Retrieving ProofEntity by mintId {} and secret {}", mintId, secret);
+        log.info("Retrieving ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
         Optional<ProofEntity> proof = proofRepository.findByMint_IdAndSecret(UUID.fromString(mintId), secret);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by mintId {} and secret {}", mintId, secret);
+            log.debug("Retrieved ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
             return ResponseEntity.ok(proof.get());
         }
         log.warn("No ProofEntity found for the specified mint and secret");
@@ -195,11 +196,11 @@ public class ProofVaultController {
     public ResponseEntity<ProofEntity> retrieveByMintAndUnblindedSignature(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
             @PathVariable("unblindedSignature") @NotBlank @Size(max = 512, message = "Signature exceeds maximum length") String unblindedSignature) throws CashuErrorException {
-        log.info("Retrieving ProofEntity by mintId {} and signature {}", mintId, unblindedSignature);
+        log.info("Retrieving ProofEntity by mintId {} and signature {}", mintId, SecretLogId.of(unblindedSignature));
         Optional<ProofEntity> proof = proofRepository.findByMint_IdAndUnblindedSignature(UUID.fromString(mintId),
                 unblindedSignature);
         if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by mintId {} and signature {}", mintId, unblindedSignature);
+            log.debug("Retrieved ProofEntity by mintId {} and signature {}", mintId, SecretLogId.of(unblindedSignature));
             return ResponseEntity.ok(proof.get());
         }
         return ResponseEntity.noContent().build();

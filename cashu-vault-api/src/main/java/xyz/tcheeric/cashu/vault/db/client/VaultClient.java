@@ -3,6 +3,7 @@ package xyz.tcheeric.cashu.vault.db.client;
 import jakarta.persistence.Entity;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -49,10 +50,50 @@ public class VaultClient<T extends BaseEntity> {
     }
 
     private VaultClient(Class<T> entityType, String pathSegment, String baseUrl) {
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = authenticatingRestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
         this.baseUrl = baseUrl;
+    }
+
+    /**
+     * A {@link RestTemplate} that presents the vault API token on every request.
+     *
+     * <p>The vault serves and accepts spendable proof secrets and the mint's keyset material, and
+     * until the 2026-09-05 audit it had no authentication of any kind: {@code GET /vault/proof}
+     * returned every stored secret to anyone who could reach the port. The service now requires a
+     * bearer token, so this client has to present one.
+     *
+     * <p>The token is read from {@code VAULT_API_TOKEN} (or {@code vault.api.token}). When it is
+     * absent the client sends no header, which fails closed against a secured server: that is the
+     * right outcome, because the alternative is a client that silently works against an
+     * unsecured one.
+     */
+    private static RestTemplate authenticatingRestTemplate() {
+        RestTemplate template = new RestTemplate();
+        String token = loadApiToken();
+        if (token == null) {
+            log.warn("No vault API token configured (VAULT_API_TOKEN). Requests to a secured "
+                    + "vault will be rejected with 401.");
+            return template;
+        }
+        template.getInterceptors().add((request, body, execution) -> {
+            request.getHeaders().set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+            return execution.execute(request, body);
+        });
+        return template;
+    }
+
+    private static String loadApiToken() {
+        String env = System.getenv("VAULT_API_TOKEN");
+        if (env != null && !env.isBlank()) {
+            return env;
+        }
+        String property = System.getProperty("vault.api.token");
+        if (property != null && !property.isBlank()) {
+            return property;
+        }
+        return null;
     }
 
     /**

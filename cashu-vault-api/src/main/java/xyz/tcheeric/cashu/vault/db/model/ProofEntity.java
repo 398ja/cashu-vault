@@ -67,19 +67,29 @@ public class ProofEntity extends BaseEntity {
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
-    /** Secret value of the proof. */
+    /**
+     * Secret value of the proof.
+     *
+     * <p>Excluded from {@code toString()} (audit M-14). This field together with
+     * {@link #unblindedSignature} is spendable ecash, and an entity reaches a log line or an
+     * exception message easily: a single {@code log.debug("... {}", proofEntity)} anywhere would
+     * publish a spendable token.
+     */
     @JsonProperty
     @Column(name = "secret", nullable = false)
+    @ToString.Exclude
     private String secret;
 
-    /** Unblinded signature associated with the proof. */
+    /** Unblinded signature associated with the proof. Excluded from {@code toString()}; see {@link #secret}. */
     @JsonProperty
     @Column(name = "C", nullable = false)
+    @ToString.Exclude
     private String unblindedSignature;
 
-    /** Optional witness identifier. */
+    /** Optional witness identifier. Excluded from {@code toString()}; see {@link #secret}. */
     @JsonProperty
     @Column(name = "witness", unique = true)
+    @ToString.Exclude
     private String witness;
 
     /** Current state of the proof. */
