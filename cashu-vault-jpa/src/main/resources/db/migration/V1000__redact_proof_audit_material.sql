@@ -9,6 +9,14 @@
 -- columns @NotAudited, which stops new history rows carrying them; this migration removes the
 -- ones already written and drops the columns so they cannot come back.
 --
+-- Numbered V1000, not V9, deliberately. V999__add_nut13_derivation_metadata.sql is already
+-- released and its ALTER statements are live, so every database that has ever booted this
+-- service is at schema version 999. A migration numbered 9 is out of order against that, and
+-- with spring.flyway.out-of-order defaulting to false and validate-on-migrate defaulting to
+-- true, Flyway fails the migrate with "Detected resolved migration not applied to database: 9"
+-- and the application does not start. A fresh database applies 1..9 then 999 and works, so the
+-- failure would have passed CI and only appeared on a deployment that had real data to protect.
+--
 -- Note on `secret`: that column holds Y = hash_to_curve(secret), not the secret itself (see
 -- MintProtocolUtil.toProofEntity and ProofEntity.fromProof). It is a one-way image of the secret
 -- and cannot be spent, so it stays: state history keyed on Y is exactly what makes the audit
