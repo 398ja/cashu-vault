@@ -11,6 +11,8 @@ ENTRYPOINT ["java", \
     "-XX:MetaspaceSize=128m", \
     "-XX:MaxMetaspaceSize=256m", \
     "-Xlog:gc*:file=/app/logs/gc.log:filecount=5,filesize=50m", \
-    "-XX:+HeapDumpOnOutOfMemoryError", \
-    "-XX:HeapDumpPath=/app/logs/heapdump.hprof", \
+    # Heap dumps are OFF by default (audit L-13). A dump from this service contains every proof
+    # secret and signing key resident at the time, written unencrypted to a path that is often a
+    # mounted volume shipped elsewhere. Enable deliberately, with somewhere safe to put it:
+    #   -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/secure/heapdump.hprof
     "-jar", "app.jar"]

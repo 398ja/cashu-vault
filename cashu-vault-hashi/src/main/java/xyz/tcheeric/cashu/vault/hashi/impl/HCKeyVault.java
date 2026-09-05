@@ -81,10 +81,45 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
             log.warn("Key entity {} has no vault path, cannot enrich with secret", entity.getId());
             return;
         }
+        // The stored path is used as a KV read path, and the row it comes from is writable
+        // through POST /vault/key, so before authentication existed a caller could point a key
+        // row at any path in the mount and read it back through this method (audit M-13).
+        // Authentication closed the front door; this closes the path itself, because a read path
+        // assembled from stored data should not be able to escape its prefix regardless of who
+        // wrote it.
+        if (!isWithinKeysPrefix(entity.getVaultPath())) {
+            log.error("Key entity {} has a vault path outside the keys/ prefix: refusing to read",
+                    entity.getId());
+            throw new IllegalStateException(
+                    "Refusing to read a vault path outside the keys/ prefix");
+        }
         Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
         if (data != null) {
             entity.setPrivateKey((String) data.get("private_key"));
         }
+    }
+
+    /**
+     * Whether a stored path is one {@link #buildPath} could have produced.
+     *
+     * <p>{@code buildPath} writes {@code keys/<mint>/<keyset>/<amount>} and
+     * {@code HashiVaultClient.storeSecret} returns it prefixed with the engine mount, so a
+     * legitimate stored path is {@code <mount>/keys/...}. The mount varies by deployment, so the
+     * check is that {@code keys/} appears as a path segment, plus a refusal of traversal,
+     * absolute paths and backslashes.
+     *
+     * <p>Deliberately a whitelist of shape rather than a blacklist of characters: the only paths
+     * this class writes are of that one form, so anything else is wrong however it got there.
+     */
+    private static boolean isWithinKeysPrefix(String path) {
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        String normalised = path.strip();
+        if (normalised.startsWith("/") || normalised.contains("\\") || normalised.contains("..")) {
+            return false;
+        }
+        return normalised.startsWith("keys/") || normalised.contains("/keys/");
     }
 
     private KeySetEntity getKeySet(KeyEntity keyEntity) {
