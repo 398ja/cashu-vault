@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-09-06
+
+Security remediation from the 2026-09-05 audit, plus the defects an adversarial review of that
+remediation found. Minor rather than patch: the vault API now requires authentication, an
+unrecognised `vault.hashi.auth.method` is refused instead of silently defaulting to token auth,
+and the prod Vault listener configuration changed.
+
+### Security
+
+- **The vault API requires a bearer token** (audit C-2). `/vault/**` had no authentication of any
+  kind: `GET /vault/proof` returned every stored proof secret to anyone who could reach the port,
+  and the mint's keyset private keys were equally exposed. Compared with `MessageDigest.isEqual`,
+  no default, and the service refuses to start without one.
+
+- **Proof cryptographic material is kept out of the audit history** (audit H-8). Envers wrote a
+  full row copy on every insert, update and delete, including the unblinded signature `C` and the
+  NUT-11 witness, and the history row survived deletion of the live row, so deleting a proof did
+  not remove its material.
+
+- **The service fails closed when the configured backend is inactive** (audit M-16). This was live
+  in production: `docker-compose.prod.yml` set `VAULT_BACKEND=HASHICORP` but not
+  `VAULT_HASHI_ENABLED`, so every class in `cashu-vault-hashi` was inactive and keyset private
+  keys were stored in Postgres while the configuration said otherwise.
+
+- **Vault paths are validated by ownership, not shape** (audit M-13). The first repair checked that
+  `keys/` appeared as a path segment, which `othermount/keys/<other mint>/<other keyset>/1` also
+  satisfies, so an authenticated mint could still point a key row at another mint's material and
+  read it back. The stored path is now compared against the one path that key is ever written to.
+  `HCKeySetVault` had no validation at all and was missed by the first fix.
+
+- **An unrecognised `vault.backend` is refused.** The validator matched only the exact string
+  `hashicorp`, so `VAULT_BACKEND=HASHI` reproduced the M-16 incident it existed to prevent.
+
+- **An unrecognised `vault.hashi.auth.method` is refused.** The switch matched the lowercase
+  literal and defaulted everything else to token authentication with a null token, so
+  `VAULT_HASHI_AUTH_METHOD=APPROLE` silently authenticated the wrong way and made every
+  least-privilege policy on the mount decorative.
+
+### Fixed
+
+- **`V9` renumbered to `V1000`.** `V999` is already released with live `ALTER` statements, so every
+  database that has booted this service is at schema version 999. With `out-of-order` false and
+  `validate-on-migrate` true, a migration numbered 9 fails the migrate and the application does not
+  start. A fresh database applies 1..9 then 999 quite happily, which is why CI was green and only
+  deployments with real data would have broken. `MigrationVersionOrderingTest` pins the rule.
+
+- **`VaultClient` resolves its API token from the Spring `Environment`**, not only `System.getenv`
+  and `System.getProperty`. The vault configures itself with `vault.api.token=${VAULT_API_TOKEN:}`,
+  so a deployment following the same convention set a property the client never read and 401ed on
+  every call with the token visibly present in configuration. Resolved per request rather than
+  captured at construction, since clients are static per entity type.
+
+- **A response-wrapped AppRole secret-id is unwrapped.** The provisioning job wraps the secret-id so
+  the credential never lands on disk, and nothing consumed the wrapping token, so the hardened flow
+  produced a credential with no supported path into the configuration.
+
+### Changed
+
+- **`cashu-lib` 0.27.0 to 0.30.0** (audit L-36). The vault was three minor versions behind, so none
+  of the library's security fixes had reached it.
+
 ## [0.11.1] - 2026-08-30
 
 ### Fixed
