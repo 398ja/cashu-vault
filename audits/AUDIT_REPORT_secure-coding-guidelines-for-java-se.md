@@ -4,6 +4,23 @@
 **Date:** 2026-02-02
 **Codebase:** cashu-vault
 
+> **Superseded in part, 2026-09-05.** Two corrections from the ecosystem-wide audit
+> (`imani-docs/security/cashu-security-compliance-audit-2026-09-05.md`):
+>
+> 1. **This report never assessed authentication**, which was the most serious problem in the
+>    service. Its own applicability table records "Authentication | Not Present", meaning no
+>    guideline covered it, and that was read as nothing to check rather than as a gap. The REST
+>    API had no authentication of any kind until 2026-09-05: `GET /vault/proof` returned every
+>    stored proof to any caller who could open a socket. Fixed in "require authentication on the
+>    vault API".
+> 2. **GUIDE-2-2 below is marked fixed but was only partly fixed.** Proof secrets and unblinded
+>    signatures were still logged verbatim in `ProofVaultController` and `ProofClient`, and the
+>    base profile shipped `show-sql=true` with Hibernate SQL at DEBUG, which prints bound
+>    parameters. Fixed in the same series.
+>
+> Treat the compliance score below as measuring the guidelines it evaluated, not the security of
+> the service.
+
 ## Executive Summary
 
 - **Total Guidelines Evaluated:** 50

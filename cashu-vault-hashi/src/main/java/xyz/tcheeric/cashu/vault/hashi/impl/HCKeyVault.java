@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.hashi.impl;
 
+import xyz.tcheeric.cashu.vault.hashi.KeyVaultPaths;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
@@ -81,6 +82,18 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
             log.warn("Key entity {} has no vault path, cannot enrich with secret", entity.getId());
             return;
         }
+        // The stored path is used as a KV read path, and the row it comes from is writable
+        // through POST /vault/key, so before authentication existed a caller could point a key
+        // row at any path in the mount and read it back through this method (audit M-13).
+        // Authentication closed the front door; this closes the path itself, because a read path
+        // assembled from stored data should not be able to escape its prefix regardless of who
+        // wrote it.
+        if (!KeyVaultPaths.isPathForEntity(entity.getVaultPath(), entity)) {
+            log.error("Key entity {} has a vault path that is not its own: refusing to read",
+                    entity.getId());
+            throw new IllegalStateException(
+                    "Refusing to read a vault path that does not belong to this key");
+        }
         Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
         if (data != null) {
             entity.setPrivateKey((String) data.get("private_key"));
@@ -93,9 +106,6 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
     }
 
     private String buildPath(KeyEntity key) {
-        return String.format("keys/%s/%s/%s",
-                key.getKeySet().getMint().getId(),
-                key.getKeySet().getKeySetId(),
-                key.getAmount());
+        return KeyVaultPaths.buildPath(key);
     }
 }

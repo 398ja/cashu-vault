@@ -36,9 +36,17 @@ public class KeyEntity extends BaseEntity {
     @Column(name = "amount", nullable = false)
     private BigInteger amount;
 
-    /** Private key value, populated from HashiCorp Vault on retrieval. Not persisted to the database. */
+    /**
+     * Private key value, populated from HashiCorp Vault on retrieval. Not persisted to the
+     * database.
+     *
+     * <p>Excluded from {@code toString()} (audit M-14): Lombok's generated {@code toString}
+     * printed the key verbatim once the entity had been enriched from Vault, so any log line or
+     * exception message that happened to include the entity leaked the signing key.
+     */
     @JsonProperty
     @Transient
+    @ToString.Exclude
     private String privateKey;
 
     /** Reference to the secret stored in HashiCorp Vault. */

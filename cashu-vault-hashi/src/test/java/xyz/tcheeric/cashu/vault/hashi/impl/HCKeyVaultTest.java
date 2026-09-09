@@ -104,14 +104,33 @@ class HCKeyVaultTest {
     @Test
     void retrieve_enrichesEntityWithVaultSecret() throws CashuErrorException {
         KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        key.setVaultPath("cashu/keys/path");
+        // The key's own path. A read is now refused unless the stored path is the one this key
+        // would have been written to, so the fixture has to be a real path rather than a
+        // placeholder.
+        String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
+        key.setVaultPath(ownPath);
         when(dbClient.retrieve("key-id")).thenReturn(key);
-        when(hashiClient.getSecret("cashu/keys/path")).thenReturn(Map.of("private_key", "enriched-key"));
+        when(hashiClient.getSecret(ownPath)).thenReturn(Map.of("private_key", "enriched-key"));
 
         KeyEntity result = hcKeyVault.retrieve("key-id");
 
         assertThat(result.getPrivateKey()).isEqualTo("enriched-key");
-        verify(hashiClient).getSecret("cashu/keys/path");
+        verify(hashiClient).getSecret(ownPath);
+    }
+
+    @Test
+    void retrieve_refusesAVaultPathBelongingToAnotherKey() {
+        // The M-13 read path: the vault_path column is writable through POST /vault/key, so a row
+        // pointed at another mint's key must not enrich from it. The old shape-only check passed
+        // this, because it contains "/keys/".
+        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+        key.setVaultPath("cashu/keys/99999999-9999-9999-9999-999999999999/other-keyset/1");
+        when(dbClient.retrieve("key-id")).thenReturn(key);
+
+        assertThatThrownBy(() -> hcKeyVault.retrieve("key-id"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("does not belong to this key");
+        verifyNoInteractions(hashiClient);
     }
 
     @Test
@@ -126,9 +145,10 @@ class HCKeyVaultTest {
     @Test
     void retrieve_leavesPrivateKeyNullWhenVaultReturnsNull() throws CashuErrorException {
         KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        key.setVaultPath("cashu/keys/missing-secret");
+        String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
+        key.setVaultPath(ownPath);
         when(dbClient.retrieve("key-id")).thenReturn(key);
-        when(hashiClient.getSecret("cashu/keys/missing-secret")).thenReturn(null);
+        when(hashiClient.getSecret(ownPath)).thenReturn(null);
 
         KeyEntity result = hcKeyVault.retrieve("key-id");
 
@@ -138,13 +158,14 @@ class HCKeyVaultTest {
     @Test
     void retrieveByAmount_returnsMatchingKeyEnrichedWithSecret() throws CashuErrorException {
         KeyEntity key1 = createKeyEntity(null, BigInteger.ONE);
-        key1.setVaultPath("cashu/keys/path/1");
+        key1.setVaultPath("cashu/keys/" + key1.getKeySet().getMint().getId() + "/ks-001/1");
         KeyEntity key2 = createKeyEntity(null, BigInteger.valueOf(2));
-        key2.setVaultPath("cashu/keys/path/2");
+        String key2Path = "cashu/keys/" + key2.getKeySet().getMint().getId() + "/ks-001/2";
+        key2.setVaultPath(key2Path);
 
         KeyVaultClient keyVaultClient = mock(KeyVaultClient.class);
         when(keyVaultClient.getKeysByKeySetId("ks-001")).thenReturn(Set.of(key1, key2));
-        when(hashiClient.getSecret("cashu/keys/path/2")).thenReturn(Map.of("private_key", "key-for-2"));
+        when(hashiClient.getSecret(key2Path)).thenReturn(Map.of("private_key", "key-for-2"));
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(VaultClientFactory::keyClient).thenReturn(keyVaultClient);

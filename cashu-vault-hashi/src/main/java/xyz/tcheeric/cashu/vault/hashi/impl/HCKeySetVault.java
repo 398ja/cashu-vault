@@ -1,5 +1,6 @@
 package xyz.tcheeric.cashu.vault.hashi.impl;
 
+import xyz.tcheeric.cashu.vault.hashi.KeyVaultPaths;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.KeySet;
@@ -75,6 +76,15 @@ public final class HCKeySetVault extends DBVault<KeySetEntity> {
 
     private static void enrichWithVaultSecret(KeyEntity entity, HashiVaultClient hashiClient) {
         if (entity.getVaultPath() != null && entity.getPrivateKey() == null) {
+            // This read had no path validation at all: HCKeyVault gained a check for M-13 and
+            // this equivalent path was missed, so the same stored-path-controls-read-path defect
+            // remained reachable through keyset retrieval.
+            if (!KeyVaultPaths.isPathForEntity(entity.getVaultPath(), entity)) {
+                log.error("Key entity {} has a vault path that is not its own: refusing to read",
+                        entity.getId());
+                throw new IllegalStateException(
+                        "Refusing to read a vault path that does not belong to this key");
+            }
             Map<String, Object> data = hashiClient.getSecret(entity.getVaultPath());
             if (data != null) {
                 entity.setPrivateKey((String) data.get("private_key"));

@@ -3,6 +3,7 @@ package xyz.tcheeric.cashu.vault.db.client;
 import jakarta.persistence.Entity;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -49,10 +50,95 @@ public class VaultClient<T extends BaseEntity> {
     }
 
     private VaultClient(Class<T> entityType, String pathSegment, String baseUrl) {
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = authenticatingRestTemplate();
         this.entityType = entityType;
         this.pathSegment = pathSegment;
         this.baseUrl = baseUrl;
+    }
+
+    /**
+     * A {@link RestTemplate} that presents the vault API token on every request.
+     *
+     * <p>The vault serves and accepts spendable proof secrets and the mint's keyset material, and
+     * until the 2026-09-05 audit it had no authentication of any kind: {@code GET /vault/proof}
+     * returned every stored secret to anyone who could reach the port. The service now requires a
+     * bearer token, so this client has to present one.
+     *
+     * <p>The token is read from the Spring {@link org.springframework.core.env.Environment} when
+     * one has been published, and otherwise from {@code VAULT_API_TOKEN} or
+     * {@code vault.api.token}. The Environment matters: the vault side configures itself with
+     * {@code vault.api.token=${VAULT_API_TOKEN:}} in {@code application.properties}, so a
+     * deployment that follows the same convention on the mint side, or uses a config server, was
+     * setting a property this client never read. It then logged a warning and 401ed on every
+     * call, with the token visibly present in configuration.
+     *
+     * <p>When no token is found at all the client sends no header, which fails closed against a
+     * secured server: that is the right outcome, because the alternative is a client that
+     * silently works against an unsecured one.
+     */
+    private static RestTemplate authenticatingRestTemplate() {
+        RestTemplate template = new RestTemplate();
+        // Resolved per request, not captured here. VaultClient instances are created statically
+        // per entity type, so construction can easily precede the Spring context publishing its
+        // Environment; a token captured at construction would then be permanently null even
+        // though the deployment configured one.
+        template.getInterceptors().add((request, body, execution) -> {
+            String token = loadApiToken();
+            if (token == null) {
+                warnMissingTokenOnce();
+            } else {
+                request.getHeaders().set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+            }
+            return execution.execute(request, body);
+        });
+        return template;
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean MISSING_TOKEN_WARNED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    private static void warnMissingTokenOnce() {
+        // Once, not per request: this is on the request path now, and a vault that is unreachable
+        // for auth reasons would otherwise flood the log with identical lines.
+        if (MISSING_TOKEN_WARNED.compareAndSet(false, true)) {
+            log.warn("No vault API token configured (vault.api.token or VAULT_API_TOKEN). "
+                    + "Requests to a secured vault will be rejected with 401.");
+        }
+    }
+
+    /**
+     * The Spring environment, when the application context has published one.
+     *
+     * <p>Set by {@link VaultClientEnvironment}. Static because VaultClient instances are created
+     * statically per entity type, long before any bean could be injected.
+     */
+    private static volatile org.springframework.core.env.Environment springEnvironment;
+
+    public static void setSpringEnvironment(
+            final org.springframework.core.env.Environment environment) {
+        springEnvironment = environment;
+    }
+
+    private static String loadApiToken() {
+        // Environment first: it already layers system properties and env vars underneath
+        // application.properties, so this is a superset of the two lookups below rather than a
+        // competing source. The fallbacks remain for use outside a Spring context.
+        org.springframework.core.env.Environment environment = springEnvironment;
+        if (environment != null) {
+            String fromEnvironment = environment.getProperty("vault.api.token");
+            if (fromEnvironment != null && !fromEnvironment.isBlank()) {
+                return fromEnvironment;
+            }
+        }
+        String env = System.getenv("VAULT_API_TOKEN");
+        if (env != null && !env.isBlank()) {
+            return env;
+        }
+        String property = System.getProperty("vault.api.token");
+        if (property != null && !property.isBlank()) {
+            return property;
+        }
+        return null;
     }
 
     /**

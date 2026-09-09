@@ -17,16 +17,22 @@ import xyz.tcheeric.cashu.common.util.CashuErrorException;
 public class GlobalExceptionHandler {
 
     /**
-     * Handles known Cashu errors by returning a NOT_FOUND status and the error message.
+     * Handles known Cashu errors.
+     *
+     * <p>The message goes to the log, not to the caller (audit L-14). These messages are written
+     * for operators and quote identifiers, paths and occasionally the values that caused the
+     * failure; a caller can act on none of it, and one who is probing rather than integrating
+     * learns about the internals for free. The status code is the part of the answer they can
+     * use.
      *
      * @param ex the Cashu-specific error
-     * @return response entity containing the error message
+     * @return an empty NOT_FOUND response
      */
     @ExceptionHandler(CashuErrorException.class)
     public ResponseEntity<String> handleCashuErrorException(CashuErrorException ex) {
         log.warn("Cashu error", ex);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ex.getMessage());
+                .body("Not found");
     }
 
     /**

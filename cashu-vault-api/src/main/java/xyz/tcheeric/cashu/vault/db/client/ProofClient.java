@@ -1,6 +1,7 @@
 package xyz.tcheeric.cashu.vault.db.client;
 
 import lombok.extern.slf4j.Slf4j;
+import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class ProofClient extends VaultClient<ProofEntity> {
      * @throws IllegalArgumentException if no proof matches the criteria
      */
     public ProofEntity getByMintIdAndSecret(String mintId, String secret) {
-        log.info("GET {}/vault/proof/mint/{}/secret/{}", getBaseUrl(), mintId, secret);
+        log.info("GET {}/vault/proof/mint/{}/secret/{}", getBaseUrl(), mintId, SecretLogId.of(secret));
         ProofEntity proofEntity = restTemplate.getForObject(
                 getBaseUrl() + "/vault/proof/mint/" + mintId + "/secret/" + secret,
                 ProofEntity.class);
@@ -70,7 +71,7 @@ public class ProofClient extends VaultClient<ProofEntity> {
      * @throws IllegalArgumentException if no proof matches the criteria
      */
     public ProofEntity getByMintAndUnblindedSignature(String mintId, String unblindedSignature) {
-        log.info("GET {}/vault/proof/mint/{}/signature/{}", getBaseUrl(), mintId, unblindedSignature);
+        log.info("GET {}/vault/proof/mint/{}/signature/{}", getBaseUrl(), mintId, SecretLogId.of(unblindedSignature));
         ProofEntity proofEntity = restTemplate.getForObject(
                 getBaseUrl() + "/vault/proof/mint/" + mintId + "/signature/" + unblindedSignature,
                 ProofEntity.class);
@@ -84,7 +85,7 @@ public class ProofClient extends VaultClient<ProofEntity> {
      * @return matching proof entity or {@code null} if none exists
      */
     public ProofEntity getBySecret(String secret) {
-        log.info("GET {}/vault/proof/secret/{}", getBaseUrl(), secret);
+        log.info("GET {}/vault/proof/secret/{}", getBaseUrl(), SecretLogId.of(secret));
         return restTemplate.getForObject(getBaseUrl() + "/vault/proof/secret/" + secret, ProofEntity.class);
     }
 

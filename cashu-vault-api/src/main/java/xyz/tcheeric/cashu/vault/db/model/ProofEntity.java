@@ -18,6 +18,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 import xyz.tcheeric.cashu.common.Proof;
 import xyz.tcheeric.cashu.common.Secret;
 import xyz.tcheeric.cashu.common.UnCompressedPublicKey;
@@ -67,19 +68,44 @@ public class ProofEntity extends BaseEntity {
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
-    /** Secret value of the proof. */
+    /**
+     * Secret value of the proof.
+     *
+     * <p>Excluded from {@code toString()} (audit M-14). This field together with
+     * {@link #unblindedSignature} is spendable ecash, and an entity reaches a log line or an
+     * exception message easily: a single {@code log.debug("... {}", proofEntity)} anywhere would
+     * publish a spendable token.
+     */
     @JsonProperty
     @Column(name = "secret", nullable = false)
+    @ToString.Exclude
     private String secret;
 
-    /** Unblinded signature associated with the proof. */
+    /**
+     * Unblinded signature associated with the proof. Excluded from {@code toString()}; see
+     * {@link #secret}.
+     *
+     * <p>Also {@code @NotAudited}: the audit trail needs to record that a proof moved between
+     * states and when, not to keep a second copy of its cryptographic material for the lifetime
+     * of the database. Deleting a proof row previously left the history row untouched, so the
+     * material outlived the deletion (audit H-8).
+     */
     @JsonProperty
     @Column(name = "C", nullable = false)
+    @ToString.Exclude
+    @NotAudited
     private String unblindedSignature;
 
-    /** Optional witness identifier. */
+    /**
+     * Optional witness identifier. Excluded from {@code toString()}; see {@link #secret}.
+     *
+     * <p>{@code @NotAudited} for the same reason as {@link #unblindedSignature}: a NUT-11 witness
+     * is a signature over the secret, and history is not the place to keep it.
+     */
     @JsonProperty
     @Column(name = "witness", unique = true)
+    @ToString.Exclude
+    @NotAudited
     private String witness;
 
     /** Current state of the proof. */

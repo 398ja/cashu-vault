@@ -1,0 +1,32 @@
+version: 2
+
+# Added per the 2026-09-05 security audit (L-34). This repository had no dependency update
+# automation, while cashu-mint, cashu-lib, cashu-ledger, cashu-wallet and cashu-mint-admin all
+# did. It stores keyset material, so it is the last one that should lag on security patches.
+
+registries:
+  maven-releases:
+    type: maven-repository
+    url: https://maven.398ja.xyz/releases
+    username: ${{secrets.MVN_USER}}
+    password: ${{secrets.MVN_PASSWORD}}
+  maven-snapshots:
+    type: maven-repository
+    url: https://maven.398ja.xyz/snapshots
+    username: ${{secrets.MVN_USER}}
+    password: ${{secrets.MVN_PASSWORD}}
+
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    registries:
+      - maven-releases
+      - maven-snapshots
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
