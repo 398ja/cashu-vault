@@ -79,6 +79,14 @@ jobs:
         # Not on pull requests from forks: security-events: write is not granted there whatever
         # the workflow asks for, so the step can only fail. The push and schedule runs cover the
         # same code.
+        #
+        # continue-on-error because this repo is PRIVATE without GitHub Advanced Security, so
+        # code-scanning uploads are refused outright: "Resource not accessible by integration",
+        # whatever permissions the workflow declares. That made the job red on every run even
+        # when the scan itself passed, which is exactly the state that taught everyone to ignore
+        # this check while real CRITICALs accumulated behind it. The scan step still fails the
+        # build on CRITICAL; only the reporting side is allowed to be unavailable.
+        continue-on-error: true
         if: always() && github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v3
         with:
