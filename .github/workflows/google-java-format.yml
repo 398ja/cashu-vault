@@ -15,6 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5 # v2 minimum required
+      # google-java-format needs a JDK it can --add-exports jdk.compiler into,
+      # and this action does not provide one: it runs whatever java the runner
+      # happens to default to. Without this step the tool failed to launch on
+      # every run, so the check has never actually formatted anything here.
+      # cashu-ledger and cashu-lib both set the JDK up the same way; this repo
+      # was the one that did not.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
       - uses: axel-op/googlejavaformat-action@v4
         with:
           args: "--replace"
