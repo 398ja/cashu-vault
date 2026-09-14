@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-09-14
+
+### Security
+
+- **CI now scans a resolved SBOM, and runs secret scanning.** Part of closing P8 in the
+  2026-09-13 AppSec review: no repository in the estate ran SAST, SCA or secret scanning, and
+  scanning the declared tree rather than a resolved one misses everything transitive.
+
+### Fixed
+
+- **The SBOM guard passed when it could not read the component count** — a guard that cannot
+  distinguish "zero" from "could not count" reports success for both.
+- **A false claim in the gitleaks config.** gitleaks matches the extracted secret, not the
+  surrounding line, so a value-based allowlist entry looks like it works and silently does not.
+
 ## [0.12.0] - 2026-09-06
 
 Security remediation from the 2026-09-05 audit, plus the defects an adversarial review of that
