@@ -32,6 +32,38 @@
 cashu-vault is a Spring Boot service for the Cashu protocol. The specification is available on GitHub, here: https://github.com/cashubtc/nuts
 The URL format for the NUTs is https://github.com/cashubtc/nuts/blob/main/XX.md where XX is the NUT number. For example, the specification for NUT-00 is available at the URL https://github.com/cashubtc/nuts/blob/main/00.md etc.
 
+## Database migrations
+
+Flyway migrations live in two places, and both are on the path:
+
+- `db/migration` — runs on every engine. The service uses PostgreSQL and the tests use H2
+  (`MODE=PostgreSQL`), so anything here must work on both. `DO $$ ... $$`, `to_regclass` and
+  friends are PostgreSQL-only and will fail the test suite.
+- `db/vendor/{vendor}` — engine-specific. `V5` lives here, which is why the shared directory
+  has a gap at 5. Version numbers must not collide across the two locations.
+
+**Number the next migration one above the highest that exists.** Nothing more.
+
+This is written down because it went wrong. `V999__add_nut13_derivation_metadata.sql` shipped
+carrying a template's placeholder — its own header said "adjust version number based on your
+migration sequence" — and it was never adjusted. Because 999 sorts above every real migration,
+any database that applied it treated everything authored later as out of order and Flyway
+refused to start the service.
+
+The failure has a shape worth recognising: **a fresh database is always fine.** It applies
+1..N then 999 and is perfectly happy, so CI is green and every developer machine is green.
+Only a deployment with real history breaks. The next migration was then numbered `V1000` to
+sort above 999, which kept deployments booting but turned the placeholder into policy — every
+future migration would have needed a bigger absurd number to stay ordered.
+
+`MigrationVersionOrderingTest` now fails the build on a version at or above 100, and
+`PlaceholderMigrationVersionRepair` renumbers deployed history rows before Flyway validates.
+See cashu-vault#128.
+
+**`spring.flyway.out-of-order` should stay false.** It was set to true on staging only to work
+around the above. It disables the ordering check entirely, so it hides genuinely mis-sequenced
+migrations in order to accommodate one typo.
+
 ## Coding
 
 When writing code, follow Clean Code and Clean Architecture principles:

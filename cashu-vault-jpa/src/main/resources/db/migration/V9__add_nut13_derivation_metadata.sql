@@ -5,7 +5,11 @@
 -- Purpose: Add optional metadata columns to track deterministic secret
 --          derivation information for analytics, debugging, and optimization.
 --
--- Version: V999 (placeholder - adjust version number based on your migration sequence)
+-- Version: V9. Renumbered from V999, which shipped as a template placeholder that was
+-- never adjusted ("adjust version number based on your migration sequence"). Because 999
+-- sorts after every real migration, any database that applied it treated every later
+-- migration as out of order and Flyway refused to start the service. Databases carrying
+-- the old 999 row are repaired by V11 (issue #128).
 -- Author: NUT-13 Implementation Team
 -- Date: 2025-11-04
 --

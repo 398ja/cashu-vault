@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.4] - 2026-09-22
+
+### Fixed
+
+- **Migration versions are monotonic again (#128).** `V999__add_nut13_derivation_metadata.sql`
+  shipped carrying a template's placeholder — its own header said "adjust version number based
+  on your migration sequence" — and it was never adjusted. Because 999 sorts above every real
+  migration, a database that applied it treated everything authored later as out of order and
+  Flyway refused to start:
+
+  ```
+  Validate failed: Detected resolved migration not applied to database: 3, 4, 6, 7, 8.
+  ```
+
+  Staging booted only because `SPRING_FLYWAY_OUT_OF_ORDER=true` was set, and that flag disables
+  the ordering check entirely — hiding genuinely mis-sequenced migrations to accommodate one
+  typo. The next migration had already been numbered `V1000` to sort above 999, turning the
+  placeholder into a convention where each new change needed a bigger absurd number.
+
+  `V999` is now `V9` and `V1000` is now `V10`.
+
+- **`flyway-database-postgresql` was unmanaged and drifted from `flyway-core`** — 11.2.0 against
+  11.7.2 on the resolved classpath. The database module calls into core internals, so the
+  mismatch failed at runtime rather than at build time with
+  `NoSuchMethodError: UrlUtils.isSecretManagerUrl`. Invisible to the test suite, which runs on
+  H2 and never loads the postgresql module. Both now take the same version property.
+
+### Added
+
+- **`PlaceholderMigrationVersionRepair`** — a Flyway callback that renumbers deployed history
+  rows from 999/1000 to 9/10 and clears their checksums.
+
+  It hooks `BEFORE_VALIDATE`, and that is load-bearing. The obvious fix is a `V11` migration,
+  which cannot work: Flyway validates before it migrates, and validation is what fails, so the
+  repair would be resolved and never executed. `BEFORE_MIGRATE` fails for the same reason one
+  step further in — `migrate()` validates first and fires that event only once validation has
+  passed. Both dead ends were confirmed against a replica of staging's history before landing
+  on the event that actually runs.
+
+- **`MigrationVersionOrderingTest`** now asserts the inverse of what it used to. It previously
+  required every new migration to be numbered *above* 999, encoding the workaround as policy;
+  it now fails the build on any version at or above 100.
+
+### Notes for operators
+
+- **`SPRING_FLYWAY_OUT_OF_ORDER` can be removed.** Verified against a replica of staging's
+  history (`1,2,999,3,4,5,6,7,8,1000`): the callback repairs it to `1,2,9,3,4,5,6,7,8,10` and
+  the migrate succeeds with out-of-order **off**. A fresh database applies 1..10 in order, and
+  a new migration then applies cleanly to both.
+- The repair is idempotent and self-retiring. It matches on version *and* script name, so a
+  coincidental 999 from elsewhere is untouched, and it can be deleted once no deployment
+  carries the old numbering.
+
 ## [0.12.3] - 2026-09-22
 
 ### Fixed

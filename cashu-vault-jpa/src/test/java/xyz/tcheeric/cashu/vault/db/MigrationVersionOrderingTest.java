@@ -17,63 +17,76 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * A new migration must have a higher version than every migration already released, or it will
- * never apply to a database that has one of them.
+ * Migration versions must be plausible and unique (issue #128).
  *
- * <p>This exists because a migration was added as {@code V9} when {@code V999} was already
- * released and live. Every database that had booted the service was at version 999, so V9 was out
- * of order; {@code spring.flyway.out-of-order} defaults to false and
- * {@code validate-on-migrate} defaults to true, so Flyway would fail with "Detected resolved
- * migration not applied to database: 9" and the application would not start.
+ * <p>This test used to assert the opposite of what it asserts now, and the reversal is the
+ * point. {@code V999__add_nut13_derivation_metadata.sql} shipped with a template placeholder
+ * its own header admitted to — "adjust version number based on your migration sequence" — and
+ * was never adjusted. Because 999 sorts above every real migration, a database that applied it
+ * treated everything authored later as out of order and Flyway refused to start.
  *
- * <p>The failure mode is what makes it worth a test. A fresh database applies 1..9 then 999 and
- * is perfectly happy, so CI is green and every developer machine is green. Only a deployment with
- * real history breaks, which is the one place the migration was supposed to protect.
+ * <p>The response at the time was to require every NEW migration to be numbered above 999,
+ * and this test enforced it. That kept deployments booting, but it made the placeholder into
+ * policy: the next migration became {@code V1000}, and the one after would have needed 1001.
+ * A workaround that each new change must re-apply is not a fix, it is a tax.
  *
- * <p>This does not assert contiguity: V5 is legitimately absent, and gaps are harmless. It
- * asserts only that the highest version is the newest one, which is the property Flyway needs.
+ * <p>The files are now {@code V9} and {@code V10}, and {@code PlaceholderMigrationVersionRepair}
+ * rewrites deployed history rows to match before Flyway validates. So the high-water rule is
+ * obsolete and its inverse is what needs guarding: that no placeholder number comes back.
+ *
+ * <p>Neither version asserts contiguity. {@code V5} is legitimately absent from this directory
+ * because it is engine-specific and lives under {@code db/vendor/{vendor}}; gaps are harmless.
  */
 @DisplayName("Flyway migration ordering")
 class MigrationVersionOrderingTest {
 
     private static final Pattern VERSIONED = Pattern.compile("^V(\\d+)__.*\\.sql$");
 
+    /**
+     * Anything beyond this is a placeholder or an escape hatch, not a version. Chosen with room
+     * to spare: the repo is at 10, so a genuine jump to 100 would be extraordinary.
+     */
+    private static final long IMPLAUSIBLE_VERSION = 100;
+
     @Test
-    @DisplayName("no migration is numbered below one that is already released")
-    void versionsAreOrderedAgainstTheReleasedHighWaterMark() throws Exception {
+    @DisplayName("no migration carries a placeholder version")
+    void noMigrationCarriesAPlaceholderVersion() throws Exception {
         List<Path> migrations = migrationFiles();
         assertThat(migrations).as("migrations should be discoverable").isNotEmpty();
 
-        // V999 was released with live ALTER statements, so any deployment that has booted is at
-        // least at 999. Anything numbered at or below that and not already applied is unusable.
-        long releasedHighWaterMark = 999;
-
-        List<String> outOfOrder = new ArrayList<>();
+        List<String> placeholders = new ArrayList<>();
         for (Path migration : migrations) {
             Matcher matcher = VERSIONED.matcher(migration.getFileName().toString());
-            if (!matcher.matches()) {
-                continue;
+            if (matcher.matches() && Long.parseLong(matcher.group(1)) >= IMPLAUSIBLE_VERSION) {
+                placeholders.add(migration.getFileName().toString());
             }
-            long version = Long.parseLong(matcher.group(1));
-            if (version > releasedHighWaterMark) {
-                continue; // newer than everything released: fine
-            }
-            if (isAlreadyReleased(version)) {
-                continue; // part of the released history itself
-            }
-            outOfOrder.add(migration.getFileName().toString());
         }
 
-        assertThat(outOfOrder)
-                .as("these are numbered at or below the released V999, so Flyway will refuse to "
-                        + "start on any existing database; renumber above %d",
-                        releasedHighWaterMark)
+        assertThat(placeholders)
+                .as("a version at or above %d is a placeholder, not a version: it sorts above "
+                        + "every real migration, so each later one appears out of order and "
+                        + "Flyway refuses to start against a database that applied it (#128)",
+                        IMPLAUSIBLE_VERSION)
                 .isEmpty();
     }
 
-    /** Versions that shipped before V999 and are therefore already recorded in real databases. */
-    private static boolean isAlreadyReleased(long version) {
-        return version <= 8 || version == 999;
+    @Test
+    @DisplayName("the old placeholder filenames do not come back")
+    void theOldPlaceholderFilenamesAreGone() throws Exception {
+        // Named explicitly as well as caught by the rule above, so the failure says what went
+        // wrong rather than leaving someone to infer it from a number. Reintroducing either
+        // file would also desynchronise PlaceholderMigrationVersionRepair, which rewrites
+        // deployed history rows from 999 to 9 and from 1000 to 10.
+        List<String> names = migrationFiles().stream()
+                .map(path -> path.getFileName().toString())
+                .toList();
+
+        assertThat(names)
+                .as("V999 must stay renumbered to V9")
+                .doesNotContain("V999__add_nut13_derivation_metadata.sql");
+        assertThat(names)
+                .as("V1000 must stay renumbered to V10")
+                .doesNotContain("V1000__redact_proof_audit_material.sql");
     }
 
     @Test

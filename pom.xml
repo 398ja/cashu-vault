@@ -4,7 +4,7 @@
 
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault</artifactId>
-    <version>0.12.3</version>
+    <version>0.12.4</version>
     <packaging>pom</packaging>
 
     <name>cashu-vault</name>
@@ -142,6 +142,22 @@
             <dependency>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-core</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <!-- Pinned to the SAME property as flyway-core, and that is the whole point.
+                 Only flyway-core was managed here, so flyway-database-postgresql took
+                 Spring Boot's managed version instead and the two drifted apart —
+                 core 11.2.0 against postgresql 11.7.2 on the resolved classpath. The
+                 database module calls into core internals, so the mismatch fails at
+                 RUNTIME, not at build time:
+
+                   NoSuchMethodError: UrlUtils.isSecretManagerUrl(String, String)
+
+                 Nothing in the test suite caught it because the tests run on H2 and
+                 never load the postgresql module at all. -->
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
                 <version>${flyway.version}</version>
             </dependency>
             <dependency>
