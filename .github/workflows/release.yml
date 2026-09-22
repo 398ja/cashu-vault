@@ -102,7 +102,7 @@ jobs:
         env:
           MVN_USER: ${{ secrets.MVN_USER }}
           MVN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
-        run: mvn -B clean deploy -Dgpg.skip=true
+        run: mvn -B -U clean deploy -Dgpg.skip=true
 
       # The gate. Without it, "the workflow is green" and "the artifacts exist" remain two
       # different statements, which is precisely how 0.12.2 through 0.12.4 went missing
