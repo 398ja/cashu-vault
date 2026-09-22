@@ -14,7 +14,7 @@ jobs:
   formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5 # v2 minimum required
+      - uses: actions/checkout@v7 # v2 minimum required
       # google-java-format needs a JDK it can --add-exports jdk.compiler into,
       # and this action does not provide one: it runs whatever java the runner
       # happens to default to. Without this step the tool failed to launch on
