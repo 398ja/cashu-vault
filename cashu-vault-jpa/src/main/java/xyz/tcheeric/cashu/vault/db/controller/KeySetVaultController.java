@@ -34,6 +34,22 @@ import java.util.UUID;
 @Slf4j
 public class KeySetVaultController {
 
+    /**
+     * Accepts either NUT-02 keyset id version.
+     * <p>
+     * A v1 id is 16 hex characters. A v2 id is the version byte {@code 01}
+     * followed by a 32-byte SHA-256 hash, so 66 hex characters. This was
+     * previously a flat {@code @Size(max = 16)}, which silently made every v2
+     * id a 400: the mint would fail to find a keyset that existed, conclude it
+     * needed seeding, and then fail again trying to create it. Matching on
+     * shape rather than a bare length also rejects non-hex input, which the
+     * length cap never did.
+     */
+    private static final String KEYSET_ID_PATTERN = "^([0-9a-fA-F]{16}|01[0-9a-fA-F]{64})$";
+
+    private static final String KEYSET_ID_MESSAGE =
+            "KeySet ID must be 16 hex characters (NUT-02 v1) or 01 followed by 64 hex characters (v2)";
+
     private final KeySetRepository keySetRepository;
 
     /**
@@ -89,7 +105,7 @@ public class KeySetVaultController {
      */
     @GetMapping("/id/{id}")
     public ResponseEntity<KeySetEntity> retrieveByKeySetId(
-            @PathVariable("id") @NotBlank @Size(max = 16, message = "KeySet ID exceeds maximum length") String id) throws CashuErrorException {
+            @PathVariable("id") @NotBlank @Pattern(regexp = KEYSET_ID_PATTERN, message = KEYSET_ID_MESSAGE) String id) throws CashuErrorException {
         log.info("Retrieving KeySetEntity by keySetId {}", id);
         Optional<KeySetEntity> keySet = keySetRepository.findByKeySetId(id);
         if (keySet.isPresent()) {
@@ -130,7 +146,7 @@ public class KeySetVaultController {
     public ResponseEntity<KeySetEntity> getKeySetByMintIdAndUnit(
             @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
             @PathVariable("unit") @NotBlank @Size(max = 10, message = "Unit code exceeds maximum length") String unit,
-            @PathVariable("keySetId") @NotBlank @Size(max = 16, message = "KeySet ID exceeds maximum length") String keySetId) throws CashuErrorException {
+            @PathVariable("keySetId") @NotBlank @Pattern(regexp = KEYSET_ID_PATTERN, message = KEYSET_ID_MESSAGE) String keySetId) throws CashuErrorException {
         log.info("Retrieving KeySetEntity by mintId {} and unit {}", mintId, unit);
         Optional<Set<KeySetEntity>> keySets = keySetRepository.findByMint_IdAndUnit(UUID.fromString(mintId), unit);
         Set<KeySetEntity> keySetEntities = keySets

@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.2] - 2026-09-22
+
+### Fixed
+
+- **NUT-02 v2 keyset ids were rejected by the keyset lookup endpoints.** `V8` widened
+  `t_keyset.key_set_id` to `VARCHAR(66)` so v2 ids could be stored, but
+  `KeySetVaultController` kept a `@Size(max = 16)` sized for v1 ids on both
+  `GET /vault/keyset/id/{id}` and
+  `GET /vault/keyset/mint/{mintId}/unit/{unit}/keyset/{keySetId}`. The schema and
+  its API therefore disagreed about what a keyset id is, and every v2 lookup returned
+  400 "Invalid request parameters".
+
+  The failure was ugly out of proportion to its cause. A caller that treats any error
+  as "not found" — as the mint's `VaultPreloadSeeder` does — concluded a keyset that
+  plainly existed was missing, tried to seed it, and failed again inside `store()`,
+  which performs the same lookup. Observed on staging as a boot-time
+  `Failed to seed the vault from preload JSON` against a keyset the mint was serving
+  correctly at that very moment.
+
+  Both parameters now validate `^([0-9a-fA-F]{16}|01[0-9a-fA-F]{64})$`, which accepts
+  v1 and v2 and, unlike a length cap, rejects non-hex input and a v2-length id whose
+  version byte is not `01`.
+
+### Notes for operators
+
+- No migration and no data change: this only widens what the API will accept, so
+  existing v1 keysets are unaffected and archived keysets keep resolving.
+- If a deployment logged `Failed to seed the vault from preload JSON` while still
+  serving its keyset, that was this bug and it was harmless — the seed was a no-op
+  the seeder could not recognise as such. It stops after upgrading.
+
 ## [0.12.1] - 2026-09-14
 
 ### Security
