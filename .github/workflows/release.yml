@@ -44,9 +44,13 @@ jobs:
       # Fail before building rather than after. Maven treats an unauthenticated upload
       # target as nothing to do and exits 0, which is how a release reports success and
       # ships nothing -- the failure mode this whole workflow exists to end.
+      # MVN_USER or MVN_USERNAME: both spellings exist across this org -- cashu-mint was
+      # provisioned with MVN_USER, later repositories with MVN_USERNAME -- and a release that
+      # fails because a secret is spelled differently is a waste of an outage. Accept either,
+      # and still refuse when neither is set, which is the case that actually matters.
       - name: Verify publish credentials are present
         env:
-          MVN_USER: ${{ secrets.MVN_USER }}
+          MVN_USER: ${{ secrets.MVN_USER || secrets.MVN_USERNAME }}
           MVN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
         run: |
           if [ -z "${MVN_USER}" ] || [ -z "${MVN_PASSWORD}" ]; then
@@ -100,7 +104,7 @@ jobs:
       # and a signing key that is configured but unused fails the build for no benefit.
       - name: Build and deploy to Reposilite
         env:
-          MVN_USER: ${{ secrets.MVN_USER }}
+          MVN_USER: ${{ secrets.MVN_USER || secrets.MVN_USERNAME }}
           MVN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
         run: mvn -B -U clean deploy -Dgpg.skip=true
 
