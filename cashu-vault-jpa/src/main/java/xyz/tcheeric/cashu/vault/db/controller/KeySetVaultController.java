@@ -93,6 +93,32 @@ public class KeySetVaultController {
             });
         }
 
+        // Never let a store CLEAR the archived flag.
+        //
+        // Same class of bug as the keys above, found reviewing this fix: `archived` is a
+        // plain boolean defaulting to false, so a payload that simply does not mention it
+        // deserialises to false and un-archives the key set. A client that round-trips the
+        // entity is fine; one that posts a partial body — an older client, a hand-written
+        // call — silently puts a retired keyset back into service.
+        //
+        // That is not a cosmetic flag. ADR 0004 defines archived as "refuses to sign", and
+        // it is the mechanism behind keyset rotation and mint retirement.
+        //
+        // Asymmetric on purpose: false -> true is honoured, true -> false is not. Archiving
+        // through this endpoint stays possible, while un-archiving requires a deliberate
+        // call to an endpoint that names what it is doing, exactly as deleting keys does.
+        // There is no such endpoint today, which is the correct default for an operation
+        // that returns a retired signing key to service.
+        if (keySet.getId() != null && !keySet.isArchived()) {
+            keySetRepository.findById(keySet.getId())
+                    .filter(KeySetEntity::isArchived)
+                    .ifPresent(existing -> {
+                        log.info("Refusing to un-archive KeySetEntity {} on store; "
+                                + "archived is cleared only by a deliberate call", keySet.getId());
+                        keySet.setArchived(true);
+                    });
+        }
+
         KeySetEntity newKeySet = keySetRepository.save(keySet);
         log.debug("Stored KeySetEntity {}", newKeySet.getId());
         return ResponseEntity.ok(newKeySet);
