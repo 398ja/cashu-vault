@@ -8,7 +8,6 @@
     </parent>
 
     <artifactId>cashu-vault-api</artifactId>
-    <version>0.12.4</version>
     <packaging>jar</packaging>
 
     <name>cashu-vault-api</name>

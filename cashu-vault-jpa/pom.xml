@@ -9,7 +9,6 @@
     </parent>
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault-jpa</artifactId>
-    <version>0.12.4</version>
     <name>cashu-vault-jpa</name>
     <description>Cashu Vault</description>
     <url/>

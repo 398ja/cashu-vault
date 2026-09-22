@@ -1,0 +1,121 @@
+name: Release
+
+# Restores publishing, which this repository lost silently.
+#
+# .github/workflows/release.yml was deleted as collateral by 7d9da2a, a commit titled
+# "docs: update PR submission guidelines and quality gate requirements". Since then
+# v0.12.2, v0.12.3 and v0.12.4 have all been tagged and none has been published:
+# cashu-vault-api 0.12.1 resolves, everything after it is HTTP 404.
+#
+# The damage landed on consumers rather than here. imani-bom names cashu-vault 0.12.4, so
+# cashu-mint's build could not resolve cashu-vault-api at all, and this repository's own CI
+# stayed green throughout because nothing it runs depends on the artifacts existing.
+#
+# The workflow being restored is NOT the one that was deleted. That version authenticated
+# against GitHub Packages (server ids github-vault-releases / github-vault-snapshots) while
+# the pom's distributionManagement points at Reposilite, so it could not have published to
+# the registry consumers actually read. This one targets Reposilite, and verifies afterwards.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish and verify, e.g. 0.12.4'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Fail before building rather than after. Maven treats an unauthenticated upload
+      # target as nothing to do and exits 0, which is how a release reports success and
+      # ships nothing -- the failure mode this whole workflow exists to end.
+      - name: Verify publish credentials are present
+        env:
+          MVN_USER: ${{ secrets.MVN_USER }}
+          MVN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
+        run: |
+          if [ -z "${MVN_USER}" ] || [ -z "${MVN_PASSWORD}" ]; then
+            echo "::error::MVN_USER/MVN_PASSWORD are not set on this repository."
+            echo "::error::The deploy would publish nothing and still report success."
+            echo "::error::cashu-mint uses these same names; add them under"
+            echo "::error::Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Check the tag matches the pom version
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          want="${VERSION#v}"
+          have=$(mvn -q -B -N help:evaluate -Dexpression=project.version -DforceStdout)
+          if [ "${want}" != "${have}" ]; then
+            echo "::error::tag says ${want} but the root pom says ${have}"
+            exit 1
+          fi
+          echo "releasing ${have}"
+
+      # The step above reads only the ROOT pom, so a root-only bump would pass it while
+      # leaving the modules behind.
+      - name: Check every module is at the root version
+        run: python3 .github/scripts/check-module-versions.py
+
+      - name: Configure Maven settings
+        run: |
+          mkdir -p "${HOME}/.m2"
+          cat <<'EOF' > "${HOME}/.m2/settings.xml"
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>reposilite-releases</id>
+                <username>${env.MVN_USER}</username>
+                <password>${env.MVN_PASSWORD}</password>
+              </server>
+              <server>
+                <id>reposilite-snapshots</id>
+                <username>${env.MVN_USER}</username>
+                <password>${env.MVN_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      # gpg.skip matches how cashu-mint releases: Reposilite does not require signatures,
+      # and a signing key that is configured but unused fails the build for no benefit.
+      - name: Build and deploy to Reposilite
+        env:
+          MVN_USER: ${{ secrets.MVN_USER }}
+          MVN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
+        run: mvn -B clean deploy -Dgpg.skip=true
+
+      # The gate. Without it, "the workflow is green" and "the artifacts exist" remain two
+      # different statements, which is precisely how 0.12.2 through 0.12.4 went missing
+      # without anyone noticing for seven months.
+      - name: Verify the artifacts are resolvable
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: python3 .github/scripts/verify-published.py
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
