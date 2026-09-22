@@ -4,7 +4,7 @@
 
     <groupId>xyz.tcheeric</groupId>
     <artifactId>cashu-vault</artifactId>
-    <version>0.12.4</version>
+    <version>0.12.5</version>
     <packaging>pom</packaging>
 
     <name>cashu-vault</name>
@@ -35,7 +35,7 @@
         <tomcat.version>10.1.59</tomcat.version>
 
         <!-- Cashu Library -->
-        <cashu-lib.version>0.30.0</cashu-lib.version>
+        <cashu-lib.version>0.30.5</cashu-lib.version>
 
         <!-- Database Dependencies -->
         <postgresql.version>42.7.7</postgresql.version>

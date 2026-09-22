@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.5] - 2026-09-22
+
+### Security
+
+- **BouncyCastle 1.84 -> 1.85 for CVE-2026-8763 (CRITICAL).** X.509 Name Constraints can be
+  bypassed with a trailing dot in an `rfc822Name` or URI, so a certificate can assert a name
+  the constraint exists to forbid.
+
+  This repository pins BouncyCastle locally rather than importing `imani-bom`, so fixing the
+  BOM did not reach it. Found by this repository's own dependency scan, which had been red on
+  every run and which had been dismissed as pre-existing noise without reading what it said —
+  the same mistake the scan was rebuilt to prevent.
+
+### Fixed
+
+- **A partial store no longer un-archives a retired key set.** `archived` is a plain boolean
+  defaulting to false, so a store payload that simply does not mention it deserialised to
+  false and cleared the flag. A client that round-trips the entity sends it and is fine; a
+  partial body — an older client, a hand-written call — silently un-archived.
+
+  That is not cosmetic. ADR 0004 defines archived as *"refuses to sign"*, and it is the
+  mechanism behind keyset rotation and mint retirement, so clearing it returns a retired
+  signing keyset to service.
+
+  Asymmetric deliberately: `false -> true` is honoured, `true -> false` is not. Archiving
+  through this endpoint keeps working; un-archiving would need an endpoint that names what it
+  does, and the absence of one is the right default for that operation.
+
+  Same class of defect as 0.12.3's `orphanRemoval` data loss, one field over, and found by
+  asking what else shared that shape.
+
+### Added
+
+- **Publishing is restored.** `.github/workflows/release.yml` was deleted as collateral by a
+  commit titled *"docs: update PR submission guidelines"*, and since then v0.12.2, v0.12.3 and
+  v0.12.4 were all tagged and none published — `cashu-vault-api` 0.12.1 resolves and
+  everything after it is a 404.
+
+  The cost landed on consumers rather than here: `imani-bom` names cashu-vault 0.12.4, so
+  `cashu-mint` could not resolve `cashu-vault-api` on a clean runner at all, while this
+  repository's own CI stayed green throughout because nothing it runs depends on its artifacts
+  existing.
+
+  The restored workflow is deliberately **not** the deleted one. That version authenticated
+  against GitHub Packages while `distributionManagement` points at Reposilite, so it could not
+  have published to the registry consumers read. This one targets Reposilite, refuses to start
+  without credentials, and verifies afterwards that every module resolves.
+
+- A test that archiving a key set keeps its keys. `archive()` is safe today because it saves
+  the managed instance, but it is the same load-flip-save shape that caused the 0.12.3 data
+  loss, and an archived keyset still has to verify proofs already issued under it.
+
+### Changed
+
+- Module poms no longer declare their own `<version>`; they inherit it. Declaring both is
+  exactly the setup that produced `imani-wallet-lib`'s 0.1.40 partial release, where a root
+  bump left every module behind and the build stayed green. Coordinates are unchanged.
+- `cashu-lib` 0.30.0 -> 0.30.5.
+- CI forces a dependency re-check (`-U`), so a cached resolution failure does not outlive the
+  publication that fixes it.
+
+### Notes for operators
+
+- **`MVN_USER` and `MVN_PASSWORD` must be set on this repository before a tag will publish
+  anything.** Present secrets are `GPG_PASSPHRASE`, `GPG_PRIVATE_KEY` and `QODANA_TOKEN`;
+  `cashu-mint` uses the `MVN_*` names. Until they exist the workflow fails on its first step
+  with an explicit message, which is deliberate — the alternative is what has happened since
+  February.
+
+- **0.12.4 remains unpublished, and `cashu-mint` cannot build on a clean runner until either
+  it or this release lands in the registry.**
+
 ## [0.12.4] - 2026-09-22
 
 ### Fixed
