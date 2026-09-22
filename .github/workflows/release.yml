@@ -66,7 +66,15 @@ jobs:
           VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           want="${VERSION#v}"
-          have=$(mvn -q -B -N help:evaluate -Dexpression=project.version -DforceStdout)
+          # Read the version from the XML rather than asking Maven. help:evaluate has to
+          # build an effective model, which means resolving whatever the pom imports -- and
+          # this step runs BEFORE settings.xml is written, so on a private-registry project
+          # it can fail for want of credentials and print its error into the captured
+          # stdout, reporting a credentials problem as a version mismatch.
+          #
+          # This pom imports no BOM, so it happens to work today. imani-wallet-lib's
+          # identical step did not, which is the only reason the difference was noticed.
+          have=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('pom.xml').getroot().findtext('{http://maven.apache.org/POM/4.0.0}version'))")
           if [ "${want}" != "${have}" ]; then
             echo "::error::tag says ${want} but the root pom says ${have}"
             exit 1
