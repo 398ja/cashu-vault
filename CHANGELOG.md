@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.3] - 2026-09-22
+
+### Fixed
+
+- **Re-storing a key set deleted every key it had.** `KeySetEntity.keys` is
+  `@OneToMany(orphanRemoval = true)` and also `@JsonIgnore`, so a key set arriving at
+  `POST /vault/keyset` always deserialised with an empty collection. Saving it told
+  Hibernate the set no longer had any keys, and orphanRemoval deleted all of them — so
+  an idempotent re-store, which callers perform expecting a no-op, silently destroyed
+  the key material instead.
+
+  This was not theoretical. It wiped all 24 keys of a live staging keyset, leaving a
+  mint that advertised the keyset with zero keys and could not sign a single proof.
+  Only the database rows were lost, because the private keys themselves live in
+  HashiCorp Vault — which is the sole reason the keyset was recoverable at all.
+
+  An empty payload now means "I am not describing keys", not "this key set has none":
+  `store` carries the existing keys forward. Deleting keys is deliberate work and
+  belongs to the key endpoints, which name what they remove.
+
+  `store` is now `@Transactional`, and that is load-bearing rather than decoration:
+  `keys` is lazy, so without a session spanning the read and the save the carried-over
+  collection would be empty and orphanRemoval would fire anyway.
+
+### Notes for operators
+
+- If a deployment has a keyset whose `/v1/keys` entry is empty, its `t_key` rows were
+  deleted by this bug. The Vault secrets are intact; the rows can be rebuilt from the
+  mint's seed fixture, which is why recovery is possible at all.
+
 ## [0.12.2] - 2026-09-22
 
 ### Fixed

@@ -19,6 +19,7 @@ import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.List;
 import java.util.Set;
@@ -53,15 +54,45 @@ public class KeySetVaultController {
     private final KeySetRepository keySetRepository;
 
     /**
-     * Stores a new key set entity.
+     * Stores a key set entity.
      *
      * @param keySet key set to persist
      * @return stored key set entity
      * @throws CashuErrorException if the key set cannot be persisted
      */
     @PostMapping
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<KeySetEntity> store(@RequestBody KeySetEntity keySet) throws CashuErrorException {
         log.info("Storing KeySetEntity {}", keySet.getId());
+
+        // Carry the existing keys onto the incoming entity before saving.
+        //
+        // KeySetEntity.keys is @OneToMany(orphanRemoval = true) AND @JsonIgnore, so a
+        // key set arriving over REST ALWAYS deserialises with an empty collection. Saving
+        // it as-is told Hibernate the set now has no keys, and orphanRemoval deleted every
+        // one of them. Re-storing a key set — which callers do idempotently, expecting a
+        // no-op — silently destroyed its key material.
+        //
+        // This is not hypothetical: it wiped all 24 keys of a live keyset on staging,
+        // leaving a mint that advertised the keyset with zero keys and could not sign.
+        // The private keys survived only because they live in HashiCorp Vault and it was
+        // the path rows that were lost.
+        //
+        // An empty payload therefore means "I am not describing keys", not "this key set
+        // has none". Deleting keys is deliberate work and belongs to the key endpoints,
+        // which name what they remove.
+        //
+        // @Transactional is load-bearing, not decoration. `keys` is lazy, so without a
+        // session open across the read and the save the collection cannot initialise:
+        // the copy would be empty and orphanRemoval would fire regardless. size() forces
+        // it while the session is still there.
+        if (keySet.getId() != null && keySet.getKeys().isEmpty()) {
+            keySetRepository.findById(keySet.getId()).ifPresent(existing -> {
+                existing.getKeys().size();
+                keySet.setKeys(new LinkedHashSet<>(existing.getKeys()));
+            });
+        }
+
         KeySetEntity newKeySet = keySetRepository.save(keySet);
         log.debug("Stored KeySetEntity {}", newKeySet.getId());
         return ResponseEntity.ok(newKeySet);
