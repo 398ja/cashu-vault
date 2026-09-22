@@ -86,16 +86,24 @@
                  bitcoinj. Managed here so the provider cannot drift back to a
                  vulnerable version through a transitive path nobody reads.
                  NOT 1.83: OSV reports it as carrying more vulnerabilities than
-                 the 1.81 it would replace. -->
+                 the 1.81 it would replace.
+
+                 1.84 to 1.85 for CVE-2026-8763 (CRITICAL): X.509 Name
+                 Constraints can be bypassed with a trailing dot in an
+                 rfc822Name or URI, so a certificate can assert a name the
+                 constraint exists to forbid. This repository pins its own
+                 versions rather than importing imani-bom, so fixing the BOM
+                 did not reach it. That is the cost of the second copy, and
+                 the reason the dependency scan here is worth keeping. -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.84</version>
+                <version>1.85</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15to18</artifactId>
-                <version>1.84</version>
+                <version>1.85</version>
             </dependency>
 
             <!-- Import Spring Boot BOM -->
