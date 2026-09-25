@@ -49,6 +49,25 @@ public class KeyEntity extends BaseEntity {
     @ToString.Exclude
     private String privateKey;
 
+    /**
+     * Public key derived from the signing key, as compressed secp256k1 hex.
+     *
+     * <p>Persisted, unlike {@link #privateKey}, so that the batch endpoint can answer it and a
+     * caller publishing a keyset needs no per-key read (issue #146). Before this field existed,
+     * loading one keyset cost one HTTP round trip and one HashiCorp read per key purely to fetch
+     * a private key, derive the public key from it, and throw the private key away: 424 key GETs
+     * for 58 distinct key ids over six measured swaps on staging.
+     *
+     * <p>Storing it widens nothing. This value is what the mint already publishes on
+     * {@code /v1/keys} under NUT-01, and it is derived rather than secret.
+     *
+     * <p>Nullable because rows written before the V12 migration carry no derived value.
+     * {@code DBKeySetVault.load} falls back to deriving from the private key for those.
+     */
+    @JsonProperty
+    @Column(name = "public_key", length = 66)
+    private String publicKey;
+
     /** Reference to the secret stored in HashiCorp Vault. */
     @JsonProperty
     @Column(name = "vault_path", nullable = false, length = 512)

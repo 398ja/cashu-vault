@@ -5,6 +5,7 @@ import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
+import xyz.tcheeric.cashu.vault.api.KeyPublicKeys;
 import xyz.tcheeric.cashu.vault.api.KeyVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
@@ -38,6 +39,11 @@ public final class HCKeyVault extends DBVault<KeyEntity> implements KeyVault {
             throw new CashuErrorException("Private key must not be null");
         }
         keyEntity.setKeySet(getKeySet(keyEntity));
+
+        // Derived and recorded here because this is the last point at which the private key is
+        // in hand. Once it is in HashiCorp Vault, recovering the public key costs a secret read
+        // per key, which is the round trip issue #146 removed.
+        KeyPublicKeys.stampOn(keyEntity);
 
         // Store private key in HashiCorp Vault
         String path = buildPath(keyEntity);
