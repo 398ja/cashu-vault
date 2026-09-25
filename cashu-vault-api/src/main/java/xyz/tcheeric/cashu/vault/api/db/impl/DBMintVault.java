@@ -56,6 +56,27 @@ public final class DBMintVault extends DBVault<MintEntity> {
         return mintEntity;
     }
 
+    /**
+     * Every mint, each populated with one generation of its keysets: the active
+     * keysets when {@code archive} is false, the retired ones when it is true.
+     *
+     * <p>{@code archive} selects a keyset generation here, not a set of mints. The two
+     * archived flags are independent: a keyset retires while its mint goes on operating,
+     * which is ordinary NUT-02 rotation rather than an edge case. The V5 migration exists
+     * to permit exactly that, replacing UNIQUE (unit, mint_id) with an index unique only
+     * where {@code archived = false} so retired keysets may accumulate under a live mint.
+     * On the one real deployment measured, all three archived keysets hung off mints that
+     * were themselves active.
+     *
+     * <p>So this must not filter mints on {@code mintEntity.isArchived()}. That filter runs
+     * before the keyset loop in {@link #load(MintEntity, boolean, boolean)} and, with no
+     * archived mints, makes {@code load(true)} empty and every archived keyset unreachable
+     * through this API. That is the only path to them, and NUT-02 requires retired keysets
+     * to go on redeeming, so it would strand the funds of any wallet holding their proofs.
+     *
+     * <p>A mint therefore appears in both generations, carrying different keysets in each.
+     * A caller that concatenates the two and wants distinct mints must deduplicate by id.
+     */
     public static List<Mint> load(boolean archive) {
         VaultClient<MintEntity> vaultClient = VaultClientFactory.getClient(MintEntity.class);
         List<MintEntity> mintEntities = vaultClient.retrieveAll();
@@ -70,6 +91,20 @@ public final class DBMintVault extends DBVault<MintEntity> {
                 .toList();
     }
 
+    /**
+     * One mint, populated with the keyset generation {@code archive} selects.
+     *
+     * <p>Unlike the list overload, this one also tests the MINT's own archived flag and
+     * throws when it differs. That conflates the two independent flags: for an active mint
+     * holding retired keysets, the ordinary result of NUT-02 rotation, {@code load(id, true)}
+     * throws rather than answering the mint with its archived keysets. MeltTokensTask in
+     * cashu-mint calls exactly that, so redeeming a proof from a rotated keyset fails on a
+     * mint that is up and serving.
+     *
+     * <p>Left as-is deliberately: changing it alters an error contract callers dispatch on,
+     * which is a separate change from the list overload this commit fixes, and the two
+     * should not ride together. Tracked rather than silently widened.
+     */
     public static Mint load(UUID mintId, boolean archive) throws CashuErrorException {
         VaultClient<MintEntity> vaultClient = VaultClientFactory.getClient(MintEntity.class);
         MintEntity mintEntity = vaultClient.retrieve(mintId.toString());
@@ -80,6 +115,13 @@ public final class DBMintVault extends DBVault<MintEntity> {
         return load(mintEntity, archive, false);
     }
 
+    /**
+     * The mint that owns {@code keySetId} within the generation {@code archive} selects.
+     *
+     * <p>Free of the conflation the other two overloads had: it never tests the mint's own
+     * archived flag, so an archived keyset is still found on an active mint. Keeping it that
+     * way is what lets a rotated keyset be resolved back to its live mint.
+     */
     public static Mint load(String keySetId, boolean archive) throws CashuErrorException {
         VaultClient<MintEntity> vaultClient = VaultClientFactory.getClient(MintEntity.class);
         List<MintEntity> mintEntities = vaultClient.retrieveAll();

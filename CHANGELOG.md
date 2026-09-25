@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Keys carry their derived public key, so loading a keyset costs one call rather than one per
+  key.** `KeyEntity` gains a persisted `publicKey` column (migration `V12`), the batch endpoint
+  `GET /vault/key/keyset/{id}` returns it, and `DBKeySetVault.load` reads it straight off that
+  response.
+
+  Loading one mint used to issue one HTTP round trip, and one HashiCorp read, per key. The batch
+  call already returned every `KeyEntity`; the per-key `retrieve` existed only to obtain
+  `privateKey`, which is `@Transient` and so absent from the batch response by design. What the
+  loop then did with it was `derivePublicKey`, so every one of those round trips fetched a
+  private key in order to throw it away and keep the public one. Measured on staging over one
+  anchored window of six swaps: 424 `GET /vault/key/...` for 58 distinct key ids, a 7.3x repeat.
+
+  Two attempts to fix this from the caller side (cashu-mint#473, releases 0.38.8 and 0.38.9)
+  passed their tests and changed nothing on staging, because the fan-out is structural and
+  internal to this repo rather than caller-side.
+
+  This widens no private key exposure. The public key is not secret, is already published on
+  `/v1/keys` under NUT-01, and is derived deterministically. Private keys stay in HashiCorp
+  Vault, referenced by `vault_path`, and are still never persisted here. No private key is
+  cached: that option was considered and rejected, since it holds key material in memory longer
+  for no benefit.
+
+  `KeyPublicKeyBackfill` stamps keys provisioned before the column existed, once, on application
+  ready. Without it an existing deployment would keep paying the per-key read forever and see no
+  improvement at all. `DBKeySetVault.load` still derives for any row that remains unstamped, so
+  a keyset never silently drops a denomination.
+
+### Changed
+
+- **`DBMintVault.load(boolean archive)` documents `archive` as a keyset-generation selector.**
+  It returns every mint, each populated with one generation of its keysets: the active ones for
+  `false`, the retired ones for `true`. That was always the behaviour; what was missing was the
+  contract and any test holding it in place.
+
+  The tempting reading is that `archive` selects mints, matching `load(UUID, boolean)` which
+  throws on a mint-level mismatch. Filtering mints here is wrong and unsafe. The two `archived`
+  flags are independent: a keyset retires while its mint keeps operating, which is ordinary
+  NUT-02 rotation. The V5 migration exists to allow precisely that, replacing
+  `UNIQUE (unit, mint_id)` with an index unique only `WHERE archived = false` so retired keysets
+  accumulate under a live mint. On the one real deployment measured, all three archived keysets
+  hung off mints that were themselves active.
+
+  A mint filter runs before the keyset loop, so with no archived mints `load(true)` returns
+  empty and every archived keyset becomes unreachable through the only API that exposes them.
+  NUT-02 requires retired keysets to go on redeeming, so that would strand the funds of any
+  wallet holding their proofs. Two tests now pin this down, including the
+  active-mint-owning-an-archived-keyset case.
+
+### Known issues
+
+- **`DBMintVault.load(UUID, boolean)` conflates the mint and keyset `archived` flags.** It
+  throws when the mint's own flag differs from `archive`, so `load(id, true)` on an active mint
+  holding retired keysets fails instead of returning them. cashu-mint's `MeltTokensTask` calls
+  exactly that. Not changed here because it alters an error contract callers dispatch on, which
+  does not belong in the same change as the list overload.
+
+- **`CrossMintCheckStateMerger` in cashu-mint runs two `CheckStateTask`s per mint.** It
+  concatenates `load(false)` and `load(true)`, and since a mint legitimately appears in both
+  generations the union holds each mint twice. The deduplication belongs at that call site,
+  keyed by mint id; it cannot be fixed here without breaking keyset reachability.
+
 ## [0.12.5] - 2026-09-22
 
 ### Security
