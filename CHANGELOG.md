@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-25
+
+Minor rather than patch: `KeyEntity` gains a persisted column and the release carries a schema
+migration (`V12`), so a deployment cannot be rolled back to 0.12.x without dropping it.
+
+The performance effect is **not yet measured on a deployment.** The unit tests prove loading a keyset
+issues one call per keyset instead of one per key, but two prior caller-side attempts at the same
+problem (cashu-mint 0.38.8 and 0.38.9) also had clean unit tests and changed nothing on staging.
+cashu-mint#473 stays open until a re-measure with the anchored harness says otherwise.
+
 ### Added
 
 - **Keys carry their derived public key, so loading a keyset costs one call rather than one per
