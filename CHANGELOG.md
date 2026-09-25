@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-25
+
+Minor rather than patch: the JPA cascade behaviour of `ProofEntity` and `MintEntity` changes. No
+schema migration, but a deployment that relied on saving a proof to also create its mint would now
+fail, so this is not a drop-in patch.
+
+### Fixed
+
+- **Binding proofs to a hold no longer costs more as the mint issues more proofs.**
+  `ProofEntity.mint` was `@ManyToOne(cascade = CascadeType.ALL)` while `MintEntity.proofs` cascaded
+  `PERSIST/MERGE` back, so saving one proof reached the mint, which reached every proof the mint had
+  ever issued. Cascades removed on both sides, and on `MintEntity.keySets` for the same reason.
+
+  Nothing in the codebase adds to either collection, so the cascades were never load-bearing: proofs
+  and keysets are written through their own repositories with `mint_id` set.
+
+  **This was the dominant term in swap latency.** On staging with 12,778 proof rows, one
+  `insertOrClaim` binding 4 proofs ran 67 statements, 4 of them a full
+  `SELECT ... FROM t_proof WHERE mint_id=?` at 20-29ms each, and took **877ms**. Only 100ms of that
+  was SQL: the remaining 89% was the JVM materialising ~51,000 entities and discarding them. Because
+  the cost tracked total proofs ever issued rather than swap size, it grew without bound and
+  projected past the mint's 5s slow-call breaker at roughly 70,000 proofs. This also explains why
+  cashu-mint#473 cut swap key lookups from 74.4 to 23.2 and moved swap p99 by 3ms: it optimised a
+  term that was never dominant.
+
+- **Concurrent swaps no longer collide on the mint row.** The same cascade bumped `MintEntity`'s
+  `@Version` on every proof write, so two swaps against one mint raced on the parent. Staging logged
+  **52 optimistic-locking failures in 24 hours** naming `MintEntity`, surfacing to the mint as 409s.
+  The new `ProofHoldInsertCostTest` reproduced this as a 409 before the fix.
+
+- **The mint audit log no longer records a revision per proof.** `MintEntity` is `@Audited`, so each
+  cascaded touch made Envers write a mint revision plus a `revinfo` row. Staging held **10,437
+  `t_mint_a` rows for 3 mints** (0.82 per proof), none describing an actual change to a mint, which
+  buried real mint history in cascade noise.
+
 ## [0.13.0] - 2026-09-25
 
 Minor rather than patch: `KeyEntity` gains a persisted column and the release carries a schema
