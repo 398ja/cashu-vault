@@ -9,9 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.14.0] - 2026-09-25
 
-Minor rather than patch: the JPA cascade behaviour of `ProofEntity` and `MintEntity` changes. No
-schema migration, but a deployment that relied on saving a proof to also create its mint would now
-fail, so this is not a drop-in patch.
+Minor rather than patch: the JPA cascade behaviour of `ProofEntity`, `MintEntity` and `KeySetEntity`
+changes. No schema migration, but a deployment that relied on saving a proof or key set to also
+create its mint would now fail, so this is not a drop-in patch.
+
+**Verified on a deployment**, unlike 0.13.0 which shipped on unit tests alone. Same market-day load
+test, jar hash confirmed inside the running container:
+
+| | before | after |
+|---|---|---|
+| `insertOrClaim` median | 863ms | **34ms** |
+| `insertOrClaim` p95 | 1341ms | **41ms** |
+| swap median | 1304ms | **484ms** |
+| swap max | 2980ms | **918ms** |
+| optimistic-lock failures | 52 in 24h | **0** |
+| `t_mint` FK violations | 16 | **0** |
 
 ### Fixed
 
@@ -37,10 +49,21 @@ fail, so this is not a drop-in patch.
   **52 optimistic-locking failures in 24 hours** naming `MintEntity`, surfacing to the mint as 409s.
   The new `ProofHoldInsertCostTest` reproduced this as a 409 before the fix.
 
-- **The mint audit log no longer records a revision per proof.** `MintEntity` is `@Audited`, so each
+- **The mint audit log records far fewer spurious revisions.** `MintEntity` is `@Audited`, so each
   cascaded touch made Envers write a mint revision plus a `revinfo` row. Staging held **10,437
   `t_mint_a` rows for 3 mints** (0.82 per proof), none describing an actual change to a mint, which
-  buried real mint history in cascade noise.
+  buried real mint history in cascade noise. Measured after the fix: **0.17 per proof**, so the
+  cascade accounted for roughly 80% of it. The remainder is a version-only bump from a different
+  caller (`updated_at` is untouched and only mint *retrievals* appear in the window), not from the
+  proof write path. Tracked separately in #150.
+
+- **Storing a key set can no longer attempt to delete its mint.** `KeySetEntity.mint` was also
+  `CascadeType.ALL`, and that includes `REMOVE`: staging logged **16 `violates foreign key
+  constraint` errors on `t_mint`** raised from `KeySetVaultController.store`. Zero since the fix.
+
+`KeySetEntity.keys` deliberately keeps its cascade. That collection is genuinely written through the
+parent (`KeySetVaultController` repopulates it on re-store, the guard added in 0.13.0 after all 24
+keys of a live keyset were deleted), so it is load-bearing where the mint relations were not.
 
 ## [0.13.0] - 2026-09-25
 
