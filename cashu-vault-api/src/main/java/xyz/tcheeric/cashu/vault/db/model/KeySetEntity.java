@@ -65,9 +65,17 @@ public class KeySetEntity extends BaseEntity {
     @Column(name = "input_fee_ppk", nullable = false)
     private int inputFeePpk;
 
-    /** Mint to which this key set belongs. */
+    /**
+     * Mint to which this key set belongs.
+     *
+     * <p>Deliberately not cascading, for the reasons documented on
+     * {@code ProofEntity.mint}. {@code CascadeType.ALL} here also included
+     * {@code REMOVE}, so storing a key set could attempt to delete its mint: staging
+     * logged 16 {@code violates foreign key constraint} errors on {@code t_mint} raised
+     * from {@code KeySetVaultController.store}.
+     */
     @JsonProperty
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "mint_id")
     private MintEntity mint;
 

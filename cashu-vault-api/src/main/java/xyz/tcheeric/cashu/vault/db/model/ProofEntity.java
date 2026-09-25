@@ -1,7 +1,6 @@
 package xyz.tcheeric.cashu.vault.db.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -57,8 +56,25 @@ public class ProofEntity extends BaseEntity {
     /** Spent state constant. */
     public static final String STATE_SPENT = "SPENT";
 
-    /** Mint that issued this proof. */
-    @ManyToOne(cascade = CascadeType.ALL, optional = false)
+    /**
+     * Mint that issued this proof.
+     *
+     * <p>Deliberately not cascading. A proof is written with its {@code mint_id} and the
+     * mint already exists: the proof is the child, and nothing about writing one should
+     * reach back into the parent. Cascading here did reach back, and because
+     * {@code MintEntity.proofs} cascaded {@code PERSIST/MERGE} onward, saving a single
+     * proof pulled in every proof the mint had ever issued.
+     *
+     * <p>Three separate faults came from that, all measured on staging at 12,778 proof
+     * rows. Binding 3-8 proofs to a hold took a median of 863ms, dominated by hydrating
+     * the collection once per inserted proof, and the cost grew with total proofs ever
+     * issued rather than with the size of the swap. Every proof write also bumped the
+     * mint's {@code @Version}, so concurrent swaps collided on the parent row: 52
+     * optimistic-locking failures in 24 hours, surfacing to the mint as 409s. And each
+     * cascaded touch made Envers record a mint revision, leaving 3 mints with 10,437
+     * audit rows that describe no actual change to a mint.
+     */
+    @ManyToOne(optional = false)
     @JoinColumn(name = "mint_id", nullable = false)
     @JsonProperty
     private MintEntity mint;
