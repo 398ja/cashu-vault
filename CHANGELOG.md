@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keys carry their derived public key, so loading a keyset costs one call rather than one per
   key.** `KeyEntity` gains a persisted `publicKey` column (migration `V12`), the batch endpoint
   `GET /vault/key/keyset/{id}` returns it, and `DBKeySetVault.load` reads it straight off that
-  response.
+  response (#146).
 
   Loading one mint used to issue one HTTP round trip, and one HashiCorp read, per key. The batch
   call already returned every `KeyEntity`; the per-key `retrieve` existed only to obtain
@@ -27,9 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   This widens no private key exposure. The public key is not secret, is already published on
   `/v1/keys` under NUT-01, and is derived deterministically. Private keys stay in HashiCorp
-  Vault, referenced by `vault_path`, and are still never persisted here. No private key is
-  cached: that option was considered and rejected, since it holds key material in memory longer
-  for no benefit.
+  Vault, referenced by `vault_path`, and are still never persisted here. Caching `privateKey` in
+  memory was considered and rejected: it holds key material in memory longer for no benefit.
 
   `KeyPublicKeyBackfill` stamps keys provisioned before the column existed, once, on application
   ready. Without it an existing deployment would keep paying the per-key read forever and see no

@@ -5,6 +5,7 @@ import xyz.tcheeric.cashu.common.Keys;
 import xyz.tcheeric.cashu.common.PrivateKey;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.api.DBVault;
+import xyz.tcheeric.cashu.vault.api.KeyPublicKeys;
 import xyz.tcheeric.cashu.vault.api.KeyVault;
 import xyz.tcheeric.cashu.vault.api.VaultClientFactory;
 import xyz.tcheeric.cashu.vault.db.client.KeySetVaultClient;
@@ -44,6 +45,9 @@ public final class DBKeyVault extends DBVault<KeyEntity> implements KeyVault {
     @Override
     public KeyEntity store(KeyEntity keyEntity) throws CashuErrorException {
         keyEntity.setKeySet(getKeySet(keyEntity));
+        // Recorded on write so the batch endpoint can answer it, which is what lets
+        // DBKeySetVault.load cost one call per keyset rather than one per key (issue #146).
+        KeyPublicKeys.stampOn(keyEntity);
         return client.store(keyEntity);
     }
 
