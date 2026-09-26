@@ -13,6 +13,7 @@ import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -21,36 +22,98 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DBProofVaultTest {
 
+    // Storing a proof resolves its mint and inserts it through the generic client.
     @Test
-    void storeArchiveDeleteUseClients() throws Exception {
+    void storeResolvesTheMintAndInserts() throws Exception {
         MintEntity mint = new MintEntity();
         ProofEntity entity = new ProofEntity();
         entity.setMint(mint);
 
         @SuppressWarnings("unchecked")
         VaultClient<ProofEntity> client = mock(VaultClient.class);
-        when(client.retrieve(anyString())).thenReturn(entity);
         @SuppressWarnings("unchecked")
         VaultClient<MintEntity> mintClient = mock(VaultClient.class);
         when(mintClient.retrieve(anyString())).thenReturn(mint);
-        ProofClient proofClient = mock(ProofClient.class);
 
         try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
             factory.when(() -> VaultClientFactory.getClient(MintEntity.class)).thenReturn(mintClient);
-            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
 
             DBProofVault vault = new DBProofVault(client);
 
             vault.store(entity);
             verify(mintClient).retrieve(mint.getId().toString());
             verify(client).store(entity);
+        }
+    }
 
-            vault.archive(entity.getId().toString());
-            verify(client).retrieve(entity.getId().toString());
-            verify(proofClient).store(argThat(ProofEntity::isArchived));
+    // Archiving calls the archive endpoint and never re-posts the row to the insert-only store.
+    @Test
+    void archiveUsesTheArchiveEndpointNotStore() throws Exception {
+        ProofClient proofClient = mock(ProofClient.class);
+        ProofEntity archived = new ProofEntity();
+        archived.setArchived(true);
+        when(proofClient.archive("proof-id")).thenReturn(archived);
 
-            vault.delete(entity.getId().toString());
-            verify(proofClient).delete(entity.getId().toString());
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            ProofEntity result = new DBProofVault(proofClient).archive("proof-id");
+
+            assertThat(result.isArchived()).isTrue();
+            verify(proofClient, never()).store(any());
+        }
+    }
+
+    // Deleting a proof is refused on the client too, and no DELETE request is ever sent.
+    @Test
+    void deleteIsRefusedWithoutCallingTheVault() {
+        ProofClient proofClient = mock(ProofClient.class);
+
+        assertThatThrownBy(() -> new DBProofVault(proofClient).delete("proof-id"))
+                .isInstanceOf(CashuErrorException.class)
+                .hasMessageContaining("cannot be deleted");
+        verifyNoInteractions(proofClient);
+    }
+
+    // Invalidating a proof asks the vault to mark it spent by mint and secret, and never
+    // re-posts the whole row with its state changed.
+    @Test
+    void invalidateMarksSpentWithoutOverwritingTheRow() throws Exception {
+        MintEntity mint = new MintEntity();
+        ProofEntity stored = new ProofEntity();
+        stored.setMint(mint);
+        stored.setSecret("y-point");
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.retrieve(stored.getId().toString())).thenReturn(stored);
+        when(proofClient.markSpent(mint.getId().toString(), java.util.List.of("y-point"))).thenReturn(1);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            ProofEntity result = new DBProofVault(proofClient).invalidate(stored.getId().toString());
+
+            assertThat(result.getState()).isEqualTo(ProofEntity.STATE_SPENT);
+            verify(proofClient).markSpent(mint.getId().toString(), java.util.List.of("y-point"));
+            verify(proofClient, never()).store(any());
+        }
+    }
+
+    // Invalidation fails loudly when the vault does not report the proof as spent afterwards.
+    @Test
+    void invalidateFailsWhenTheProofIsNotSpentAfterwards() {
+        MintEntity mint = new MintEntity();
+        ProofEntity stored = new ProofEntity();
+        stored.setMint(mint);
+        stored.setSecret("y-point");
+        ProofClient proofClient = mock(ProofClient.class);
+        when(proofClient.retrieve(stored.getId().toString())).thenReturn(stored);
+        when(proofClient.markSpent(anyString(), any())).thenReturn(0);
+
+        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+            factory.when(VaultClientFactory::proofClient).thenReturn(proofClient);
+
+            assertThatThrownBy(() -> new DBProofVault(proofClient).invalidate(stored.getId().toString()))
+                    .isInstanceOf(CashuErrorException.class);
         }
     }
 

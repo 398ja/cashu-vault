@@ -19,6 +19,22 @@ The `docker.env` file is gitignored to prevent credentials from being committed.
 | `cashu_vault_port` | `3333` | Port the vault service listens on |
 | `VAULT_BASE_URL` | `http://localhost:3333` | Base URL used by `VaultClient` for REST calls |
 | `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile (`prod` for PostgreSQL, default for H2) |
+| `VAULT_API_TOKEN` | - (required) | The mint's credential (`vault.api.token`). May read and write. The service refuses to start without it. |
+| `VAULT_API_READ_TOKEN` | - (optional) | Read-only credential (`vault.api.read-token`). May issue `GET` and `HEAD` only. Give it to monitoring and operator tooling instead of the mint's token. Must differ from `VAULT_API_TOKEN`. |
+
+Neither credential can delete a proof: that endpoint no longer exists.
+
+## Network exposure
+
+The shipped `docker-compose.yml` publishes **no** port on the host. PostgreSQL
+(5432), the vault API (3333) and HashiCorp Vault (8200) are reachable only on the
+compose network. `t_proof` is the mint's only record of spent proofs, and a
+published 5432 lets anyone with the database password bypass the API. Attach the
+mint to the compose network instead of adding a `ports:` mapping, and use
+`docker compose exec` for admin access.
+
+The database role the service connects as should not own `t_proof` and should not
+be a superuser, because either can disable the trigger that keeps `SPENT` final.
 
 ## PostgreSQL
 

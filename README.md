@@ -24,7 +24,9 @@ cp docker.env.example docker.env
 docker compose up --build
 ```
 
-The vault service listens on `http://localhost:3333`, PostgreSQL on `5432`, and HashiCorp Vault on `8200`. Private keys are stored in HashiCorp Vault by default.
+The vault service listens on port `3333`, PostgreSQL on `5432`, and HashiCorp Vault on `8200`, all on the compose network only: none is published on the host (see [Network exposure](docs/reference/configuration.md#network-exposure)). Private keys are stored in HashiCorp Vault by default.
+
+Proof rows are insert-only and a `SPENT` proof is final: there is no delete endpoint, and in PostgreSQL a trigger refuses to undo a spend (cashu-vault#154).
 
 ## Building
 
