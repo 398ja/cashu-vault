@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
@@ -61,6 +62,23 @@ public class GlobalExceptionHandler {
         log.warn("Optimistic locking failure", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("Conflict detected: the resource was modified by another request");
+    }
+
+    /**
+     * A method the path does not support is the caller's mistake, not the server's.
+     *
+     * <p>Without this the catch-all below answered 500. It matters now that {@code DELETE
+     * /vault/proof/{id}} has been removed (cashu-vault#154): a caller still sending it must be
+     * told plainly that it is not allowed, not that the vault is broken.
+     *
+     * @param ex the unsupported-method exception
+     * @return 405 Method Not Allowed
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<String> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        log.warn("Method not allowed: {}", ex.getMethod());
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body("Method not allowed");
     }
 
     /**

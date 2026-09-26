@@ -116,8 +116,18 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
     String CONSTRAINT_MINT_COMMITMENT = "uk_proof_mint_commitment";
 
     /**
-     * Stores proof if not already present (duplicate detection).
-     * Uses the unique constraint on (mint_id, secret) to prevent duplicates.
+     * Stores a proof as a new row, never as an update of an existing one.
+     *
+     * <p>The row is rebuilt from the caller's proof fields, so nothing the caller sends can make
+     * this an update. It used to {@code save()} the caller's entity as-is, and because
+     * {@code ProofEntity} is versioned, {@code save()} of an entity carrying an existing id and a
+     * non-null version is a JPA merge: a body naming an existing row's id overwrote that row. That
+     * is how the mint marked proofs spent (load, set SPENT, re-POST), and it is also how anyone
+     * holding the token could turn a SPENT row back into an UNSPENT one (cashu-vault#154).
+     *
+     * <p>A caller-supplied id is kept, so a client that reads back its own id still can, but an id
+     * that already exists is a duplicate rather than a target. The version is cleared so the
+     * repository persists instead of merging, which makes the primary key the last guard.
      *
      * @param proof proof to store
      * @return InsertResult indicating success or duplicate
@@ -133,13 +143,17 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             throw new DataIntegrityViolationException("Proof must have a mint associated");
         }
 
+        if (proof.getId() != null && existsById(proof.getId())) {
+            return new InsertResult(false, null, "Duplicate proof: id already exists");
+        }
+
         // Check for existing proof by mint and secret
         if (secret != null && existsByMint_IdAndSecret(mintId, secret)) {
             return new InsertResult(false, null, "Duplicate proof: same secret already exists for mint");
         }
 
         try {
-            ProofEntity saved = save(proof);
+            ProofEntity saved = save(buildInsertRow(proof));
             return new InsertResult(true, saved, null);
         } catch (DataIntegrityViolationException e) {
             // Only treat as duplicate if it's a unique constraint violation on our duplicate-detection constraints
@@ -149,6 +163,29 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             // Rethrow other integrity violations (NOT NULL, FK, etc.)
             throw e;
         }
+    }
+
+    /**
+     * Builds a fresh row carrying only the fields a caller may set on a new proof.
+     *
+     * <p>State is copied because {@code storePending} legitimately inserts a PENDING row; the
+     * controller has already refused any state other than UNSPENT or PENDING. Holds, the archived
+     * flag, timestamps and the version stay server-managed.
+     */
+    private static ProofEntity buildInsertRow(ProofEntity src) {
+        ProofEntity row = new ProofEntity();
+        if (src.getId() != null) {
+            row.setId(src.getId());
+        }
+        row.setVersion(null);
+        row.setMint(src.getMint());
+        row.setAmount(src.getAmount());
+        row.setSecret(src.getSecret());
+        row.setUnblindedSignature(src.getUnblindedSignature());
+        row.setWitness(src.getWitness());
+        row.setFingerprint(src.getFingerprint());
+        row.setState(src.getState() == null ? ProofEntity.STATE_UNSPENT : src.getState());
+        return row;
     }
 
     /**
@@ -166,6 +203,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         // Check for our specific unique constraint names (case-insensitive)
         return lowerMessage.contains(CONSTRAINT_MINT_SECRET.toLowerCase())
                 || lowerMessage.contains(CONSTRAINT_MINT_COMMITMENT.toLowerCase())
+                || lowerMessage.contains("pk_t_proof")
                 // Also check for generic unique violation patterns that mention our columns
                 || (lowerMessage.contains("unique") && lowerMessage.contains("secret"))
                 || (lowerMessage.contains("unique") && lowerMessage.contains("mint_id"));
@@ -255,6 +293,35 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
             + "WHERE p.holdId = :holdId "
             + "AND p.state = 'PENDING'")
     int refundToUnspent(@Param("holdId") String holdId);
+
+    /**
+     * cashu-vault#154 — the narrow SPENT transition that replaces re-posting a whole entity.
+     *
+     * <p>Moves the named proofs of one mint to SPENT from UNSPENT or PENDING, and clears any hold
+     * on them, whichever flow holds them: a proof whose spend has already happened is spent
+     * regardless of who else was about to spend it. A row already SPENT is left untouched, so a
+     * retry is harmless. Nothing here can move a row out of SPENT.
+     *
+     * @param secrets Y-normalised secrets of the proofs to mark
+     * @param mintId  mint that owns the proofs
+     * @return number of rows this call transitioned
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.holdKind = NULL "
+            + "WHERE p.mint.id = :mintId "
+            + "AND p.secret IN :secrets "
+            + "AND p.state IN ('UNSPENT', 'PENDING')")
+    int markSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
+
+    /**
+     * Counts how many of the named proofs of one mint are SPENT. Paired with
+     * {@link #markSpent} so the caller learns whether every proof it spent is now recorded as
+     * spent, including the ones an earlier attempt already marked.
+     */
+    @Query("SELECT COUNT(p) FROM proof p WHERE p.mint.id = :mintId "
+            + "AND p.secret IN :secrets AND p.state = 'SPENT'")
+    long countSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
 
     /**
      * Spec 002 T011 — operator-visible enumeration of proofs currently

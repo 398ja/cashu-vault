@@ -154,4 +154,21 @@ public class ProofClient extends VaultClient<ProofEntity> {
                 null, Integer.class);
         return updated == null ? 0 : updated;
     }
+
+    /**
+     * cashu-vault#154 — records the named proofs of a mint as spent, from UNSPENT or PENDING,
+     * without sending or overwriting any row. Idempotent: a proof already SPENT stays SPENT.
+     *
+     * @param mintId  mint that owns the proofs
+     * @param secrets Y-normalised proof secrets
+     * @return how many of {@code secrets} are SPENT after the call; fewer than
+     *         {@code secrets.size()} means some proof is unknown to the vault
+     */
+    public int markSpent(String mintId, java.util.List<String> secrets) {
+        log.info("POST {}/vault/proof/mint/{}/mark-spent proofs={}", getBaseUrl(), mintId, secrets.size());
+        Integer spent = restTemplate.postForObject(
+                getBaseUrl() + "/vault/proof/mint/" + mintId + "/mark-spent",
+                secrets, Integer.class);
+        return spent == null ? 0 : spent;
+    }
 }

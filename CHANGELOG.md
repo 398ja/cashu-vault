@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-26
+
+**A spent proof is final (#154).** `t_proof` is the mint's only record of spent proofs: the mint
+treats any proof this table does not call `SPENT` as fresh. Until now the API let a caller erase
+that record, so a spent proof could be made spendable again and the mint's own logs would show two
+ordinary spends.
+
+Minor rather than patch because two endpoints change contract. **Upgrade the mint to a release
+that uses `mark-spent` (cashu-mint#492) before deploying this**, or its melt fails at the burn
+step: older mints mark proofs spent by re-posting the whole row to `POST /vault/proof`, which is
+now insert-only.
+
+### Security
+
+- **`DELETE /vault/proof/{id}` is removed** and answers `405`. It deleted any row, `SPENT`
+  included, with no state check. `DBProofVault.delete` now refuses without calling the vault.
+- **`POST /vault/proof` is insert-only.** It saved the caller's entity as-is, and `save()` of an
+  entity carrying an existing id and version is a JPA merge, so a body naming an existing row
+  overwrote it, state included. The row is now rebuilt from the proof fields, an existing id is a
+  `409`, and a `state` other than `UNSPENT` or `PENDING` is a `400`. Server-managed fields
+  (`hold_id`, `hold_kind`, `archived`, `version`, timestamps) in the body are ignored.
+- **PostgreSQL enforces it too** (`V13__spent_proof_is_final`). A trigger refuses to delete a
+  `SPENT` row, move it out of `SPENT`, or change its `mint_id` or `secret`, and refuses `TRUNCATE`
+  on `t_proof`. A leaked credential or a psql prompt can no longer undo a spend either. H2 gets a
+  no-op migration of the same version; the trigger is covered by `SpentProofIsFinalIT` on
+  PostgreSQL.
+- **Read-only credential.** `vault.api.read-token` (`VAULT_API_READ_TOKEN`) is optional and may
+  only `GET`/`HEAD`. Give it to monitoring and operator tooling instead of the mint's token. Every
+  non-read request needs `vault.api.token`. Startup fails if the two are equal.
+- **`docker-compose.yml` publishes no host port.** PostgreSQL (5432), the vault API (3333) and
+  HashiCorp Vault (8200) are reachable on the compose network only.
+
+### Added
+
+- `POST /vault/proof/mint/{mintId}/mark-spent`: moves the named proofs of a mint from `UNSPENT` or
+  `PENDING` to `SPENT` and clears any hold, idempotently. Returns how many of the named proofs are
+  `SPENT` afterwards. Client: `ProofClient.markSpent`, `DBProofVault.markSpent`.
+
+### Changed
+
+- `DBProofVault.invalidate` goes through `mark-spent` instead of loading the row, setting `SPENT`
+  and re-posting it. `DBProofVault.archive` calls the archive endpoint instead of re-posting the
+  row. The process-local lock both used is gone, since neither is a read-modify-write any more.
+- A request with an unsupported HTTP method answers `405` instead of `500`.
+
 ## [0.14.0] - 2026-09-25
 
 Minor rather than patch: the JPA cascade behaviour of `ProofEntity`, `MintEntity` and `KeySetEntity`

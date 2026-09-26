@@ -201,17 +201,27 @@ All endpoints are served under the `/vault` base path.
 
 ## Proof
 
+The proof table is the mint's only record of spent proofs, so a proof row is
+**inserted once and then only moves forward** (cashu-vault#154). No endpoint
+overwrites a row or deletes one, and in PostgreSQL a trigger refuses to delete a
+`SPENT` row, move it out of `SPENT`, or change its `mint_id` or `secret`.
+
 ### Create proof
 - **Method:** `POST`
 - **Path:** `/vault/proof`
+- **Behaviour:** insert only. The row is rebuilt from the proof fields, so
+  server-managed fields in the body (`hold_id`, `hold_kind`, `archived`,
+  timestamps, `version`) are ignored.
 - **Body Fields:**
   - `mint.id` (UUID, required)
   - `amount` (integer, required)
   - `secret` (string, required)
   - `unblindedSignature` (string, required)
   - *(optional)* `witness` (string)
-  - *(optional)* `state` (string, default `UNSPENT`)
-  - *(optional)* `id`, `archived`, `createdAt`, `updatedAt`, `version`
+  - *(optional)* `state` (`UNSPENT` or `PENDING`, default `UNSPENT`)
+  - *(optional)* `id` (UUID). Kept if new; an id that already exists is a conflict, never an update target.
+- **Errors:** `409` if the `id`, or the `secret` for the mint, already exists.
+  `400` for any `state` other than `UNSPENT` or `PENDING`, or an unknown mint.
 - **Example response:**
 ```json
 {
@@ -265,17 +275,29 @@ All endpoints are served under the `/vault` base path.
 - **Path Parameters:** `mintId` (UUID, required), `unblindedSignature` (string, required)
 - **Example response:** proof object.
 
+### Mark spent
+- **Method:** `POST`
+- **Path:** `/vault/proof/mint/{mintId}/mark-spent`
+- **Path Parameters:** `mintId` (UUID, required)
+- **Body:** JSON array of Y-normalised secrets.
+- **Behaviour:** moves the named proofs of this mint from `UNSPENT` or `PENDING`
+  to `SPENT` and clears any hold on them. A proof already `SPENT` is left alone,
+  so retries are idempotent. Nothing can move a proof out of `SPENT`.
+- **Example response:** `200` with the number of the named proofs that are
+  `SPENT` after the call. Fewer than the number sent means some proof is unknown
+  to the vault and must be inserted first.
+- **Errors:** `400` for an empty list or a blank secret.
+
 ### Archive proof
 - **Method:** `POST`
 - **Path:** `/vault/proof/archive/{id}`
 - **Path Parameters:** `id` (UUID, required)
 - **Example response:** proof object with `archived` set to `true`.
 
-### Delete proof
-- **Method:** `DELETE`
-- **Path:** `/vault/proof/{id}`
-- **Path Parameters:** `id` (UUID, required)
-- **Example response:** `204 No Content`
+### Delete proof (removed)
+`DELETE /vault/proof/{id}` was removed in 0.15.0 and now answers `405 Method Not
+Allowed`. Deleting a `SPENT` proof made it spendable again, and the mint had no
+way to notice.
 
 
 ## Proof holds

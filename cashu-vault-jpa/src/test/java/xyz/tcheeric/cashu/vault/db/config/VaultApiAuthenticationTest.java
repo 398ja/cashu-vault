@@ -34,6 +34,9 @@ class VaultApiAuthenticationTest {
     /** Matches vault.api.token in src/test/resources/application.properties. */
     private static final String VALID_TOKEN = "test-vault-api-token";
 
+    /** Matches vault.api.read-token in src/test/resources/application.properties. */
+    private static final String READ_TOKEN = "test-vault-read-token";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -134,6 +137,68 @@ class VaultApiAuthenticationTest {
             mockMvc.perform(get("/vault/key")
                             .header(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN))
                     .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("with the read-only credential (cashu-vault#154)")
+    class ReadOnlyCredential {
+
+        // The read token can list proofs, which is what monitoring needs.
+        @Test
+        @DisplayName("can read proofs")
+        void canRead() throws Exception {
+            mockMvc.perform(get("/vault/proof")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + READ_TOKEN))
+                    .andExpect(status().isOk());
+        }
+
+        // The read token cannot insert a proof.
+        @Test
+        @DisplayName("cannot store a proof")
+        void cannotStore() throws Exception {
+            mockMvc.perform(post("/vault/proof")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + READ_TOKEN)
+                            .contentType("application/json")
+                            .content("{}"))
+                    .andExpect(status().isForbidden());
+        }
+
+        // The read token cannot change proof state, neither by marking spent nor by refunding.
+        @Test
+        @DisplayName("cannot change proof state")
+        void cannotChangeProofState() throws Exception {
+            mockMvc.perform(post("/vault/proof/mint/123e4567-e89b-12d3-a456-426614174000/mark-spent")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + READ_TOKEN)
+                            .contentType("application/json")
+                            .content("[\"y\"]"))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/vault/proof/hold/some-hold/refund")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + READ_TOKEN))
+                    .andExpect(status().isForbidden());
+        }
+
+        // The read token cannot delete anything.
+        @Test
+        @DisplayName("cannot delete")
+        void cannotDelete() throws Exception {
+            mockMvc.perform(delete("/vault/mint/123e4567-e89b-12d3-a456-426614174000")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + READ_TOKEN))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("proof deletion (cashu-vault#154)")
+    class ProofDeletion {
+
+        // Even the mint's own credential cannot delete a proof: the endpoint no longer exists.
+        @Test
+        @DisplayName("is refused even with the write credential")
+        void refusedWithWriteCredential() throws Exception {
+            mockMvc.perform(delete("/vault/proof/123e4567-e89b-12d3-a456-426614174000")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN))
+                    .andExpect(status().isMethodNotAllowed());
         }
     }
 

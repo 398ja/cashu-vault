@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -40,6 +41,14 @@ import java.util.Arrays;
  * <p>The token has no default and startup fails without one. A default would be a published
  * credential, and this service holds the funds.
  *
+ * <h2>Two credentials (cashu-vault#154)</h2>
+ *
+ * <p>{@code vault.api.token} is the mint's credential and may read and write.
+ * {@code vault.api.read-token} is optional and may only issue {@code GET} and {@code HEAD}
+ * requests. Monitoring and operator tooling should be given the read token, so that holding a
+ * credential for observation is not also holding the power to change proof state. Neither token
+ * can delete a proof: that endpoint no longer exists.
+ *
  * <p>Health stays anonymous for container probes. Every other actuator endpoint, and every
  * {@code /vault/**} path, requires the token.
  */
@@ -50,15 +59,19 @@ public class VaultSecurityConfig {
 
     private final Environment environment;
     private final String apiToken;
+    private final String readToken;
 
     public VaultSecurityConfig(Environment environment,
-                               @Value("${vault.api.token:}") String apiToken) {
+                               @Value("${vault.api.token:}") String apiToken,
+                               @Value("${vault.api.read-token:}") String readToken) {
         this.environment = environment;
         this.apiToken = apiToken;
+        this.readToken = readToken;
     }
 
     @PostConstruct
     void requireToken() {
+        requireDistinctReadToken();
         if (apiToken != null && !apiToken.isBlank()) {
             return;
         }
@@ -74,19 +87,36 @@ public class VaultSecurityConfig {
                         + "without authentication. Generate one with: openssl rand -hex 32");
     }
 
+    /**
+     * A read token equal to the write token would grant write access to everyone given the
+     * "read-only" one, which is worse than having no read token at all.
+     */
+    private void requireDistinctReadToken() {
+        if (readToken != null && !readToken.isBlank() && readToken.equals(apiToken)) {
+            throw new IllegalStateException(
+                    "vault.api.read-token (env VAULT_API_READ_TOKEN) must differ from "
+                            + "vault.api.token; a read token equal to the write token grants write.");
+        }
+    }
+
     @Bean
     public SecurityFilterChain vaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        String client = BearerTokenAuthenticationFilter.ROLE_CLIENT;
+        String reader = BearerTokenAuthenticationFilter.ROLE_READER;
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new BearerTokenAuthenticationFilter(apiToken),
+                .addFilterBefore(new BearerTokenAuthenticationFilter(apiToken, readToken),
                         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authz -> authz
                         // Container probes cannot present a credential and expose only UP/DOWN.
                         .requestMatchers(EndpointRequest.to("health")).permitAll()
-                        // Everything else, /vault/** and the remaining actuator endpoints
-                        // (metrics, prometheus) alike, needs the token.
-                        .anyRequest().authenticated())
+                        // Reads, /vault/** and the remaining actuator endpoints alike, take
+                        // either credential.
+                        .requestMatchers(HttpMethod.GET).hasAnyRole(client, reader)
+                        .requestMatchers(HttpMethod.HEAD).hasAnyRole(client, reader)
+                        // Anything that can change state needs the mint's credential.
+                        .anyRequest().hasRole(client))
                 // 401 with a WWW-Authenticate challenge, not 403. The caller is anonymous and
                 // the fix is to present a credential; 403 would say "your credential is
                 // understood and insufficient", which is a different instruction.
@@ -95,7 +125,8 @@ public class VaultSecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 }));
 
-        log.info("Vault API authentication enabled on /vault/** (bearer token).");
+        log.info("Vault API authentication enabled on /vault/** (bearer token; read-only token {}).",
+                readToken == null || readToken.isBlank() ? "not configured" : "configured");
         return http.build();
     }
 }

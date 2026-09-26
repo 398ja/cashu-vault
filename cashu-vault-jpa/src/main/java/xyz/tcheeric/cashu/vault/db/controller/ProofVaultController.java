@@ -9,7 +9,6 @@ import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,8 +27,13 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * REST controller exposing CRUD-style endpoints for {@link ProofEntity}
- * resources.
+ * REST controller for {@link ProofEntity} resources.
+ *
+ * <p>This is the mint's only record of spent proofs, so the surface is deliberately not CRUD
+ * (cashu-vault#154). A proof row is inserted once and afterwards moves only through the narrow
+ * state transitions below. There is no endpoint that overwrites a row, and none that deletes one:
+ * erasing or downgrading a SPENT row would make a spent proof spendable again, and the mint would
+ * have no way to notice.
  */
 @RestController
 @RequestMapping("/vault/proof")
@@ -38,12 +42,19 @@ import java.util.UUID;
 @Slf4j
 public class ProofVaultController {
 
+    /** States a caller may give a proof it is inserting. SPENT is reached only by transition. */
+    private static final Set<String> INSERTABLE_STATES =
+            Set.of(ProofEntity.STATE_UNSPENT, ProofEntity.STATE_PENDING);
+
     private final ProofRepository proofRepository;
     private final MintRepository mintRepository;
 
     /**
-     * Stores a new proof entity with duplicate detection.
-     * Returns 409 Conflict if the proof already exists.
+     * Inserts a new proof. Never updates an existing one.
+     *
+     * <p>Returns 409 Conflict if a proof with the same id, or the same secret for the mint,
+     * already exists, and 400 if the body asks for a state other than UNSPENT or PENDING. Moving a
+     * proof to SPENT is {@link #markSpent}'s job.
      *
      * @param proof proof to persist
      * @return stored proof entity, or 409 if duplicate
@@ -52,6 +63,11 @@ public class ProofVaultController {
     @PostMapping
     public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof) throws CashuErrorException {
         log.info("Storing ProofEntity");
+
+        if (!isInsertableState(proof.getState())) {
+            log.warn("store rejected reason=state_not_insertable state={}", proof.getState());
+            return ResponseEntity.badRequest().build();
+        }
 
         // Look up mint to get managed entity (avoid cascade issues with detached entity)
         if (proof.getMint() != null && proof.getMint().getId() != null) {
@@ -73,6 +89,43 @@ public class ProofVaultController {
 
         log.debug("Stored ProofEntity {}", result.proof().getId());
         return ResponseEntity.ok(result.proof());
+    }
+
+    private static boolean isInsertableState(String state) {
+        return state == null || INSERTABLE_STATES.contains(state);
+    }
+
+    /**
+     * cashu-vault#154 — records the named proofs of a mint as spent.
+     *
+     * <p>{@code UPDATE ... SET state='SPENT' WHERE state IN ('UNSPENT','PENDING')}, scoped to the
+     * mint, with any hold on the rows cleared. A proof already SPENT is left alone, so a retry is
+     * idempotent. Returns the number of named proofs that are SPENT once the call has run, which
+     * the caller compares with the number it sent: a shortfall means a proof the vault has never
+     * seen, and the caller must insert it before it can be spent.
+     *
+     * @param mintId  mint that owns the proofs
+     * @param secrets Y-normalised proof secrets
+     * @return how many of {@code secrets} are now SPENT
+     */
+    @PostMapping("/mint/{mintId}/mark-spent")
+    public ResponseEntity<Integer> markSpent(
+            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
+            @RequestBody List<String> secrets) {
+        if (secrets == null || secrets.isEmpty() || secrets.stream().anyMatch(ProofVaultController::isBlank)) {
+            log.warn("markSpent rejected mint={} reason=empty_or_blank_secrets", mintId);
+            return ResponseEntity.badRequest().build();
+        }
+        UUID mintUuid = UUID.fromString(mintId);
+        int transitioned = proofRepository.markSpent(secrets, mintUuid);
+        long spent = proofRepository.countSpent(secrets, mintUuid);
+        log.info("markSpent mint={} proofs={} transitioned={} spent={}",
+                mintId, secrets.size(), transitioned, spent);
+        return ResponseEntity.ok(Math.toIntExact(spent));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**
@@ -224,26 +277,6 @@ public class ProofVaultController {
             var archivedProof = proofRepository.save(proof);
             log.debug("Archived ProofEntity {}", archivedProof.getId());
             return ResponseEntity.ok(archivedProof);
-        }
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Deletes a proof entity.
-     *
-     * @param id proof identifier
-     * @return empty response on success
-     * @throws CashuErrorException if the proof does not exist
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
-        log.info("Deleting ProofEntity {}", id);
-        Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
-        if (proofOpt.isPresent()) {
-            proofRepository.delete(proofOpt.get());
-            log.debug("Deleted ProofEntity {}", proofOpt.get().getId());
-            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.noContent().build();
     }

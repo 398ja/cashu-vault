@@ -10,14 +10,12 @@ import xyz.tcheeric.cashu.vault.db.client.VaultClient;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.List;
 
 import static xyz.tcheeric.cashu.vault.api.VaultClientFactory.getClient;
 
 @Log
 public final class DBProofVault extends DBVault<ProofEntity> {
-
-    private static final ReentrantLock PROOF_STATE_LOCK = new ReentrantLock();
 
     public DBProofVault() {
         this(VaultClientFactory.getClient(ProofEntity.class));
@@ -133,38 +131,55 @@ public final class DBProofVault extends DBVault<ProofEntity> {
     }
 */
 
+    /**
+     * Marks the proof archived through the vault's archive endpoint.
+     *
+     * <p>This used to load the row, set the flag and re-POST the whole entity to the store
+     * endpoint, which only worked while store would overwrite an existing row. Store is
+     * insert-only now (cashu-vault#154).
+     */
     @Override
     public ProofEntity archive(String id) throws CashuErrorException {
-        PROOF_STATE_LOCK.lock();
-
-        try {
-            ProofClient proofClient = VaultClientFactory.proofClient();
-            ProofEntity proofEntity = retrieveEntity(id);
-            proofEntity.setArchived(true);
-            proofClient.store(proofEntity);
-            return proofEntity;
-        } finally {
-            PROOF_STATE_LOCK.unlock();
-        }
+        return VaultClientFactory.proofClient().archive(id);
     }
 
+    /**
+     * Always refuses. The vault is the mint's only record of spent proofs, so it offers no way
+     * to delete one: removing a SPENT row would make that proof spendable again (cashu-vault#154).
+     */
     @Override
     public void delete(String id) throws CashuErrorException {
-        ProofClient client = VaultClientFactory.proofClient();
-        client.delete(id);
+        throw new CashuErrorException("Proofs cannot be deleted: the vault is the record of spent proofs");
     }
 
+    /**
+     * Marks one stored proof spent, by id.
+     *
+     * <p>Resolves the row to its mint and secret, then goes through {@link #markSpent}. It no
+     * longer writes the row back with its state changed, which relied on store overwriting an
+     * existing row (cashu-vault#154).
+     *
+     * @throws CashuErrorException if the proof does not exist or is not SPENT afterwards
+     */
     public ProofEntity invalidate(String id) throws CashuErrorException {
-        PROOF_STATE_LOCK.lock();
-        try {
-            ProofClient proofClient = VaultClientFactory.proofClient();
-            ProofEntity proofEntity = retrieveEntity(id);
-            proofEntity.setState(ProofEntity.STATE_SPENT);
-            proofClient.store(proofEntity);
-            return proofEntity;
-        } finally {
-            PROOF_STATE_LOCK.unlock();
+        ProofEntity proofEntity = retrieveEntity(id);
+        String mintId = proofEntity.getMint().getId().toString();
+        if (markSpent(mintId, List.of(proofEntity.getSecret())) != 1) {
+            throw new CashuErrorException("Proof could not be marked spent");
         }
+        proofEntity.setState(ProofEntity.STATE_SPENT);
+        proofEntity.setHoldId(null);
+        proofEntity.setHoldKind(null);
+        return proofEntity;
+    }
+
+    /**
+     * cashu-vault#154 — records the named proofs of a mint as spent, from UNSPENT or PENDING.
+     *
+     * @return how many of {@code secrets} are SPENT after the call
+     */
+    public static int markSpent(String mintId, List<String> secrets) {
+        return VaultClientFactory.proofClient().markSpent(mintId, secrets);
     }
 
     // ---------------------------------------------------------------

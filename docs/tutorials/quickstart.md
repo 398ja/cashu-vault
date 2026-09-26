@@ -21,31 +21,40 @@ This guide shows how to run the Cashu Vault service with Docker Compose or direc
    ```bash
    cp docker.env.example docker.env
    ```
-   Edit `docker.env` to set your passwords. The defaults work for local development.
+   Edit `docker.env` to set your passwords, and set `VAULT_API_TOKEN` (for example
+   `openssl rand -hex 32`). The service refuses to start without it.
 
 3. Build and start all services:
    ```bash
    docker compose up --build
    ```
 
-4. When the logs show the service has started, the following services are available:
+4. When the logs show the service has started, the following services are running
+   on the compose network. None of them is published on the host:
 
-   | Service | URL |
-   |---------|-----|
-   | Cashu Vault API | http://localhost:3333 |
-   | PostgreSQL | localhost:5432 |
-   | HashiCorp Vault UI | http://localhost:8200 |
+   | Service | Address on the compose network |
+   |---------|--------------------------------|
+   | Cashu Vault API | http://cashu-vault-jpa:3333 |
+   | PostgreSQL | cashu-vault-db:5432 |
+   | HashiCorp Vault | http://hashicorp-vault:8200 |
 
-5. Test the service:
+5. Test the service from inside the network:
    ```bash
+   source docker.env
    # Create a mint
-   curl -X POST http://localhost:3333/vault/mint \
+   docker compose exec cashu-vault-jpa curl -s -X POST http://localhost:3333/vault/mint \
+     -H "Authorization: Bearer $VAULT_API_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{}'
 
    # List all mints
-   curl http://localhost:3333/vault/mint
+   docker compose exec cashu-vault-jpa curl -s http://localhost:3333/vault/mint \
+     -H "Authorization: Bearer $VAULT_API_TOKEN"
    ```
+
+   To reach a port from the host while debugging, add a
+   `docker-compose.override.yml` that publishes it on `127.0.0.1` only, and do not
+   commit it.
 
 Stop the environment with `Ctrl+C` and remove the containers with:
 ```bash
@@ -61,7 +70,7 @@ docker compose down -v
 
 Private keys are stored in HashiCorp Vault by default. The `vault-init` container automatically configures the KV v2 secrets engine at `cashu/` and sets up AppRole authentication. When keys are created, their private key material is stored in HashiCorp Vault and the database only retains a `vault_path` reference.
 
-You can inspect the HashiCorp Vault UI at http://localhost:8200 using the token from `VAULT_DEV_ROOT_TOKEN_ID` in your `docker.env`.
+To inspect the HashiCorp Vault UI, publish 8200 on `127.0.0.1` through a local override file and sign in with the token from `VAULT_DEV_ROOT_TOKEN_ID` in your `docker.env`.
 
 ## Run from Source
 
