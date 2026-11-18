@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-18
+
 **Books reconciliation, vault half (#156, cashu-mint#515).** The vault can now say how much was
 spent, on which keyset, up to a given time, without handing out any proof material.
 
