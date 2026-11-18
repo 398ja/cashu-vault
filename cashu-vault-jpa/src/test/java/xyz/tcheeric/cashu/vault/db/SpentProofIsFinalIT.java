@@ -77,6 +77,18 @@ class SpentProofIsFinalIT {
     }
   }
 
+  // V15 builds the books index CONCURRENTLY, outside a transaction. It must end up valid and
+  // partial on SPENT, or the books query falls back to a scan.
+  @Test
+  void booksIndexIsValidAndPartial() {
+    assertThat(jdbc.queryForObject(
+        "SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid "
+            + "WHERE c.relname = 'idx_proof_books_spent'", Boolean.class)).isTrue();
+    assertThat(jdbc.queryForObject(
+        "SELECT pg_get_indexdef('idx_proof_books_spent'::regclass)", String.class))
+        .contains("WHERE").contains("SPENT");
+  }
+
   // A direct UPDATE moving a SPENT row back to UNSPENT fails, and the row stays SPENT.
   @Test
   void updatingASpentProofBackToUnspentFails() {

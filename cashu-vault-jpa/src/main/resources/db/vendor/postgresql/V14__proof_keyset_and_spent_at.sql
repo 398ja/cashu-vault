@@ -12,15 +12,18 @@
 -- same version. V13 is not edited in place (that would change its checksum on every deployed
 -- database); the function is replaced here instead.
 
+-- The ALTERs and CREATE TRIGGER take a short ACCESS EXCLUSIVE lock (nullable columns without a
+-- default are metadata-only). Fail fast instead of queueing behind a long transaction, which
+-- would stall every reader and writer of t_proof behind the waiting lock.
+SET LOCAL lock_timeout = '5s';
+
 ALTER TABLE t_proof ADD COLUMN keyset_id VARCHAR(66);
 ALTER TABLE t_proof ADD COLUMN spent_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE t_proof_a ADD COLUMN keyset_id VARCHAR(66);
 ALTER TABLE t_proof_a ADD COLUMN spent_at TIMESTAMP WITH TIME ZONE;
 
-CREATE INDEX idx_proof_books_spent
-    ON t_proof (mint_id, keyset_id, spent_at)
-    INCLUDE (amount)
-    WHERE state = 'SPENT';
+-- The books index is built CONCURRENTLY in V15, outside this transaction: a plain CREATE INDEX
+-- holds a SHARE lock on t_proof for the whole build and would block every proof write.
 
 -- The V13 invariant (a SPENT proof is final), extended:
 --   * spent_at is owned by the trigger. It is set to now() on the transition into SPENT, by any
