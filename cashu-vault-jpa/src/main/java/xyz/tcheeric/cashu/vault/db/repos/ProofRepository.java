@@ -184,6 +184,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         row.setUnblindedSignature(src.getUnblindedSignature());
         row.setWitness(src.getWitness());
         row.setFingerprint(src.getFingerprint());
+        row.setKeysetId(src.getKeysetId());
         row.setState(src.getState() == null ? ProofEntity.STATE_UNSPENT : src.getState());
         return row;
     }
@@ -274,7 +275,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL "
+    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.spentAt = INSTANT "
             + "WHERE p.holdId = :holdId "
             + "AND p.state = 'PENDING'")
     int commitSpent(@Param("holdId") String holdId);
@@ -308,7 +309,8 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.holdKind = NULL "
+    @Query("UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.holdKind = NULL, "
+            + "p.spentAt = INSTANT "
             + "WHERE p.mint.id = :mintId "
             + "AND p.secret IN :secrets "
             + "AND p.state IN ('UNSPENT', 'PENDING')")
@@ -461,6 +463,7 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
         row.setSecret(src.getSecret());
         row.setUnblindedSignature(src.getUnblindedSignature());
         row.setWitness(src.getWitness());
+        row.setKeysetId(src.getKeysetId());
         row.setState(ProofEntity.STATE_PENDING);
         row.setHoldId(holdId);
         row.setHoldKind(HoldKind.forHoldId(holdId));

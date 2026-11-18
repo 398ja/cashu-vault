@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
+import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 import xyz.tcheeric.cashu.vault.db.repos.MintRepository;
 import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
 
@@ -48,6 +49,7 @@ public class ProofVaultController {
 
     private final ProofRepository proofRepository;
     private final MintRepository mintRepository;
+    private final KeySetRepository keySetRepository;
 
     /**
      * Inserts a new proof. Never updates an existing one.
@@ -80,6 +82,12 @@ public class ProofVaultController {
             }
         }
 
+        if (proof.getMint() != null && proof.getMint().getId() != null
+                && !isKeysetOfMint(proof.getMint().getId(), proof.getKeysetId())) {
+            log.warn("store rejected mint={} reason=keyset_not_of_mint", proof.getMint().getId());
+            return ResponseEntity.badRequest().build();
+        }
+
         var result = proofRepository.insertIfNotExists(proof);
 
         if (result.isDuplicate()) {
@@ -89,6 +97,15 @@ public class ProofVaultController {
 
         log.debug("Stored ProofEntity {}", result.proof().getId());
         return ResponseEntity.ok(result.proof());
+    }
+
+    /**
+     * cashu-vault#156: a proof may only be booked against a keyset of its own mint. A null
+     * keyset is still accepted, so a mint that predates the field keeps working; its proofs are
+     * reported as unattributed.
+     */
+    private boolean isKeysetOfMint(UUID mintId, String keysetId) {
+        return keysetId == null || keySetRepository.existsByMint_IdAndKeySetId(mintId, keysetId);
     }
 
     private static boolean isInsertableState(String state) {
@@ -326,6 +343,12 @@ public class ProofVaultController {
             return ResponseEntity.badRequest().build();
         }
         MintEntity managedMint = mintOpt.get();
+        for (ProofEntity p : proofs) {
+            if (!isKeysetOfMint(mintUuid, p.getKeysetId())) {
+                log.warn("insertOrClaim rejected mint={} saga={} reason=keyset_not_of_mint", mintId, holdId);
+                return ResponseEntity.badRequest().build();
+            }
+        }
         for (ProofEntity p : proofs) {
             p.setMint(managedMint);
         }

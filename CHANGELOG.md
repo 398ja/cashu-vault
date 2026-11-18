@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Books reconciliation, vault half (#156, cashu-mint#515).** The vault can now say how much was
+spent, on which keyset, up to a given time, without handing out any proof material.
+
+### Added
+
+- **Migration `V14`**: `t_proof.keyset_id` and `t_proof.spent_at` (and the same columns on
+  `t_proof_a`), with the partial index `idx_proof_books_spent (mint_id, keyset_id, spent_at)
+  WHERE state = 'SPENT'` on PostgreSQL. Legacy rows keep `keyset_id` NULL and are reported as
+  unattributed, never back-filled by guess.
+- **The V13 trigger is extended** (PostgreSQL): it sets `spent_at = now()` on the transition into
+  `SPENT` (bulk JPQL updates and raw SQL included) and clears a forged value on rows that are not
+  spent. On a `SPENT` row `amount`, `keyset_id` and `spent_at` are now frozen with `state`,
+  `secret` and `mint_id`. Once set, `keyset_id` is immutable in any state.
+- **Write path**: `POST /vault/proof` and `insert-or-claim` accept and persist `keyset_id`, and
+  answer `400` for a keyset that is not one of the proof's mint. A `spent_at` in a request body
+  is ignored. A null `keyset_id` is still accepted so older mints keep working.
+- **`GET /vault/mint/{mintId}/books?until=`**, readable with the read token: spent amount and
+  count per keyset up to `until`, held amount per keyset and hold kind, and the unattributed
+  spent total. Amounts only. `until` is required and must be in the past (`400` otherwise), so
+  the spent totals for a given `until` never change.
+- **Metrics** `cashu_vault_spent_amount_total{mint,keyset,unit}` (function counter) and
+  `cashu_vault_pending_amount{mint,keyset,unit}` (gauge), refreshed every 60s from one aggregate
+  query (`vault.books.metrics.interval`, `vault.books.metrics.enabled`).
+
 ## [0.15.0] - 2026-09-26
 
 **A spent proof is final (#154).** `t_proof` is the mint's only record of spent proofs: the mint

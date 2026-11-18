@@ -44,4 +44,10 @@ public interface KeySetRepository extends JpaRepository<KeySetEntity, UUID> {
      * @return optional set of key sets
      */
     Optional<Set<KeySetEntity>> findByMint_IdAndUnit(UUID uuid, String unit);
+
+    /**
+     * Whether {@code keySetId} is a keyset of the given mint. Guards proof writes, so a proof
+     * cannot be booked against another mint's keyset or an invented one (cashu-vault#156).
+     */
+    boolean existsByMint_IdAndKeySetId(UUID mintId, String keySetId);
 }

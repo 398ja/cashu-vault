@@ -51,7 +51,10 @@ class SpentProofIsFinalIT {
         () -> "org.hibernate.dialect.PostgreSQLDialect");
   }
 
+  private static final String KEYSET = "00aaaaaaaaaaaaaa";
+
   @Autowired private DataSource dataSource;
+  @Autowired private xyz.tcheeric.cashu.vault.db.repos.ProofRepository proofRepository;
 
   private JdbcTemplate jdbc;
   private UUID mintId;
@@ -166,13 +169,151 @@ class SpentProofIsFinalIT {
         .isZero();
   }
 
+  // cashu-vault#156: the books freeze. A rewritten amount on a spent row would shift the books.
+  @Test
+  void changingTheAmountOfASpentProofFails() {
+    UUID id = insertProof("SPENT");
+
+    assertThatThrownBy(() -> jdbc.update("UPDATE t_proof SET amount = 1024 WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class)
+        .hasMessageContaining("spent proof is final");
+
+    assertThat(jdbc.queryForObject("SELECT amount FROM t_proof WHERE id = ?", Integer.class, id))
+        .isEqualTo(1);
+  }
+
+  @Test
+  void changingTheKeysetOfASpentProofFails() {
+    UUID id = insertProof("SPENT");
+
+    assertThatThrownBy(
+            () -> jdbc.update("UPDATE t_proof SET keyset_id = '00ffffffffffffff' WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class);
+  }
+
+  @Test
+  void attributingALegacySpentProofToAKeysetFails() {
+    UUID id = insertProof("SPENT", null);
+
+    assertThatThrownBy(
+            () -> jdbc.update("UPDATE t_proof SET keyset_id = '00ffffffffffffff' WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class);
+  }
+
+  @Test
+  void changingTheSpendTimeOfASpentProofFails() {
+    UUID id = insertProof("SPENT");
+
+    assertThatThrownBy(
+            () -> jdbc.update("UPDATE t_proof SET spent_at = now() - interval '1 day' WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class);
+    assertThatThrownBy(() -> jdbc.update("UPDATE t_proof SET spent_at = NULL WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class);
+  }
+
+  // Once set, a keyset id is immutable in every state, not only SPENT.
+  @Test
+  void changingTheKeysetOfAnUnspentProofFails() {
+    UUID id = insertProof("UNSPENT");
+
+    assertThatThrownBy(
+            () -> jdbc.update("UPDATE t_proof SET keyset_id = '00ffffffffffffff' WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class)
+        .hasMessageContaining("keyset is immutable");
+    assertThatThrownBy(() -> jdbc.update("UPDATE t_proof SET keyset_id = NULL WHERE id = ?", id))
+        .isInstanceOf(DataAccessException.class);
+  }
+
+  // A legacy row without a keyset may still be given one while it is not spent.
+  @Test
+  void settingTheKeysetOfAnUnattributedUnspentProofIsAllowed() {
+    UUID id = insertProof("UNSPENT", null);
+
+    jdbc.update("UPDATE t_proof SET keyset_id = ? WHERE id = ?", KEYSET, id);
+
+    assertThat(jdbc.queryForObject("SELECT keyset_id FROM t_proof WHERE id = ?", String.class, id))
+        .isEqualTo(KEYSET);
+  }
+
+  // spent_at is the trigger's: a raw UPDATE into SPENT sets it, whatever the statement says.
+  @Test
+  void rawUpdateIntoSpentSetsSpentAt() {
+    UUID id = insertProof("UNSPENT");
+
+    jdbc.update(
+        "UPDATE t_proof SET state = 'SPENT', spent_at = TIMESTAMPTZ '2020-01-01 00:00:00Z' WHERE id = ?",
+        id);
+
+    Timestamp spentAt = spentAtOf(id);
+    assertThat(spentAt).isNotNull();
+    assertThat(spentAt.toInstant()).isAfter(Instant.now().minusSeconds(60));
+  }
+
+  // A forged spend time on a row that is not spent is cleared.
+  @Test
+  void spentAtIsClearedOnRowsThatAreNotSpent() {
+    UUID id = insertProof("UNSPENT");
+
+    jdbc.update("UPDATE t_proof SET spent_at = now() WHERE id = ?", id);
+
+    assertThat(spentAtOf(id)).isNull();
+  }
+
+  @Test
+  void insertingASpentProofSetsSpentAt() {
+    UUID id = insertProof("SPENT");
+
+    assertThat(spentAtOf(id)).isNotNull();
+  }
+
+  @Test
+  void markSpentSetsSpentAt() {
+    UUID id = insertProof("UNSPENT");
+
+    assertThat(proofRepository.markSpent(java.util.List.of("secret-" + id), mintId)).isEqualTo(1);
+
+    assertThat(spentAtOf(id)).isNotNull();
+  }
+
+  @Test
+  void commitSpentSetsSpentAt() {
+    UUID id = insertProof("UNSPENT");
+    String hold = "melt-" + id.toString().substring(0, 8);
+    assertThat(proofRepository.markPending(java.util.List.of("secret-" + id), hold, mintId))
+        .isEqualTo(1);
+
+    assertThat(proofRepository.commitSpent(hold)).isEqualTo(1);
+
+    assertThat(stateOf(id)).isEqualTo("SPENT");
+    assertThat(spentAtOf(id)).isNotNull();
+  }
+
+  // Bookkeeping on a spent row (the archive flag) still works with the books columns frozen.
+  @Test
+  void archivingASpentProofKeepsItsSpendTime() {
+    UUID id = insertProof("SPENT");
+    Timestamp spentAt = spentAtOf(id);
+
+    jdbc.update("UPDATE t_proof SET archived = true WHERE id = ?", id);
+
+    assertThat(spentAtOf(id)).isEqualTo(spentAt);
+  }
+
   private UUID insertProof(String state) {
+    return insertProof(state, KEYSET);
+  }
+
+  private Timestamp spentAtOf(UUID id) {
+    return jdbc.queryForObject("SELECT spent_at FROM t_proof WHERE id = ?", Timestamp.class, id);
+  }
+
+  private UUID insertProof(String state, String keysetId) {
     UUID id = UUID.randomUUID();
     Timestamp now = Timestamp.from(Instant.now());
     jdbc.update(
         "INSERT INTO t_proof (id, archived, created_at, updated_at, version, mint_id, amount, "
-            + "secret, c, state) VALUES (?, false, ?, ?, 0, ?, 1, ?, ?, ?)",
-        id, now, now, mintId, "secret-" + id, "c-" + id, state);
+            + "secret, c, state, keyset_id) VALUES (?, false, ?, ?, 0, ?, 1, ?, ?, ?, ?)",
+        id, now, now, mintId, "secret-" + id, "c-" + id, state, keysetId);
     return id;
   }
 
