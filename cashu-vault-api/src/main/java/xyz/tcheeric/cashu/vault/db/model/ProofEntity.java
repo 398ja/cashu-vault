@@ -26,6 +26,7 @@ import xyz.tcheeric.cashu.crypto.BDHKEUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 
 /**
  * Entity representing a spendable proof issued by a mint.
@@ -162,6 +163,29 @@ public class ProofEntity extends BaseEntity {
     private HoldKind holdKind;
 
     /**
+     * Keyset that signed this proof (the NUT-00 {@code id} of the proof), cashu-vault#156.
+     *
+     * <p>Lets the books reconciler sum spent value per keyset, so a forged keyset cannot hide
+     * inside a mint-wide total. Null only on legacy rows written before the mint sent it; those
+     * are reported as unattributed and never back-filled by guess. Once set it is immutable, and
+     * the vault refuses a keyset that is not one of the proof's mint.
+     */
+    @JsonProperty("keyset_id")
+    @Column(name = "keyset_id", length = 66)
+    private String keysetId;
+
+    /**
+     * When the proof became SPENT, cashu-vault#156.
+     *
+     * <p>Owned by the database: the PostgreSQL trigger sets it on the transition into SPENT and
+     * freezes it afterwards, so no caller can forge or omit it. JPA never writes it from an
+     * entity, and a value in a request body is ignored.
+     */
+    @JsonProperty(value = "spent_at", access = JsonProperty.Access.READ_ONLY)
+    @Column(name = "spent_at", insertable = false, updatable = false)
+    private Instant spentAt;
+
+    /**
      * SHA-256 fingerprint for token-level duplicate detection.
      * Computed from sorted proof secrets + mint URL.
      */
@@ -222,6 +246,7 @@ public class ProofEntity extends BaseEntity {
 
         proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
         proofEntity.setMint(mintEntity);
+        proofEntity.setKeysetId(proof.getKeySetId());
 
         // Compute fingerprint for duplicate detection
         String mintId = mintEntity.getId() != null ? mintEntity.getId().toString() : "";
