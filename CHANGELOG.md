@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-19
+
+**AppRole token renewal (#163).** Vault login tokens are renewed and replaced, so the vault keeps
+working past a token's TTL.
+
 ### Fixed
 
 - **AppRole (and Kubernetes) Vault tokens are renewed and replaced.** `HashiVaultConfig` built a
