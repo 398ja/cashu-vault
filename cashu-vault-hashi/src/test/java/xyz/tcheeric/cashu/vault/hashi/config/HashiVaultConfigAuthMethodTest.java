@@ -101,6 +101,37 @@ class HashiVaultConfigAuthMethodTest {
                 .hasMessageContaining("not both");
     }
 
+    @Test
+    @DisplayName("token auth keeps the plain VaultTemplate, exactly as before")
+    void tokenAuthKeepsThePlainTemplate() {
+        HashiVaultProperties withToken = properties("token");
+        withToken.getAuth().setToken("s.aaaaaaaaaaaaaaaaaaaa");
+
+        assertThat(config.vaultTemplate(endpoint, config.clientAuthentication(withToken, endpoint)))
+                .isExactlyInstanceOf(org.springframework.vault.core.VaultTemplate.class);
+    }
+
+    @Test
+    @DisplayName("approle gets the renewing template")
+    void approleGetsTheRenewingTemplate() throws Exception {
+        RenewingVaultTemplate template = (RenewingVaultTemplate) config.vaultTemplate(endpoint,
+                config.clientAuthentication(properties("approle"), endpoint));
+        template.destroy();
+    }
+
+    @Test
+    @DisplayName("a 403 is recognised so the call logs in again")
+    void forbiddenIsRecognised() {
+        assertThat(RenewingVaultTemplate.isForbidden(new RuntimeException("wrap",
+                org.springframework.web.client.HttpClientErrorException.create(
+                        org.springframework.http.HttpStatus.FORBIDDEN, "Forbidden", null, null, null)))).isTrue();
+        assertThat(RenewingVaultTemplate.isForbidden(
+                new org.springframework.vault.VaultException("Status 403 Forbidden [cashu/data/x]: permission denied")))
+                .isTrue();
+        assertThat(RenewingVaultTemplate.isForbidden(
+                new org.springframework.vault.VaultException("Status 500 Internal Server Error"))).isFalse();
+    }
+
     private static HashiVaultProperties properties(String method) {
         HashiVaultProperties properties = new HashiVaultProperties();
         properties.getAuth().setMethod(method);

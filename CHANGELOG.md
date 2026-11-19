@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **AppRole (and Kubernetes) Vault tokens are renewed and replaced.** `HashiVaultConfig` built a
+  `VaultTemplate` with Spring Vault's `SimpleSessionManager`, which logs in once and keeps that
+  token forever, so every Vault call answered 403 once a login token's TTL ran out. Login methods
+  now get `RenewingVaultTemplate`: the token is renewed before it expires, dropped when it can no
+  longer be renewed (`token_max_ttl`), and `HashiVaultClient` logs in again and retries once on a
+  403 (a token lost by a Vault restart or revoked between renewals). Token auth is unchanged.
+
 ## [0.16.0] - 2026-11-18
 
 **Books reconciliation, vault half (#156, cashu-mint#515).** The vault can now say how much was

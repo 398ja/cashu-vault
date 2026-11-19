@@ -64,10 +64,19 @@ public class HashiVaultConfig {
         };
     }
 
+    /**
+     * Token auth keeps the plain template (one static token, nothing to renew), exactly as before.
+     * A login method (AppRole, Kubernetes) gets a template whose token is renewed in the background
+     * and replaced by a new login once it can no longer be renewed: with the plain template the
+     * first login token was used until its TTL ran out, and every call after that answered 403.
+     */
     @Bean
     public VaultTemplate vaultTemplate(VaultEndpoint vaultEndpoint,
                                        ClientAuthentication clientAuthentication) {
-        return new VaultTemplate(vaultEndpoint, clientAuthentication);
+        if (clientAuthentication instanceof TokenAuthentication) {
+            return new VaultTemplate(vaultEndpoint, clientAuthentication);
+        }
+        return RenewingVaultTemplate.create(vaultEndpoint, clientAuthentication);
     }
 
     /**
