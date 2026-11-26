@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Proof throughput up about 14%** (harness v4, 1.143x, 95% CI [1.083, 1.206], about 4336 to
+  4950 proofs/s), from fewer database round trips. Store runs its lookups in one read-only
+  transaction (store 1.09x). Insert-or-claim settles a hold's existing proofs with one IN-list
+  `markPending` and one IN-list read instead of a CAS and an exists probe per proof, and persists
+  new hold rows instead of merging them (insert-or-claim 1.68x). Spend phases are unchanged within
+  noise. Under the A2 race, tolerated deadlocks fell (6 vs 19).
+
 ## [0.17.0] - 2026-11-19
 
 **AppRole token renewal (#163).** Vault login tokens are renewed and replaced, so the vault keeps
