@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Spend statements drop the `t_mint` probe.** `markSpent` and `countSpent` are native SQL that
+  match `mint_id = (SELECT CAST(:mintId AS UUID))`. The InitPlan is a parameter-only `Result`,
+  so fresh mints keep `uk_proof_mint_secret` (with or without statistics) without the per-statement
+  `t_mint` primary-key lookup #166 added, and without a session-wide `plan_cache_mode`.
+
 ## [0.18.1] - 2026-11-26
 
 **Fresh-mint spends (#166).** No API, schema or config change.
