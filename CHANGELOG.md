@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-26
+
+**Proof throughput (#167).** About 14% more proofs/s from fewer database round trips. No API,
+schema or config change.
+
 ### Changed
 
 - **Proof throughput up about 14%** (harness v4, 1.143x, 95% CI [1.083, 1.206], about 4336 to
