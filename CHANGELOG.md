@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-11-26
+
+**Fresh-mint spends (#166).** No API, schema or config change.
+
+### Fixed
+
+- **Spends on a new or low-volume mint stay on `uk_proof_mint_secret`.** `markSpent` and
+  `countSpent` match the mint through a scalar subquery, so PostgreSQL no longer plans a mint the
+  statistics have not seen yet as about one row and scans every proof of the mint through a
+  mint-only index. Counting a fresh mint's spent proofs goes from 3.45 ms to 0.18 ms. On
+  established mints overall throughput is unchanged (0.996x, 95% CI [0.969, 1.024], 16 pairs);
+  the mark-spent phase alone is about 4% slower from the extra primary-key lookup.
+  `FreshMintSpendPlanIT` checks the plan.
+
 ## [0.18.0] - 2026-11-26
 
 **Proof throughput (#167).** About 14% more proofs/s from fewer database round trips. No API,
