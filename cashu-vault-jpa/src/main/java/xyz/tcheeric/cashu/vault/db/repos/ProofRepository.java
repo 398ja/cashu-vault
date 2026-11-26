@@ -22,6 +22,19 @@ import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
 
   /**
+   * The mint id wrapped in a scalar subquery, for the spend statements that look proofs up by
+   * {@code (mint_id, secret)}.
+   *
+   * <p>PostgreSQL plans an InitPlan output as an opaque value, so it cannot estimate the mint's row
+   * count from it. With a bare parameter, a mint the statistics have not seen yet (a new or
+   * low-volume mint, until autovacuum next analyses {@code t_proof}) is estimated at about one row
+   * and the custom plan picks a mint-only index, then filters every proof of the mint. With the
+   * subquery the planner always takes {@code uk_proof_mint_secret}, one probe per secret, at no
+   * extra round trip. See {@code FreshMintSpendPlanIT}.
+   */
+  String MINT_ID_HIDDEN_FROM_PLANNER = "(SELECT m.id FROM mint m WHERE m.id = :mintId)";
+
+  /**
    * Finds a proof by its secret value.
    *
    * @param secret proof secret
@@ -321,7 +334,9 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
   @Query(
       "UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.holdKind = NULL, "
           + "p.spentAt = INSTANT "
-          + "WHERE p.mint.id = :mintId "
+          + "WHERE p.mint.id = "
+          + MINT_ID_HIDDEN_FROM_PLANNER
+          + " "
           + "AND p.secret IN :secrets "
           + "AND p.state IN ('UNSPENT', 'PENDING')")
   int markSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
@@ -332,7 +347,9 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
    * earlier attempt already marked.
    */
   @Query(
-      "SELECT COUNT(p) FROM proof p WHERE p.mint.id = :mintId "
+      "SELECT COUNT(p) FROM proof p WHERE p.mint.id = "
+          + MINT_ID_HIDDEN_FROM_PLANNER
+          + " "
           + "AND p.secret IN :secrets AND p.state = 'SPENT'")
   long countSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
 
@@ -446,8 +463,9 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
    */
   private boolean heldByThisHold(UUID mintId, String secret, String holdId) {
     return findByMint_IdAndSecret(mintId, secret)
-        .map(row ->
-            ProofEntity.STATE_PENDING.equals(row.getState()) && holdId.equals(row.getHoldId()))
+        .map(
+            row ->
+                ProofEntity.STATE_PENDING.equals(row.getState()) && holdId.equals(row.getHoldId()))
         .orElse(false);
   }
 
