@@ -10,10 +10,14 @@ import xyz.tcheeric.cashu.vault.db.model.HoldKind;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Repository interface for {@link ProofEntity} storage operations.
@@ -397,59 +401,55 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
     default int insertOrClaimForHold(@org.springframework.lang.NonNull List<ProofEntity> proofs,
                                      @org.springframework.lang.NonNull String holdId,
                                      @org.springframework.lang.NonNull UUID mintId) {
+        // One CAS claims every UNSPENT row at once. After it, a row bound to this hold is bound
+        // whether this call or an earlier retry claimed it, so one read settles every existing
+        // secret and only the absent ones need an insert.
+        List<String> secrets = proofs.stream().map(ProofEntity::getSecret).distinct().toList();
+        markPending(secrets, holdId, mintId);
+        Map<String, ProofEntity> existing = findByMint_IdAndSecretIn(mintId, secrets).stream()
+                .collect(Collectors.toMap(ProofEntity::getSecret, Function.identity()));
         int bound = 0;
+        Map<String, Boolean> inserted = new HashMap<>();
         for (ProofEntity proof : proofs) {
-            if (claimOne(proof, holdId, mintId)) {
+            String secret = proof.getSecret();
+            boolean claimed = existing.containsKey(secret)
+                    ? isHeldBy(existing.get(secret), holdId)
+                    : inserted.computeIfAbsent(secret, s -> insertHoldRow(proof, holdId, mintId));
+            if (claimed) {
                 bound++;
             }
         }
         return bound;
     }
 
-    /** Single-proof claim helper for {@link #insertOrClaimForHold}. */
-    private boolean claimOne(ProofEntity proof, String holdId, UUID mintId) {
-        String secret = proof.getSecret();
-        // Step 1 — try to claim an existing UNSPENT row.
-        int updated = markPending(List.of(secret), holdId, mintId);
-        if (updated > 0) {
-            return true;
-        }
-        // Step 2 — the UNSPENT CAS matched nothing. Either a row already
-        // exists under (mint_id, secret) — PENDING or SPENT — or none does.
-        // If one exists and is already PENDING-held by THIS saga, treat the
-        // call as idempotent (a client retry after a timeout re-submits the
-        // same proofs); return true. Any other existing state (held by a
-        // different saga, or SPENT) is unclaimable.
-        if (existsByMint_IdAndSecret(mintId, secret)) {
-            return heldByThisHold(mintId, secret, holdId);
-        }
-        // Step 3 — fresh proof: INSERT a server-built PENDING row bound to
-        // this saga. Build the row from scratch so a caller-supplied id /
-        // version / archived / timestamps can never turn save() into a
-        // merge that overwrites an unrelated proof row (mass-assignment
-        // guard — the secret + amount + signature + mint are the only
-        // caller-controlled fields that matter for a hold).
-        ProofEntity holdRow = buildHoldRow(proof, holdId);
+    /**
+     * Finds the proofs of a mint with any of the given secrets.
+     *
+     * @param mintId  mint identifier
+     * @param secrets proof secrets
+     * @return the matching proofs
+     */
+    List<ProofEntity> findByMint_IdAndSecretIn(UUID mintId, Collection<String> secrets);
+
+    private static boolean isHeldBy(ProofEntity row, String holdId) {
+        return ProofEntity.STATE_PENDING.equals(row.getState()) && holdId.equals(row.getHoldId());
+    }
+
+    /**
+     * Inserts a fresh PENDING row built from scratch, so caller-supplied identity fields can never
+     * turn save() into a merge. Losing the (mint_id, secret) race retries the claim once: the racer
+     * has committed, so its row is settled. Any other integrity error is a real fault and propagates.
+     */
+    private boolean insertHoldRow(ProofEntity proof, String holdId, UUID mintId) {
         try {
-            save(holdRow);
+            save(buildHoldRow(proof, holdId));
             return true;
         } catch (DataIntegrityViolationException e) {
-            // Only a (mint_id, secret) uniqueness violation is the expected
-            // race against a concurrent inserter. Any other integrity error
-            // (NOT NULL, FK, (mint_id, c) collision) is a real fault and must
-            // fail fast rather than being silently counted as "not bound".
             if (!isMintSecretUniqueViolation(e)) {
                 throw e;
             }
-            // Step 4 — lost the race. Retry the UNSPENT claim once; the racer
-            // has committed by now. If their row is UNSPENT we claim it; if
-            // it is PENDING-held by this same saga, idempotent success; else
-            // lose.
-            int retry = markPending(List.of(secret), holdId, mintId);
-            if (retry > 0) {
-                return true;
-            }
-            return heldByThisHold(mintId, secret, holdId);
+            return markPending(List.of(proof.getSecret()), holdId, mintId) > 0
+                    || heldByThisHold(mintId, proof.getSecret(), holdId);
         }
     }
 
