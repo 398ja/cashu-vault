@@ -136,22 +136,37 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      */
     default InsertResult insertIfNotExists(ProofEntity proof) {
         UUID mintId = proof.getMint() != null ? proof.getMint().getId() : null;
-        String secret = proof.getSecret();
 
         // Validate required fields - throw early for null mint (NOT NULL constraint)
         if (mintId == null) {
             throw new DataIntegrityViolationException("Proof must have a mint associated");
         }
 
+        String duplicate = duplicateReason(proof);
+        return duplicate != null ? new InsertResult(false, null, duplicate) : insertNew(proof);
+    }
+
+    /**
+     * Why {@code proof} would duplicate a stored row, or {@code null} if it would not: an existing id
+     * (which {@code save()} would merge over, cashu-vault#154) or an existing secret for the mint.
+     * Read-only, so a caller can run it in the same transaction as its other lookups.
+     */
+    default String duplicateReason(ProofEntity proof) {
         if (proof.getId() != null && existsById(proof.getId())) {
-            return new InsertResult(false, null, "Duplicate proof: id already exists");
+            return "Duplicate proof: id already exists";
         }
-
-        // Check for existing proof by mint and secret
-        if (secret != null && existsByMint_IdAndSecret(mintId, secret)) {
-            return new InsertResult(false, null, "Duplicate proof: same secret already exists for mint");
+        String secret = proof.getSecret();
+        if (secret != null && existsByMint_IdAndSecret(proof.getMint().getId(), secret)) {
+            return "Duplicate proof: same secret already exists for mint";
         }
+        return null;
+    }
 
+    /**
+     * Inserts a proof already checked by {@link #duplicateReason}. A racing insert of the same
+     * proof is still caught here, by the unique constraints, and reported as a duplicate.
+     */
+    default InsertResult insertNew(ProofEntity proof) {
         try {
             ProofEntity saved = save(buildInsertRow(proof));
             return new InsertResult(true, saved, null);

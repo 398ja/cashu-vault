@@ -4,10 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import lombok.RequiredArgsConstructor;
 import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +40,6 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/vault/proof")
-@RequiredArgsConstructor
 @Validated
 @Slf4j
 public class ProofVaultController {
@@ -50,6 +51,16 @@ public class ProofVaultController {
     private final ProofRepository proofRepository;
     private final MintRepository mintRepository;
     private final KeySetRepository keySetRepository;
+    private final TransactionTemplate readOnlyTransaction;
+
+    public ProofVaultController(ProofRepository proofRepository, MintRepository mintRepository,
+                                KeySetRepository keySetRepository, PlatformTransactionManager transactionManager) {
+        this.proofRepository = proofRepository;
+        this.mintRepository = mintRepository;
+        this.keySetRepository = keySetRepository;
+        this.readOnlyTransaction = new TransactionTemplate(transactionManager);
+        this.readOnlyTransaction.setReadOnly(true);
+    }
 
     /**
      * Inserts a new proof. Never updates an existing one.
@@ -71,24 +82,17 @@ public class ProofVaultController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Look up mint to get managed entity (avoid cascade issues with detached entity)
-        if (proof.getMint() != null && proof.getMint().getId() != null) {
-            Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
-            if (mintOpt.isPresent()) {
-                proof.setMint(mintOpt.get());
-            } else {
-                log.warn("Mint not found for ID: {}", proof.getMint().getId());
-                return ResponseEntity.badRequest().build();
-            }
-        }
-
-        if (proof.getMint() != null && proof.getMint().getId() != null
-                && !isKeysetOfMint(proof.getMint().getId(), proof.getKeysetId())) {
-            log.warn("store rejected mint={} reason=keyset_not_of_mint", proof.getMint().getId());
+        // The mint, keyset and duplicate lookups share one read-only transaction; the insert gets
+        // its own, so a constraint violation raised by a racing insert cannot doom the lookups'.
+        StoreCheck check = readOnlyTransaction.execute(status -> checkStore(proof));
+        if (check == StoreCheck.REJECTED) {
             return ResponseEntity.badRequest().build();
         }
+        if (check == StoreCheck.DUPLICATE) {
+            return ResponseEntity.status(409).build();
+        }
 
-        var result = proofRepository.insertIfNotExists(proof);
+        var result = proofRepository.insertNew(proof);
 
         if (result.isDuplicate()) {
             log.info("Duplicate proof detected: {}", result.duplicateReason());
@@ -97,6 +101,32 @@ public class ProofVaultController {
 
         log.debug("Stored ProofEntity {}", result.proof().getId());
         return ResponseEntity.ok(result.proof());
+    }
+
+    /** Outcome of the read-only checks that precede a store. */
+    private enum StoreCheck { INSERTABLE, REJECTED, DUPLICATE }
+
+    private StoreCheck checkStore(ProofEntity proof) {
+        // Look up mint to get managed entity (avoid cascade issues with detached entity)
+        if (proof.getMint() == null || proof.getMint().getId() == null) {
+            throw new DataIntegrityViolationException("Proof must have a mint associated");
+        }
+        Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
+        if (mintOpt.isEmpty()) {
+            log.warn("Mint not found for ID: {}", proof.getMint().getId());
+            return StoreCheck.REJECTED;
+        }
+        proof.setMint(mintOpt.get());
+        if (!isKeysetOfMint(proof.getMint().getId(), proof.getKeysetId())) {
+            log.warn("store rejected mint={} reason=keyset_not_of_mint", proof.getMint().getId());
+            return StoreCheck.REJECTED;
+        }
+        String duplicate = proofRepository.duplicateReason(proof);
+        if (duplicate != null) {
+            log.info("Duplicate proof detected: {}", duplicate);
+            return StoreCheck.DUPLICATE;
+        }
+        return StoreCheck.INSERTABLE;
     }
 
     /**
