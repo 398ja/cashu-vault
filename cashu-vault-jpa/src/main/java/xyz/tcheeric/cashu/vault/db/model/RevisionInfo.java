@@ -11,25 +11,18 @@ import org.hibernate.envers.RevisionEntity;
 import org.hibernate.envers.RevisionNumber;
 import org.hibernate.envers.RevisionTimestamp;
 
-/**
- * Revision entity for Hibernate Envers auditing.
- */
+/** Revision entity for Hibernate Envers auditing. */
 @Entity
 @Table(name = "revinfo")
 @RevisionEntity
 @Data
 public class RevisionInfo {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "revinfo_seq")
-    @SequenceGenerator(
-        name = "revinfo_seq",
-        sequenceName = "revinfo_seq",
-        allocationSize = 50
-    )
-    @RevisionNumber
-    private Integer rev;
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "revinfo_seq")
+  @SequenceGenerator(name = "revinfo_seq", sequenceName = "revinfo_seq", allocationSize = 50)
+  @RevisionNumber
+  private Integer rev;
 
-    @RevisionTimestamp
-    private Long revtstmp;
+  @RevisionTimestamp private Long revtstmp;
 }

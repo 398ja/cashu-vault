@@ -4,7 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
@@ -18,16 +21,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import xyz.tcheeric.cashu.common.util.CashuErrorException;
+import xyz.tcheeric.cashu.vault.db.log.SecretLogId;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.db.model.ProofEntity;
 import xyz.tcheeric.cashu.vault.db.repos.KeySetRepository;
 import xyz.tcheeric.cashu.vault.db.repos.MintRepository;
 import xyz.tcheeric.cashu.vault.db.repos.ProofRepository;
-
-import java.util.Optional;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * REST controller for {@link ProofEntity} resources.
@@ -44,395 +43,469 @@ import java.util.UUID;
 @Slf4j
 public class ProofVaultController {
 
-    /** States a caller may give a proof it is inserting. SPENT is reached only by transition. */
-    private static final Set<String> INSERTABLE_STATES =
-            Set.of(ProofEntity.STATE_UNSPENT, ProofEntity.STATE_PENDING);
+  /** States a caller may give a proof it is inserting. SPENT is reached only by transition. */
+  private static final Set<String> INSERTABLE_STATES =
+      Set.of(ProofEntity.STATE_UNSPENT, ProofEntity.STATE_PENDING);
 
-    private final ProofRepository proofRepository;
-    private final MintRepository mintRepository;
-    private final KeySetRepository keySetRepository;
-    private final TransactionTemplate readOnlyTransaction;
+  private final ProofRepository proofRepository;
+  private final MintRepository mintRepository;
+  private final KeySetRepository keySetRepository;
+  private final TransactionTemplate readOnlyTransaction;
 
-    public ProofVaultController(ProofRepository proofRepository, MintRepository mintRepository,
-                                KeySetRepository keySetRepository, PlatformTransactionManager transactionManager) {
-        this.proofRepository = proofRepository;
-        this.mintRepository = mintRepository;
-        this.keySetRepository = keySetRepository;
-        this.readOnlyTransaction = new TransactionTemplate(transactionManager);
-        this.readOnlyTransaction.setReadOnly(true);
+  public ProofVaultController(
+      ProofRepository proofRepository,
+      MintRepository mintRepository,
+      KeySetRepository keySetRepository,
+      PlatformTransactionManager transactionManager) {
+    this.proofRepository = proofRepository;
+    this.mintRepository = mintRepository;
+    this.keySetRepository = keySetRepository;
+    this.readOnlyTransaction = new TransactionTemplate(transactionManager);
+    this.readOnlyTransaction.setReadOnly(true);
+  }
+
+  /**
+   * Inserts a new proof. Never updates an existing one.
+   *
+   * <p>Returns 409 Conflict if a proof with the same id, or the same secret for the mint, already
+   * exists, and 400 if the body asks for a state other than UNSPENT or PENDING. Moving a proof to
+   * SPENT is {@link #markSpent}'s job.
+   *
+   * @param proof proof to persist
+   * @return stored proof entity, or 409 if duplicate
+   * @throws CashuErrorException in case the entity cannot be persisted
+   */
+  @PostMapping
+  public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof)
+      throws CashuErrorException {
+    log.info("Storing ProofEntity");
+
+    if (!isInsertableState(proof.getState())) {
+      log.warn("store rejected reason=state_not_insertable state={}", proof.getState());
+      return ResponseEntity.badRequest().build();
     }
 
-    /**
-     * Inserts a new proof. Never updates an existing one.
-     *
-     * <p>Returns 409 Conflict if a proof with the same id, or the same secret for the mint,
-     * already exists, and 400 if the body asks for a state other than UNSPENT or PENDING. Moving a
-     * proof to SPENT is {@link #markSpent}'s job.
-     *
-     * @param proof proof to persist
-     * @return stored proof entity, or 409 if duplicate
-     * @throws CashuErrorException in case the entity cannot be persisted
-     */
-    @PostMapping
-    public ResponseEntity<ProofEntity> store(@RequestBody ProofEntity proof) throws CashuErrorException {
-        log.info("Storing ProofEntity");
-
-        if (!isInsertableState(proof.getState())) {
-            log.warn("store rejected reason=state_not_insertable state={}", proof.getState());
-            return ResponseEntity.badRequest().build();
-        }
-
-        // The mint, keyset and duplicate lookups share one read-only transaction; the insert gets
-        // its own, so a constraint violation raised by a racing insert cannot doom the lookups'.
-        StoreCheck check = readOnlyTransaction.execute(status -> checkStore(proof));
-        if (check == StoreCheck.REJECTED) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (check == StoreCheck.DUPLICATE) {
-            return ResponseEntity.status(409).build();
-        }
-
-        var result = proofRepository.insertNew(proof);
-
-        if (result.isDuplicate()) {
-            log.info("Duplicate proof detected: {}", result.duplicateReason());
-            return ResponseEntity.status(409).build();
-        }
-
-        log.debug("Stored ProofEntity {}", result.proof().getId());
-        return ResponseEntity.ok(result.proof());
+    // The mint, keyset and duplicate lookups share one read-only transaction; the insert gets
+    // its own, so a constraint violation raised by a racing insert cannot doom the lookups'.
+    StoreCheck check = readOnlyTransaction.execute(status -> checkStore(proof));
+    if (check == StoreCheck.REJECTED) {
+      return ResponseEntity.badRequest().build();
+    }
+    if (check == StoreCheck.DUPLICATE) {
+      return ResponseEntity.status(409).build();
     }
 
-    /** Outcome of the read-only checks that precede a store. */
-    private enum StoreCheck { INSERTABLE, REJECTED, DUPLICATE }
+    var result = proofRepository.insertNew(proof);
 
-    private StoreCheck checkStore(ProofEntity proof) {
-        // Look up mint to get managed entity (avoid cascade issues with detached entity)
-        if (proof.getMint() == null || proof.getMint().getId() == null) {
-            throw new DataIntegrityViolationException("Proof must have a mint associated");
-        }
-        Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
-        if (mintOpt.isEmpty()) {
-            log.warn("Mint not found for ID: {}", proof.getMint().getId());
-            return StoreCheck.REJECTED;
-        }
-        proof.setMint(mintOpt.get());
-        if (!isKeysetOfMint(proof.getMint().getId(), proof.getKeysetId())) {
-            log.warn("store rejected mint={} reason=keyset_not_of_mint", proof.getMint().getId());
-            return StoreCheck.REJECTED;
-        }
-        String duplicate = proofRepository.duplicateReason(proof);
-        if (duplicate != null) {
-            log.info("Duplicate proof detected: {}", duplicate);
-            return StoreCheck.DUPLICATE;
-        }
-        return StoreCheck.INSERTABLE;
+    if (result.isDuplicate()) {
+      log.info("Duplicate proof detected: {}", result.duplicateReason());
+      return ResponseEntity.status(409).build();
     }
 
-    /**
-     * cashu-vault#156: a proof may only be booked against a keyset of its own mint. A null
-     * keyset is still accepted, so a mint that predates the field keeps working; its proofs are
-     * reported as unattributed.
-     */
-    private boolean isKeysetOfMint(UUID mintId, String keysetId) {
-        return keysetId == null || keySetRepository.existsByMint_IdAndKeySetId(mintId, keysetId);
-    }
+    log.debug("Stored ProofEntity {}", result.proof().getId());
+    return ResponseEntity.ok(result.proof());
+  }
 
-    private static boolean isInsertableState(String state) {
-        return state == null || INSERTABLE_STATES.contains(state);
-    }
+  /** Outcome of the read-only checks that precede a store. */
+  private enum StoreCheck {
+    INSERTABLE,
+    REJECTED,
+    DUPLICATE
+  }
 
-    /**
-     * cashu-vault#154 — records the named proofs of a mint as spent.
-     *
-     * <p>{@code UPDATE ... SET state='SPENT' WHERE state IN ('UNSPENT','PENDING')}, scoped to the
-     * mint, with any hold on the rows cleared. A proof already SPENT is left alone, so a retry is
-     * idempotent. Returns the number of named proofs that are SPENT once the call has run, which
-     * the caller compares with the number it sent: a shortfall means a proof the vault has never
-     * seen, and the caller must insert it before it can be spent.
-     *
-     * @param mintId  mint that owns the proofs
-     * @param secrets Y-normalised proof secrets
-     * @return how many of {@code secrets} are now SPENT
-     */
-    @PostMapping("/mint/{mintId}/mark-spent")
-    public ResponseEntity<Integer> markSpent(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @RequestBody List<String> secrets) {
-        if (secrets == null || secrets.isEmpty() || secrets.stream().anyMatch(ProofVaultController::isBlank)) {
-            log.warn("markSpent rejected mint={} reason=empty_or_blank_secrets", mintId);
-            return ResponseEntity.badRequest().build();
-        }
-        UUID mintUuid = UUID.fromString(mintId);
-        int transitioned = proofRepository.markSpent(secrets, mintUuid);
-        long spent = proofRepository.countSpent(secrets, mintUuid);
-        log.info("markSpent mint={} proofs={} transitioned={} spent={}",
-                mintId, secrets.size(), transitioned, spent);
-        return ResponseEntity.ok(Math.toIntExact(spent));
+  private StoreCheck checkStore(ProofEntity proof) {
+    // Look up mint to get managed entity (avoid cascade issues with detached entity)
+    if (proof.getMint() == null || proof.getMint().getId() == null) {
+      throw new DataIntegrityViolationException("Proof must have a mint associated");
     }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
+    Optional<MintEntity> mintOpt = mintRepository.findById(proof.getMint().getId());
+    if (mintOpt.isEmpty()) {
+      log.warn("Mint not found for ID: {}", proof.getMint().getId());
+      return StoreCheck.REJECTED;
     }
-
-    /**
-     * Retrieves all proof entities.
-     *
-     * @return list of proofs (possibly empty)
-     */
-    @GetMapping
-    public ResponseEntity<List<ProofEntity>> list() {
-        return ResponseEntity.ok(proofRepository.findAll());
+    proof.setMint(mintOpt.get());
+    if (!isKeysetOfMint(proof.getMint().getId(), proof.getKeysetId())) {
+      log.warn("store rejected mint={} reason=keyset_not_of_mint", proof.getMint().getId());
+      return StoreCheck.REJECTED;
     }
-
-    /**
-     * Retrieves a proof by its identifier.
-     *
-     * @param id proof identifier
-     * @return matching proof entity
-     * @throws CashuErrorException if no proof with the ID exists
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ProofEntity> retrieve(
-            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
-        log.info("Retrieving ProofEntity by id {}", id);
-        Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
-        if (proofOpt.isPresent()) {
-            log.debug("Retrieved ProofEntity by id {}", proofOpt.get().getId());
-            return ResponseEntity.ok(proofOpt.get());
-        }
-        return ResponseEntity.noContent().build();
+    String duplicate = proofRepository.duplicateReason(proof);
+    if (duplicate != null) {
+      log.info("Duplicate proof detected: {}", duplicate);
+      return StoreCheck.DUPLICATE;
     }
+    return StoreCheck.INSERTABLE;
+  }
 
-    /**
-     * Retrieves all proofs associated with a mint.
-     *
-     * @param mintId mint identifier
-     * @return set of proofs for the mint
-     * @throws CashuErrorException if none are found
-     */
-    @GetMapping("/mint/{mintId}")
-    public ResponseEntity<Set<ProofEntity>> retrieveByMint(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId) throws CashuErrorException {
-        log.info("Retrieving ProofEntities by mintId {}", mintId);
-        Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_Id(UUID.fromString(mintId));
-        if (proofs.isPresent() && !proofs.get().isEmpty()) {
-            return ResponseEntity.ok(proofs.get());
-        }
-        throw new CashuErrorException("No ProofEntities found for the given Mint ID");
+  /**
+   * cashu-vault#156: a proof may only be booked against a keyset of its own mint. A null keyset is
+   * still accepted, so a mint that predates the field keeps working; its proofs are reported as
+   * unattributed.
+   */
+  private boolean isKeysetOfMint(UUID mintId, String keysetId) {
+    return keysetId == null || keySetRepository.existsByMint_IdAndKeySetId(mintId, keysetId);
+  }
+
+  private static boolean isInsertableState(String state) {
+    return state == null || INSERTABLE_STATES.contains(state);
+  }
+
+  /**
+   * cashu-vault#154 — records the named proofs of a mint as spent.
+   *
+   * <p>{@code UPDATE ... SET state='SPENT' WHERE state IN ('UNSPENT','PENDING')}, scoped to the
+   * mint, with any hold on the rows cleared. A proof already SPENT is left alone, so a retry is
+   * idempotent. Returns the number of named proofs that are SPENT once the call has run, which the
+   * caller compares with the number it sent: a shortfall means a proof the vault has never seen,
+   * and the caller must insert it before it can be spent.
+   *
+   * @param mintId mint that owns the proofs
+   * @param secrets Y-normalised proof secrets
+   * @return how many of {@code secrets} are now SPENT
+   */
+  @PostMapping("/mint/{mintId}/mark-spent")
+  public ResponseEntity<Integer> markSpent(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @RequestBody List<String> secrets) {
+    if (secrets == null
+        || secrets.isEmpty()
+        || secrets.stream().anyMatch(ProofVaultController::isBlank)) {
+      log.warn("markSpent rejected mint={} reason=empty_or_blank_secrets", mintId);
+      return ResponseEntity.badRequest().build();
     }
+    UUID mintUuid = UUID.fromString(mintId);
+    int transitioned = proofRepository.markSpent(secrets, mintUuid);
+    long spent = proofRepository.countSpent(secrets, mintUuid);
+    log.info(
+        "markSpent mint={} proofs={} transitioned={} spent={}",
+        mintId,
+        secrets.size(),
+        transitioned,
+        spent);
+    return ResponseEntity.ok(Math.toIntExact(spent));
+  }
 
-    /**
-     * Retrieves a proof by its secret.
-     *
-     * @param secret secret value
-     * @return matching proof entity
-     * @throws CashuErrorException if no proof exists for the secret
-     */
-    @GetMapping("/secret/{secret}")
-    public ResponseEntity<ProofEntity> retrieveBySecret(
-            @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length") String secret) throws CashuErrorException {
-        log.debug("Retrieving ProofEntity by secret {}", SecretLogId.of(secret));
-        Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
-        if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by secret {}", SecretLogId.of(secret));
-            return ResponseEntity.ok(proof.get());
-        }
-        log.warn("No ProofEntity found for the specified secret");
-        return ResponseEntity.noContent().build();
+  private static boolean isBlank(String value) {
+    return value == null || value.isBlank();
+  }
+
+  /**
+   * Retrieves all proof entities.
+   *
+   * @return list of proofs (possibly empty)
+   */
+  @GetMapping
+  public ResponseEntity<List<ProofEntity>> list() {
+    return ResponseEntity.ok(proofRepository.findAll());
+  }
+
+  /**
+   * Retrieves a proof by its identifier.
+   *
+   * @param id proof identifier
+   * @return matching proof entity
+   * @throws CashuErrorException if no proof with the ID exists
+   */
+  @GetMapping("/{id}")
+  public ResponseEntity<ProofEntity> retrieve(
+      @PathVariable("id")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String id)
+      throws CashuErrorException {
+    log.info("Retrieving ProofEntity by id {}", id);
+    Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
+    if (proofOpt.isPresent()) {
+      log.debug("Retrieved ProofEntity by id {}", proofOpt.get().getId());
+      return ResponseEntity.ok(proofOpt.get());
     }
+    return ResponseEntity.noContent().build();
+  }
 
-    /**
-     * Retrieves a proof by mint and secret.
-     *
-     * @param mintId mint identifier
-     * @param secret secret value
-     * @return matching proof entity
-     * @throws CashuErrorException if no proof exists for the mint/secret pair
-     */
-    @GetMapping("/mint/{mintId}/secret/{secret}")
-    public ResponseEntity<ProofEntity> retrieveByMintAndSecret(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length") String secret) throws CashuErrorException {
-        log.info("Retrieving ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
-        Optional<ProofEntity> proof = proofRepository.findByMint_IdAndSecret(UUID.fromString(mintId), secret);
-        if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
-            return ResponseEntity.ok(proof.get());
-        }
-        log.warn("No ProofEntity found for the specified mint and secret");
-        return ResponseEntity.noContent().build();
+  /**
+   * Retrieves all proofs associated with a mint.
+   *
+   * @param mintId mint identifier
+   * @return set of proofs for the mint
+   * @throws CashuErrorException if none are found
+   */
+  @GetMapping("/mint/{mintId}")
+  public ResponseEntity<Set<ProofEntity>> retrieveByMint(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId)
+      throws CashuErrorException {
+    log.info("Retrieving ProofEntities by mintId {}", mintId);
+    Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_Id(UUID.fromString(mintId));
+    if (proofs.isPresent() && !proofs.get().isEmpty()) {
+      return ResponseEntity.ok(proofs.get());
     }
+    throw new CashuErrorException("No ProofEntities found for the given Mint ID");
+  }
 
-    /**
-     * Retrieves proofs by mint and amount.
-     *
-     * @param mintId mint identifier
-     * @param amount proof amount
-     * @return set of matching proof entities
-     * @throws CashuErrorException if none are found
-     */
-    @GetMapping("/mint/{mintId}/amount/{amount}")
-    public ResponseEntity<Set<ProofEntity>> retrieveByMintAndAmount(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("amount") @Positive(message = "Amount must be positive") Integer amount) throws CashuErrorException {
-        log.info("Retrieving ProofEntities by mintId {} and amount {}", mintId, amount);
-        Optional<Set<ProofEntity>> proofs = proofRepository.findByMint_IdAndAmount(UUID.fromString(mintId), amount);
-        if (proofs.isPresent() && !proofs.get().isEmpty()) {
-            return ResponseEntity.ok(proofs.get());
-        }
-        return ResponseEntity.noContent().build();
+  /**
+   * Retrieves a proof by its secret.
+   *
+   * @param secret secret value
+   * @return matching proof entity
+   * @throws CashuErrorException if no proof exists for the secret
+   */
+  @GetMapping("/secret/{secret}")
+  public ResponseEntity<ProofEntity> retrieveBySecret(
+      @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length")
+          String secret)
+      throws CashuErrorException {
+    log.debug("Retrieving ProofEntity by secret {}", SecretLogId.of(secret));
+    Optional<ProofEntity> proof = proofRepository.findBySecret(secret);
+    if (proof.isPresent()) {
+      log.debug("Retrieved ProofEntity by secret {}", SecretLogId.of(secret));
+      return ResponseEntity.ok(proof.get());
     }
+    log.warn("No ProofEntity found for the specified secret");
+    return ResponseEntity.noContent().build();
+  }
 
-    /**
-     * Retrieves a proof by mint and unblinded signature.
-     *
-     * @param mintId             mint identifier
-     * @param unblindedSignature unblinded signature value
-     * @return matching proof entity
-     * @throws CashuErrorException if no proof exists for the mint/signature pair
-     */
-    @GetMapping("/mint/{mintId}/signature/{unblindedSignature}")
-    public ResponseEntity<ProofEntity> retrieveByMintAndUnblindedSignature(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("unblindedSignature") @NotBlank @Size(max = 512, message = "Signature exceeds maximum length") String unblindedSignature) throws CashuErrorException {
-        log.info("Retrieving ProofEntity by mintId {} and signature {}", mintId, SecretLogId.of(unblindedSignature));
-        Optional<ProofEntity> proof = proofRepository.findByMint_IdAndUnblindedSignature(UUID.fromString(mintId),
-                unblindedSignature);
-        if (proof.isPresent()) {
-            log.debug("Retrieved ProofEntity by mintId {} and signature {}", mintId, SecretLogId.of(unblindedSignature));
-            return ResponseEntity.ok(proof.get());
-        }
-        return ResponseEntity.noContent().build();
+  /**
+   * Retrieves a proof by mint and secret.
+   *
+   * @param mintId mint identifier
+   * @param secret secret value
+   * @return matching proof entity
+   * @throws CashuErrorException if no proof exists for the mint/secret pair
+   */
+  @GetMapping("/mint/{mintId}/secret/{secret}")
+  public ResponseEntity<ProofEntity> retrieveByMintAndSecret(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @PathVariable("secret") @NotBlank @Size(max = 512, message = "Secret exceeds maximum length")
+          String secret)
+      throws CashuErrorException {
+    log.info("Retrieving ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
+    Optional<ProofEntity> proof =
+        proofRepository.findByMint_IdAndSecret(UUID.fromString(mintId), secret);
+    if (proof.isPresent()) {
+      log.debug("Retrieved ProofEntity by mintId {} and secret {}", mintId, SecretLogId.of(secret));
+      return ResponseEntity.ok(proof.get());
     }
+    log.warn("No ProofEntity found for the specified mint and secret");
+    return ResponseEntity.noContent().build();
+  }
 
-    /**
-     * Archives a proof by marking it as archived.
-     *
-     * @param id proof identifier
-     * @return archived proof entity
-     * @throws CashuErrorException if the proof does not exist
-     */
-    @PostMapping("/archive/{id}")
-    public ResponseEntity<ProofEntity> archive(
-            @PathVariable("id") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String id) throws CashuErrorException {
-        log.info("Archiving ProofEntity {}", id);
-        Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
-        if (proofOpt.isPresent()) {
-            var proof = proofOpt.get();
-            proof.setArchived(true); // Assumes an 'archived' field
-            var archivedProof = proofRepository.save(proof);
-            log.debug("Archived ProofEntity {}", archivedProof.getId());
-            return ResponseEntity.ok(archivedProof);
-        }
-        return ResponseEntity.noContent().build();
+  /**
+   * Retrieves proofs by mint and amount.
+   *
+   * @param mintId mint identifier
+   * @param amount proof amount
+   * @return set of matching proof entities
+   * @throws CashuErrorException if none are found
+   */
+  @GetMapping("/mint/{mintId}/amount/{amount}")
+  public ResponseEntity<Set<ProofEntity>> retrieveByMintAndAmount(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @PathVariable("amount") @Positive(message = "Amount must be positive") Integer amount)
+      throws CashuErrorException {
+    log.info("Retrieving ProofEntities by mintId {} and amount {}", mintId, amount);
+    Optional<Set<ProofEntity>> proofs =
+        proofRepository.findByMint_IdAndAmount(UUID.fromString(mintId), amount);
+    if (proofs.isPresent() && !proofs.get().isEmpty()) {
+      return ResponseEntity.ok(proofs.get());
     }
+    return ResponseEntity.noContent().build();
+  }
 
-    // ---------------------------------------------------------------
-    // cashu-mint spec 002 T011 — melt-saga binding REST surface
-    // ---------------------------------------------------------------
-
-    /**
-     * Spec 005 — atomic insert-or-claim. The caller supplies fully
-     * populated {@link ProofEntity} rows (with Y-normalised secrets);
-     * the repository inserts or claims each as PENDING bound to
-     * {@code holdId}, returning the total bound count.
-     *
-     * <p>Replaces the prior two-step {@code POST /store} + {@code POST
-     * /mark-pending} sequence used by the melt saga, which could not
-     * bind freshly-inserted rows.
-     */
-    @PostMapping("/mint/{mintId}/hold/{holdId}/insert-or-claim")
-    public ResponseEntity<Integer> insertOrClaimForHold(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId,
-            @RequestBody List<ProofEntity> proofs) {
-        if (proofs == null || proofs.isEmpty()) {
-            log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, holdId);
-            return ResponseEntity.badRequest().build();
-        }
-        // Per-proof field validation: a blank secret would NPE the
-        // List.of(secret) claim, and a missing amount / signature would hit
-        // a NOT NULL constraint that the repository would otherwise surface
-        // as a quiet partial-bind. Fail malformed requests with 400 up front.
-        for (ProofEntity p : proofs) {
-            if (p.getSecret() == null || p.getSecret().isBlank()
-                    || p.getAmount() == null
-                    || p.getUnblindedSignature() == null || p.getUnblindedSignature().isBlank()) {
-                log.warn("insertOrClaim rejected mint={} saga={} reason=invalid_proof_fields",
-                        mintId, holdId);
-                return ResponseEntity.badRequest().build();
-            }
-        }
-        UUID mintUuid = UUID.fromString(mintId);
-        // Resolve managed mint reference + sanity-check tenancy so a
-        // mismatched mint scope can't sneak past the per-proof CAS.
-        Optional<MintEntity> mintOpt = mintRepository.findById(mintUuid);
-        if (mintOpt.isEmpty()) {
-            log.warn("insertOrClaim rejected mint={} saga={} reason=unknown_mint", mintId, holdId);
-            return ResponseEntity.badRequest().build();
-        }
-        MintEntity managedMint = mintOpt.get();
-        for (ProofEntity p : proofs) {
-            if (!isKeysetOfMint(mintUuid, p.getKeysetId())) {
-                log.warn("insertOrClaim rejected mint={} saga={} reason=keyset_not_of_mint", mintId, holdId);
-                return ResponseEntity.badRequest().build();
-            }
-        }
-        for (ProofEntity p : proofs) {
-            p.setMint(managedMint);
-        }
-        log.info("insertOrClaim mint={} saga={} proofs={}", mintId, holdId, proofs.size());
-        int bound = proofRepository.insertOrClaimForHold(proofs, holdId, mintUuid);
-        log.info("insertOrClaim mint={} saga={} bound={}", mintId, holdId, bound);
-        return ResponseEntity.ok(bound);
+  /**
+   * Retrieves a proof by mint and unblinded signature.
+   *
+   * @param mintId mint identifier
+   * @param unblindedSignature unblinded signature value
+   * @return matching proof entity
+   * @throws CashuErrorException if no proof exists for the mint/signature pair
+   */
+  @GetMapping("/mint/{mintId}/signature/{unblindedSignature}")
+  public ResponseEntity<ProofEntity> retrieveByMintAndUnblindedSignature(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @PathVariable("unblindedSignature")
+          @NotBlank
+          @Size(max = 512, message = "Signature exceeds maximum length")
+          String unblindedSignature)
+      throws CashuErrorException {
+    log.info(
+        "Retrieving ProofEntity by mintId {} and signature {}",
+        mintId,
+        SecretLogId.of(unblindedSignature));
+    Optional<ProofEntity> proof =
+        proofRepository.findByMint_IdAndUnblindedSignature(
+            UUID.fromString(mintId), unblindedSignature);
+    if (proof.isPresent()) {
+      log.debug(
+          "Retrieved ProofEntity by mintId {} and signature {}",
+          mintId,
+          SecretLogId.of(unblindedSignature));
+      return ResponseEntity.ok(proof.get());
     }
+    return ResponseEntity.noContent().build();
+  }
 
-    /**
-     * cashu-mint spec 002 T011 — atomically marks proofs PENDING and binds
-     * them to the named saga. Returns the row count actually affected
-     * (callers compare against {@code proofIds.size()} to detect
-     * already-spent / already-held rows).
-     */
-    @PostMapping("/mint/{mintId}/hold/{holdId}/mark-pending")
-    public ResponseEntity<Integer> markPending(
-            @PathVariable("mintId") @NotBlank @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format") String mintId,
-            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId,
-            @RequestBody List<String> proofSecrets) {
-        // Empty / null proof list — Hibernate's IN-clause raises before
-        // SQL execution. Guard at the controller so a malformed request
-        // returns 400 instead of crashing with a 500.
-        if (proofSecrets == null || proofSecrets.isEmpty()) {
-            log.warn("markPending rejected mint={} saga={} reason=empty_proof_secrets", mintId, holdId);
-            return ResponseEntity.badRequest().build();
-        }
-        log.info("markPending mint={} saga={} proofs={}", mintId, holdId, proofSecrets.size());
-        int updated = proofRepository.markPending(proofSecrets, holdId, UUID.fromString(mintId));
-        log.info("markPending mint={} saga={} updated={}", mintId, holdId, updated);
-        return ResponseEntity.ok(updated);
+  /**
+   * Archives a proof by marking it as archived.
+   *
+   * @param id proof identifier
+   * @return archived proof entity
+   * @throws CashuErrorException if the proof does not exist
+   */
+  @PostMapping("/archive/{id}")
+  public ResponseEntity<ProofEntity> archive(
+      @PathVariable("id")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String id)
+      throws CashuErrorException {
+    log.info("Archiving ProofEntity {}", id);
+    Optional<ProofEntity> proofOpt = proofRepository.findById(UUID.fromString(id));
+    if (proofOpt.isPresent()) {
+      var proof = proofOpt.get();
+      proof.setArchived(true); // Assumes an 'archived' field
+      var archivedProof = proofRepository.save(proof);
+      log.debug("Archived ProofEntity {}", archivedProof.getId());
+      return ResponseEntity.ok(archivedProof);
     }
+    return ResponseEntity.noContent().build();
+  }
 
-    /**
-     * cashu-mint spec 002 T011 — commits a saga's PENDING proofs to
-     * SPENT in one statement; clears the {@code hold_id} binding.
-     */
-    @PostMapping("/hold/{holdId}/commit-spent")
-    public ResponseEntity<Integer> commitSpent(
-            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId) {
-        int updated = proofRepository.commitSpent(holdId);
-        log.info("commitSpent saga={} updated={}", holdId, updated);
-        return ResponseEntity.ok(updated);
-    }
+  // ---------------------------------------------------------------
+  // cashu-mint spec 002 T011 — melt-saga binding REST surface
+  // ---------------------------------------------------------------
 
-    /**
-     * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back to
-     * UNSPENT and clears the {@code hold_id} binding.
-     */
-    @PostMapping("/hold/{holdId}/refund")
-    public ResponseEntity<Integer> refund(
-            @PathVariable("holdId") @NotBlank @Size(max = 64, message = "hold_id must be at most 64 chars") String holdId) {
-        int updated = proofRepository.refundToUnspent(holdId);
-        log.info("refund saga={} updated={}", holdId, updated);
-        return ResponseEntity.ok(updated);
+  /**
+   * Spec 005 — atomic insert-or-claim. The caller supplies fully populated {@link ProofEntity} rows
+   * (with Y-normalised secrets); the repository inserts or claims each as PENDING bound to {@code
+   * holdId}, returning the total bound count.
+   *
+   * <p>Replaces the prior two-step {@code POST /store} + {@code POST /mark-pending} sequence used
+   * by the melt saga, which could not bind freshly-inserted rows.
+   */
+  @PostMapping("/mint/{mintId}/hold/{holdId}/insert-or-claim")
+  public ResponseEntity<Integer> insertOrClaimForHold(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @PathVariable("holdId")
+          @NotBlank
+          @Size(max = 64, message = "hold_id must be at most 64 chars")
+          String holdId,
+      @RequestBody List<ProofEntity> proofs) {
+    if (proofs == null || proofs.isEmpty()) {
+      log.warn("insertOrClaim rejected mint={} saga={} reason=empty_proofs", mintId, holdId);
+      return ResponseEntity.badRequest().build();
     }
+    // Per-proof field validation: a blank secret would NPE the
+    // List.of(secret) claim, and a missing amount / signature would hit
+    // a NOT NULL constraint that the repository would otherwise surface
+    // as a quiet partial-bind. Fail malformed requests with 400 up front.
+    for (ProofEntity p : proofs) {
+      if (p.getSecret() == null
+          || p.getSecret().isBlank()
+          || p.getAmount() == null
+          || p.getUnblindedSignature() == null
+          || p.getUnblindedSignature().isBlank()) {
+        log.warn(
+            "insertOrClaim rejected mint={} saga={} reason=invalid_proof_fields", mintId, holdId);
+        return ResponseEntity.badRequest().build();
+      }
+    }
+    UUID mintUuid = UUID.fromString(mintId);
+    // Resolve managed mint reference + sanity-check tenancy so a
+    // mismatched mint scope can't sneak past the per-proof CAS.
+    Optional<MintEntity> mintOpt = mintRepository.findById(mintUuid);
+    if (mintOpt.isEmpty()) {
+      log.warn("insertOrClaim rejected mint={} saga={} reason=unknown_mint", mintId, holdId);
+      return ResponseEntity.badRequest().build();
+    }
+    MintEntity managedMint = mintOpt.get();
+    for (ProofEntity p : proofs) {
+      if (!isKeysetOfMint(mintUuid, p.getKeysetId())) {
+        log.warn(
+            "insertOrClaim rejected mint={} saga={} reason=keyset_not_of_mint", mintId, holdId);
+        return ResponseEntity.badRequest().build();
+      }
+    }
+    for (ProofEntity p : proofs) {
+      p.setMint(managedMint);
+    }
+    log.info("insertOrClaim mint={} saga={} proofs={}", mintId, holdId, proofs.size());
+    int bound = proofRepository.insertOrClaimForHold(proofs, holdId, mintUuid);
+    log.info("insertOrClaim mint={} saga={} bound={}", mintId, holdId, bound);
+    return ResponseEntity.ok(bound);
+  }
+
+  /**
+   * cashu-mint spec 002 T011 — atomically marks proofs PENDING and binds them to the named saga.
+   * Returns the row count actually affected (callers compare against {@code proofIds.size()} to
+   * detect already-spent / already-held rows).
+   */
+  @PostMapping("/mint/{mintId}/hold/{holdId}/mark-pending")
+  public ResponseEntity<Integer> markPending(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @PathVariable("holdId")
+          @NotBlank
+          @Size(max = 64, message = "hold_id must be at most 64 chars")
+          String holdId,
+      @RequestBody List<String> proofSecrets) {
+    // Empty / null proof list — Hibernate's IN-clause raises before
+    // SQL execution. Guard at the controller so a malformed request
+    // returns 400 instead of crashing with a 500.
+    if (proofSecrets == null || proofSecrets.isEmpty()) {
+      log.warn("markPending rejected mint={} saga={} reason=empty_proof_secrets", mintId, holdId);
+      return ResponseEntity.badRequest().build();
+    }
+    log.info("markPending mint={} saga={} proofs={}", mintId, holdId, proofSecrets.size());
+    int updated = proofRepository.markPending(proofSecrets, holdId, UUID.fromString(mintId));
+    log.info("markPending mint={} saga={} updated={}", mintId, holdId, updated);
+    return ResponseEntity.ok(updated);
+  }
+
+  /**
+   * cashu-mint spec 002 T011 — commits a saga's PENDING proofs to SPENT in one statement; clears
+   * the {@code hold_id} binding.
+   */
+  @PostMapping("/hold/{holdId}/commit-spent")
+  public ResponseEntity<Integer> commitSpent(
+      @PathVariable("holdId")
+          @NotBlank
+          @Size(max = 64, message = "hold_id must be at most 64 chars")
+          String holdId) {
+    int updated = proofRepository.commitSpent(holdId);
+    log.info("commitSpent saga={} updated={}", holdId, updated);
+    return ResponseEntity.ok(updated);
+  }
+
+  /**
+   * cashu-mint spec 002 T011 — refunds a saga's PENDING proofs back to UNSPENT and clears the
+   * {@code hold_id} binding.
+   */
+  @PostMapping("/hold/{holdId}/refund")
+  public ResponseEntity<Integer> refund(
+      @PathVariable("holdId")
+          @NotBlank
+          @Size(max = 64, message = "hold_id must be at most 64 chars")
+          String holdId) {
+    int updated = proofRepository.refundToUnspent(holdId);
+    log.info("refund saga={} updated={}", holdId, updated);
+    return ResponseEntity.ok(updated);
+  }
 }

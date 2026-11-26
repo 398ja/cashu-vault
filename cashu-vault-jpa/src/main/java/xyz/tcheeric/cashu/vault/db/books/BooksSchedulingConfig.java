@@ -10,6 +10,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @Configuration
 @EnableScheduling
-@ConditionalOnProperty(name = "vault.books.metrics.enabled", havingValue = "true", matchIfMissing = true)
-class BooksSchedulingConfig {
-}
+@ConditionalOnProperty(
+    name = "vault.books.metrics.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
+class BooksSchedulingConfig {}

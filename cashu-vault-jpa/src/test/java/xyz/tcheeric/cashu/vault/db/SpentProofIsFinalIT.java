@@ -47,8 +47,7 @@ class SpentProofIsFinalIT {
     registry.add("spring.datasource.password", POSTGRES::getPassword);
     registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
     registry.add(
-        "spring.jpa.properties.hibernate.dialect",
-        () -> "org.hibernate.dialect.PostgreSQLDialect");
+        "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
   }
 
   private static final String KEYSET = "00aaaaaaaaaaaaaa";
@@ -65,8 +64,11 @@ class SpentProofIsFinalIT {
     mintId = UUID.randomUUID();
     Timestamp now = Timestamp.from(Instant.now());
     jdbc.update(
-        "INSERT INTO t_mint (id, archived, created_at, updated_at, version) VALUES (?, false, ?, ?, 0)",
-        mintId, now, now);
+        "INSERT INTO t_mint (id, archived, created_at, updated_at, version) VALUES (?, false, ?, ?,"
+            + " 0)",
+        mintId,
+        now,
+        now);
   }
 
   // Guards the suite: on H2 there is no trigger and every assertion below would be vacuous.
@@ -81,12 +83,17 @@ class SpentProofIsFinalIT {
   // partial on SPENT, or the books query falls back to a scan.
   @Test
   void booksIndexIsValidAndPartial() {
-    assertThat(jdbc.queryForObject(
-        "SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid "
-            + "WHERE c.relname = 'idx_proof_books_spent'", Boolean.class)).isTrue();
-    assertThat(jdbc.queryForObject(
-        "SELECT pg_get_indexdef('idx_proof_books_spent'::regclass)", String.class))
-        .contains("WHERE").contains("SPENT");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid "
+                    + "WHERE c.relname = 'idx_proof_books_spent'",
+                Boolean.class))
+        .isTrue();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT pg_get_indexdef('idx_proof_books_spent'::regclass)", String.class))
+        .contains("WHERE")
+        .contains("SPENT");
   }
 
   // A direct UPDATE moving a SPENT row back to UNSPENT fails, and the row stays SPENT.
@@ -216,8 +223,8 @@ class SpentProofIsFinalIT {
   void changingTheSpendTimeOfASpentProofFails() {
     UUID id = insertProof("SPENT");
 
-    assertThatThrownBy(
-            () -> jdbc.update("UPDATE t_proof SET spent_at = now() - interval '1 day' WHERE id = ?", id))
+    assertThatThrownBy(() ->
+            jdbc.update("UPDATE t_proof SET spent_at = now() - interval '1 day' WHERE id = ?", id))
         .isInstanceOf(DataAccessException.class);
     assertThatThrownBy(() -> jdbc.update("UPDATE t_proof SET spent_at = NULL WHERE id = ?", id))
         .isInstanceOf(DataAccessException.class);
@@ -253,7 +260,8 @@ class SpentProofIsFinalIT {
     UUID id = insertProof("UNSPENT");
 
     jdbc.update(
-        "UPDATE t_proof SET state = 'SPENT', spent_at = TIMESTAMPTZ '2020-01-01 00:00:00Z' WHERE id = ?",
+        "UPDATE t_proof SET state = 'SPENT', spent_at = TIMESTAMPTZ '2020-01-01 00:00:00Z' WHERE id"
+            + " = ?",
         id);
 
     Timestamp spentAt = spentAtOf(id);
@@ -325,7 +333,14 @@ class SpentProofIsFinalIT {
     jdbc.update(
         "INSERT INTO t_proof (id, archived, created_at, updated_at, version, mint_id, amount, "
             + "secret, c, state, keyset_id) VALUES (?, false, ?, ?, 0, ?, 1, ?, ?, ?, ?)",
-        id, now, now, mintId, "secret-" + id, "c-" + id, state, keysetId);
+        id,
+        now,
+        now,
+        mintId,
+        "secret-" + id,
+        "c-" + id,
+        state,
+        keysetId);
     return id;
   }
 

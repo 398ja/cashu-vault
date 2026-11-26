@@ -1,53 +1,50 @@
 package xyz.tcheeric.cashu.vault.db.repos;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
-
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 
-/**
- * Repository for performing CRUD operations on {@link KeySetEntity}.
- */
+/** Repository for performing CRUD operations on {@link KeySetEntity}. */
 public interface KeySetRepository extends JpaRepository<KeySetEntity, UUID> {
 
-    /**
-     * Finds a key set by its identifier string.
-     *
-     * @param keySetId key set identifier
-     * @return optional key set entity
-     */
-    Optional<KeySetEntity> findByKeySetId(String keySetId);
+  /**
+   * Finds a key set by its identifier string.
+   *
+   * @param keySetId key set identifier
+   * @return optional key set entity
+   */
+  Optional<KeySetEntity> findByKeySetId(String keySetId);
 
-    /**
-     * Finds key sets by unit.
-     *
-     * @param unit monetary unit code
-     * @return optional set of key sets
-     */
-    Optional<Set<KeySetEntity>> findByUnit(String unit);
+  /**
+   * Finds key sets by unit.
+   *
+   * @param unit monetary unit code
+   * @return optional set of key sets
+   */
+  Optional<Set<KeySetEntity>> findByUnit(String unit);
 
-    /**
-     * Finds key sets associated with a mint.
-     *
-     * @param mintId mint identifier
-     * @return optional set of key sets
-     */
-    Optional<Set<KeySetEntity>> findByMint_Id(UUID mintId);
+  /**
+   * Finds key sets associated with a mint.
+   *
+   * @param mintId mint identifier
+   * @return optional set of key sets
+   */
+  Optional<Set<KeySetEntity>> findByMint_Id(UUID mintId);
 
-    /**
-     * Finds key sets by mint and unit.
-     *
-     * @param uuid mint identifier
-     * @param unit monetary unit code
-     * @return optional set of key sets
-     */
-    Optional<Set<KeySetEntity>> findByMint_IdAndUnit(UUID uuid, String unit);
+  /**
+   * Finds key sets by mint and unit.
+   *
+   * @param uuid mint identifier
+   * @param unit monetary unit code
+   * @return optional set of key sets
+   */
+  Optional<Set<KeySetEntity>> findByMint_IdAndUnit(UUID uuid, String unit);
 
-    /**
-     * Whether {@code keySetId} is a keyset of the given mint. Guards proof writes, so a proof
-     * cannot be booked against another mint's keyset or an invented one (cashu-vault#156).
-     */
-    boolean existsByMint_IdAndKeySetId(UUID mintId, String keySetId);
+  /**
+   * Whether {@code keySetId} is a keyset of the given mint. Guards proof writes, so a proof cannot
+   * be booked against another mint's keyset or an invented one (cashu-vault#156).
+   */
+  boolean existsByMint_IdAndKeySetId(UUID mintId, String keySetId);
 }

@@ -2,9 +2,9 @@ package xyz.tcheeric.cashu.vault.db.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -12,6 +12,9 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -20,29 +23,25 @@ import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
 import xyz.tcheeric.cashu.common.Proof;
 import xyz.tcheeric.cashu.common.Secret;
-import xyz.tcheeric.cashu.common.UnCompressedPublicKey;
 import xyz.tcheeric.cashu.common.util.SecretUtil;
-import xyz.tcheeric.cashu.crypto.BDHKEUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Instant;
-
-/**
- * Entity representing a spendable proof issued by a mint.
- */
+/** Entity representing a spendable proof issued by a mint. */
 @Entity(name = "proof")
-@Table(name = "t_proof",
-        indexes = {
-                @Index(name = "idx_proof_mint_id", columnList = "mint_id"),
-                @Index(name = "idx_proof_commitment", columnList = "c"),
-                @Index(name = "idx_proof_fingerprint", columnList = "fingerprint")
-        },
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_proof_mint_secret", columnNames = {"mint_id", "secret"}),
-                @UniqueConstraint(name = "uk_proof_mint_commitment", columnNames = {"mint_id", "c"})
-        }
-)
+@Table(
+    name = "t_proof",
+    indexes = {
+      @Index(name = "idx_proof_mint_id", columnList = "mint_id"),
+      @Index(name = "idx_proof_commitment", columnList = "c"),
+      @Index(name = "idx_proof_fingerprint", columnList = "fingerprint")
+    },
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_proof_mint_secret",
+          columnNames = {"mint_id", "secret"}),
+      @UniqueConstraint(
+          name = "uk_proof_mint_commitment",
+          columnNames = {"mint_id", "c"})
+    })
 @Data
 @Audited
 @AuditTable(value = "t_proof_a")
@@ -50,208 +49,204 @@ import java.time.Instant;
 @ToString(callSuper = true)
 public class ProofEntity extends BaseEntity {
 
-    /** Pending state constant. */
-    public static final String STATE_PENDING = "PENDING";
-    /** Unspent state constant. */
-    public static final String STATE_UNSPENT = "UNSPENT";
-    /** Spent state constant. */
-    public static final String STATE_SPENT = "SPENT";
+  /** Pending state constant. */
+  public static final String STATE_PENDING = "PENDING";
 
-    /**
-     * Mint that issued this proof.
-     *
-     * <p>Deliberately not cascading. A proof is written with its {@code mint_id} and the
-     * mint already exists: the proof is the child, and nothing about writing one should
-     * reach back into the parent. Cascading here did reach back, and because
-     * {@code MintEntity.proofs} cascaded {@code PERSIST/MERGE} onward, saving a single
-     * proof pulled in every proof the mint had ever issued.
-     *
-     * <p>Three separate faults came from that, all measured on staging at 12,778 proof
-     * rows. Binding 3-8 proofs to a hold took a median of 863ms, dominated by hydrating
-     * the collection once per inserted proof, and the cost grew with total proofs ever
-     * issued rather than with the size of the swap. Every proof write also bumped the
-     * mint's {@code @Version}, so concurrent swaps collided on the parent row: 52
-     * optimistic-locking failures in 24 hours, surfacing to the mint as 409s. And each
-     * cascaded touch made Envers record a mint revision, leaving 3 mints with 10,437
-     * audit rows that describe no actual change to a mint.
-     */
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "mint_id", nullable = false)
-    @JsonProperty
-    private MintEntity mint;
+  /** Unspent state constant. */
+  public static final String STATE_UNSPENT = "UNSPENT";
 
-    /** Amount represented by the proof. */
-    @JsonProperty
-    @Column(name = "amount", nullable = false)
-    private Integer amount;
+  /** Spent state constant. */
+  public static final String STATE_SPENT = "SPENT";
 
-    /**
-     * Secret value of the proof.
-     *
-     * <p>Excluded from {@code toString()} (audit M-14). This field together with
-     * {@link #unblindedSignature} is spendable ecash, and an entity reaches a log line or an
-     * exception message easily: a single {@code log.debug("... {}", proofEntity)} anywhere would
-     * publish a spendable token.
-     */
-    @JsonProperty
-    @Column(name = "secret", nullable = false)
-    @ToString.Exclude
-    private String secret;
+  /**
+   * Mint that issued this proof.
+   *
+   * <p>Deliberately not cascading. A proof is written with its {@code mint_id} and the mint already
+   * exists: the proof is the child, and nothing about writing one should reach back into the
+   * parent. Cascading here did reach back, and because {@code MintEntity.proofs} cascaded {@code
+   * PERSIST/MERGE} onward, saving a single proof pulled in every proof the mint had ever issued.
+   *
+   * <p>Three separate faults came from that, all measured on staging at 12,778 proof rows. Binding
+   * 3-8 proofs to a hold took a median of 863ms, dominated by hydrating the collection once per
+   * inserted proof, and the cost grew with total proofs ever issued rather than with the size of
+   * the swap. Every proof write also bumped the mint's {@code @Version}, so concurrent swaps
+   * collided on the parent row: 52 optimistic-locking failures in 24 hours, surfacing to the mint
+   * as 409s. And each cascaded touch made Envers record a mint revision, leaving 3 mints with
+   * 10,437 audit rows that describe no actual change to a mint.
+   */
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "mint_id", nullable = false)
+  @JsonProperty
+  private MintEntity mint;
 
-    /**
-     * Unblinded signature associated with the proof. Excluded from {@code toString()}; see
-     * {@link #secret}.
-     *
-     * <p>Also {@code @NotAudited}: the audit trail needs to record that a proof moved between
-     * states and when, not to keep a second copy of its cryptographic material for the lifetime
-     * of the database. Deleting a proof row previously left the history row untouched, so the
-     * material outlived the deletion (audit H-8).
-     */
-    @JsonProperty
-    @Column(name = "C", nullable = false)
-    @ToString.Exclude
-    @NotAudited
-    private String unblindedSignature;
+  /** Amount represented by the proof. */
+  @JsonProperty
+  @Column(name = "amount", nullable = false)
+  private Integer amount;
 
-    /**
-     * Optional witness identifier. Excluded from {@code toString()}; see {@link #secret}.
-     *
-     * <p>{@code @NotAudited} for the same reason as {@link #unblindedSignature}: a NUT-11 witness
-     * is a signature over the secret, and history is not the place to keep it.
-     */
-    @JsonProperty
-    @Column(name = "witness", unique = true)
-    @ToString.Exclude
-    @NotAudited
-    private String witness;
+  /**
+   * Secret value of the proof.
+   *
+   * <p>Excluded from {@code toString()} (audit M-14). This field together with {@link
+   * #unblindedSignature} is spendable ecash, and an entity reaches a log line or an exception
+   * message easily: a single {@code log.debug("... {}", proofEntity)} anywhere would publish a
+   * spendable token.
+   */
+  @JsonProperty
+  @Column(name = "secret", nullable = false)
+  @ToString.Exclude
+  private String secret;
 
-    /** Current state of the proof. */
-    @JsonProperty
-    @Column(name = "state", nullable = false)
-    private String state = STATE_UNSPENT;
+  /**
+   * Unblinded signature associated with the proof. Excluded from {@code toString()}; see {@link
+   * #secret}.
+   *
+   * <p>Also {@code @NotAudited}: the audit trail needs to record that a proof moved between states
+   * and when, not to keep a second copy of its cryptographic material for the lifetime of the
+   * database. Deleting a proof row previously left the history row untouched, so the material
+   * outlived the deletion (audit H-8).
+   */
+  @JsonProperty
+  @Column(name = "C", nullable = false)
+  @ToString.Exclude
+  @NotAudited
+  private String unblindedSignature;
 
-    /**
-     * The exclusive hold on this proof while it is PENDING, or null when the row is UNSPENT or
-     * SPENT.
-     *
-     * <p>A melt saga (cashu-mint spec 002, T010 / FR-006) and a swap across its signing step
-     * (cashu-mint#400) both bind here. Sharing one binding is deliberate: it is what makes a swap
-     * hold block a melt on the same proof and vice versa. {@link #holdKind} says which flow it is,
-     * because the two resolve differently.
-     *
-     * <p>The lifecycle is mint-driven:
-     * <ul>
-     *   <li>{@code UNSPENT → PENDING} — set to the new hold id.</li>
-     *   <li>{@code PENDING → SPENT} or {@code PENDING → UNSPENT} — cleared
-     *       to null.</li>
-     * </ul>
-     */
-    @JsonProperty("hold_id")
-    @Column(name = "hold_id", length = 64)
-    private String holdId;
+  /**
+   * Optional witness identifier. Excluded from {@code toString()}; see {@link #secret}.
+   *
+   * <p>{@code @NotAudited} for the same reason as {@link #unblindedSignature}: a NUT-11 witness is
+   * a signature over the secret, and history is not the place to keep it.
+   */
+  @JsonProperty
+  @Column(name = "witness", unique = true)
+  @ToString.Exclude
+  @NotAudited
+  private String witness;
 
-    /**
-     * Which flow holds this proof, when one does.
-     *
-     * <p>Null exactly when {@link #holdId} is null. It is recorded rather than inferred from the
-     * id, because a melt hold and a swap hold resolve in opposite directions and guessing wrong on
-     * a swap hold spends the same value twice.
-     */
-    @JsonProperty("hold_kind")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "hold_kind", length = 8)
-    private HoldKind holdKind;
+  /** Current state of the proof. */
+  @JsonProperty
+  @Column(name = "state", nullable = false)
+  private String state = STATE_UNSPENT;
 
-    /**
-     * Keyset that signed this proof (the NUT-00 {@code id} of the proof), cashu-vault#156.
-     *
-     * <p>Lets the books reconciler sum spent value per keyset, so a forged keyset cannot hide
-     * inside a mint-wide total. Null only on legacy rows written before the mint sent it; those
-     * are reported as unattributed and never back-filled by guess. Once set it is immutable, and
-     * the vault refuses a keyset that is not one of the proof's mint.
-     */
-    @JsonProperty("keyset_id")
-    @Column(name = "keyset_id", length = 66)
-    private String keysetId;
+  /**
+   * The exclusive hold on this proof while it is PENDING, or null when the row is UNSPENT or SPENT.
+   *
+   * <p>A melt saga (cashu-mint spec 002, T010 / FR-006) and a swap across its signing step
+   * (cashu-mint#400) both bind here. Sharing one binding is deliberate: it is what makes a swap
+   * hold block a melt on the same proof and vice versa. {@link #holdKind} says which flow it is,
+   * because the two resolve differently.
+   *
+   * <p>The lifecycle is mint-driven:
+   *
+   * <ul>
+   *   <li>{@code UNSPENT → PENDING} — set to the new hold id.
+   *   <li>{@code PENDING → SPENT} or {@code PENDING → UNSPENT} — cleared to null.
+   * </ul>
+   */
+  @JsonProperty("hold_id")
+  @Column(name = "hold_id", length = 64)
+  private String holdId;
 
-    /**
-     * When the proof became SPENT, cashu-vault#156.
-     *
-     * <p>Owned by the database: the PostgreSQL trigger sets it on the transition into SPENT and
-     * freezes it afterwards, so no caller can forge or omit it. JPA never writes it from an
-     * entity, and a value in a request body is ignored.
-     */
-    @JsonProperty(value = "spent_at", access = JsonProperty.Access.READ_ONLY)
-    @Column(name = "spent_at", insertable = false, updatable = false)
-    private Instant spentAt;
+  /**
+   * Which flow holds this proof, when one does.
+   *
+   * <p>Null exactly when {@link #holdId} is null. It is recorded rather than inferred from the id,
+   * because a melt hold and a swap hold resolve in opposite directions and guessing wrong on a swap
+   * hold spends the same value twice.
+   */
+  @JsonProperty("hold_kind")
+  @Enumerated(EnumType.STRING)
+  @Column(name = "hold_kind", length = 8)
+  private HoldKind holdKind;
 
-    /**
-     * SHA-256 fingerprint for token-level duplicate detection.
-     * Computed from sorted proof secrets + mint URL.
-     */
-    @JsonProperty
-    @Column(name = "fingerprint", length = 64)
-    private String fingerprint;
+  /**
+   * Keyset that signed this proof (the NUT-00 {@code id} of the proof), cashu-vault#156.
+   *
+   * <p>Lets the books reconciler sum spent value per keyset, so a forged keyset cannot hide inside
+   * a mint-wide total. Null only on legacy rows written before the mint sent it; those are reported
+   * as unattributed and never back-filled by guess. Once set it is immutable, and the vault refuses
+   * a keyset that is not one of the proof's mint.
+   */
+  @JsonProperty("keyset_id")
+  @Column(name = "keyset_id", length = 66)
+  private String keysetId;
 
-    /**
-     * Ensures fingerprint is computed before persisting.
-     */
-    @PrePersist
-    @PreUpdate
-    protected void ensureFingerprint() {
-        if (this.fingerprint == null && this.secret != null) {
-            String mintId = (this.mint != null && this.mint.getId() != null)
-                    ? this.mint.getId().toString()
-                    : "";
-            this.fingerprint = computeFingerprint(this.secret, mintId);
-        }
+  /**
+   * When the proof became SPENT, cashu-vault#156.
+   *
+   * <p>Owned by the database: the PostgreSQL trigger sets it on the transition into SPENT and
+   * freezes it afterwards, so no caller can forge or omit it. JPA never writes it from an entity,
+   * and a value in a request body is ignored.
+   */
+  @JsonProperty(value = "spent_at", access = JsonProperty.Access.READ_ONLY)
+  @Column(name = "spent_at", insertable = false, updatable = false)
+  private Instant spentAt;
+
+  /**
+   * SHA-256 fingerprint for token-level duplicate detection. Computed from sorted proof secrets +
+   * mint URL.
+   */
+  @JsonProperty
+  @Column(name = "fingerprint", length = 64)
+  private String fingerprint;
+
+  /** Ensures fingerprint is computed before persisting. */
+  @PrePersist
+  @PreUpdate
+  protected void ensureFingerprint() {
+    if (this.fingerprint == null && this.secret != null) {
+      String mintId =
+          (this.mint != null && this.mint.getId() != null) ? this.mint.getId().toString() : "";
+      this.fingerprint = computeFingerprint(this.secret, mintId);
+    }
+  }
+
+  /**
+   * Computes SHA-256 fingerprint from secret and mint identifier.
+   *
+   * @param secret proof secret
+   * @param mintId mint identifier
+   * @return hex-encoded SHA-256 hash (64 characters)
+   */
+  public static String computeFingerprint(String secret, String mintId) {
+    try {
+      String input = secret + "||" + mintId;
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+      return bytesToHex(hash);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to compute fingerprint", e);
+    }
+  }
+
+  private static String bytesToHex(byte[] bytes) {
+    StringBuilder sb = new StringBuilder();
+    for (byte b : bytes) {
+      sb.append(String.format("%02x", b));
+    }
+    return sb.toString();
+  }
+
+  public static <T extends Secret> ProofEntity fromProof(Proof<T> proof, MintEntity mintEntity) {
+    ProofEntity proofEntity = new ProofEntity();
+    proofEntity.setAmount(proof.getAmount());
+
+    String yCoordinate = SecretUtil.toY(proof.getSecret());
+    proofEntity.setSecret(yCoordinate);
+
+    if (proof.getWitness() != null) {
+      proofEntity.setWitness(proof.getWitness().toString());
     }
 
-    /**
-     * Computes SHA-256 fingerprint from secret and mint identifier.
-     *
-     * @param secret proof secret
-     * @param mintId mint identifier
-     * @return hex-encoded SHA-256 hash (64 characters)
-     */
-    public static String computeFingerprint(String secret, String mintId) {
-        try {
-            String input = secret + "||" + mintId;
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return bytesToHex(hash);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to compute fingerprint", e);
-        }
-    }
+    proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
+    proofEntity.setMint(mintEntity);
+    proofEntity.setKeysetId(proof.getKeySetId());
 
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
+    // Compute fingerprint for duplicate detection
+    String mintId = mintEntity.getId() != null ? mintEntity.getId().toString() : "";
+    proofEntity.setFingerprint(computeFingerprint(yCoordinate, mintId));
 
-    public static <T extends Secret> ProofEntity fromProof(Proof<T> proof, MintEntity mintEntity) {
-        ProofEntity proofEntity = new ProofEntity();
-        proofEntity.setAmount(proof.getAmount());
-
-        String yCoordinate = SecretUtil.toY(proof.getSecret());
-        proofEntity.setSecret(yCoordinate);
-
-        if (proof.getWitness() != null) {
-            proofEntity.setWitness(proof.getWitness().toString());
-        }
-
-        proofEntity.setUnblindedSignature(proof.getUnblindedSignature().toString());
-        proofEntity.setMint(mintEntity);
-        proofEntity.setKeysetId(proof.getKeySetId());
-
-        // Compute fingerprint for duplicate detection
-        String mintId = mintEntity.getId() != null ? mintEntity.getId().toString() : "";
-        proofEntity.setFingerprint(computeFingerprint(yCoordinate, mintId));
-
-        return proofEntity;
-    }
+    return proofEntity;
+  }
 }

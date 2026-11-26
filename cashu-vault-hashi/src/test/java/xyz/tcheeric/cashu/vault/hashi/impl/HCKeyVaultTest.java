@@ -1,5 +1,19 @@
 package xyz.tcheeric.cashu.vault.hashi.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,229 +30,210 @@ import xyz.tcheeric.cashu.vault.db.model.KeySetEntity;
 import xyz.tcheeric.cashu.vault.db.model.MintEntity;
 import xyz.tcheeric.cashu.vault.hashi.client.HashiVaultClient;
 
-import java.math.BigInteger;
-import java.util.Map;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class HCKeyVaultTest {
 
-    @Mock
-    private VaultClient<KeyEntity> dbClient;
+  @Mock private VaultClient<KeyEntity> dbClient;
 
-    @Mock
-    private HashiVaultClient hashiClient;
+  @Mock private HashiVaultClient hashiClient;
 
-    @Mock
-    private KeySetVaultClient keySetVaultClient;
+  @Mock private KeySetVaultClient keySetVaultClient;
 
-    private HCKeyVault hcKeyVault;
+  private HCKeyVault hcKeyVault;
 
-    private MintEntity mint;
-    private KeySetEntity keySet;
+  private MintEntity mint;
+  private KeySetEntity keySet;
 
-    @BeforeEach
-    void setUp() {
-        hcKeyVault = new HCKeyVault(dbClient, hashiClient);
+  @BeforeEach
+  void setUp() {
+    hcKeyVault = new HCKeyVault(dbClient, hashiClient);
 
-        mint = new MintEntity();
-        keySet = new KeySetEntity();
-        keySet.setKeySetId("ks-001");
-        keySet.setMint(mint);
+    mint = new MintEntity();
+    keySet = new KeySetEntity();
+    keySet.setKeySetId("ks-001");
+    keySet.setMint(mint);
+  }
+
+  @Test
+  void store_writesSecretToVaultAndClearsPrivateKey() throws CashuErrorException {
+    KeyEntity key = createKeyEntity("secret-key-value", BigInteger.ONE);
+    when(hashiClient.storeSecret(anyString(), any()))
+        .thenReturn("cashu/keys/" + mint.getId() + "/ks-001/1");
+    when(dbClient.store(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+      factory.when(VaultClientFactory::keySetClient).thenReturn(keySetVaultClient);
+      when(keySetVaultClient.getByKeySetId("ks-001")).thenReturn(keySet);
+
+      KeyEntity stored = hcKeyVault.store(key);
+
+      verify(hashiClient).storeSecret(eq("keys/" + mint.getId() + "/ks-001/1"), any());
+      assertThat(stored.getPrivateKey()).isNull();
+      assertThat(stored.getVaultPath()).isEqualTo("cashu/keys/" + mint.getId() + "/ks-001/1");
+      verify(dbClient).store(key);
     }
+  }
 
-    @Test
-    void store_writesSecretToVaultAndClearsPrivateKey() throws CashuErrorException {
-        KeyEntity key = createKeyEntity("secret-key-value", BigInteger.ONE);
-        when(hashiClient.storeSecret(anyString(), any())).thenReturn("cashu/keys/" + mint.getId() + "/ks-001/1");
-        when(dbClient.store(any())).thenAnswer(inv -> inv.getArgument(0));
+  @Test
+  void store_includesPrivateKeyAndCreatedAtInVaultData() throws CashuErrorException {
+    KeyEntity key = createKeyEntity("my-private-key", BigInteger.valueOf(64));
+    when(hashiClient.storeSecret(anyString(), any())).thenReturn("cashu/keys/path");
+    when(dbClient.store(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(VaultClientFactory::keySetClient).thenReturn(keySetVaultClient);
-            when(keySetVaultClient.getByKeySetId("ks-001")).thenReturn(keySet);
+    try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+      factory.when(VaultClientFactory::keySetClient).thenReturn(keySetVaultClient);
+      when(keySetVaultClient.getByKeySetId("ks-001")).thenReturn(keySet);
 
-            KeyEntity stored = hcKeyVault.store(key);
+      hcKeyVault.store(key);
 
-            verify(hashiClient).storeSecret(
-                    eq("keys/" + mint.getId() + "/ks-001/1"),
-                    any());
-            assertThat(stored.getPrivateKey()).isNull();
-            assertThat(stored.getVaultPath()).isEqualTo("cashu/keys/" + mint.getId() + "/ks-001/1");
-            verify(dbClient).store(key);
-        }
+      @SuppressWarnings("unchecked")
+      var dataCaptor = org.mockito.ArgumentCaptor.forClass(Map.class);
+      verify(hashiClient).storeSecret(anyString(), dataCaptor.capture());
+      Map<String, Object> capturedData = dataCaptor.getValue();
+      assertThat(capturedData).containsKey("private_key");
+      assertThat(capturedData.get("private_key")).isEqualTo("my-private-key");
+      assertThat(capturedData).containsKey("created_at");
     }
+  }
 
-    @Test
-    void store_includesPrivateKeyAndCreatedAtInVaultData() throws CashuErrorException {
-        KeyEntity key = createKeyEntity("my-private-key", BigInteger.valueOf(64));
-        when(hashiClient.storeSecret(anyString(), any())).thenReturn("cashu/keys/path");
-        when(dbClient.store(any())).thenAnswer(inv -> inv.getArgument(0));
+  @Test
+  void retrieve_enrichesEntityWithVaultSecret() throws CashuErrorException {
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+    // The key's own path. A read is now refused unless the stored path is the one this key
+    // would have been written to, so the fixture has to be a real path rather than a
+    // placeholder.
+    String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
+    key.setVaultPath(ownPath);
+    when(dbClient.retrieve("key-id")).thenReturn(key);
+    when(hashiClient.getSecret(ownPath)).thenReturn(Map.of("private_key", "enriched-key"));
 
-        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(VaultClientFactory::keySetClient).thenReturn(keySetVaultClient);
-            when(keySetVaultClient.getByKeySetId("ks-001")).thenReturn(keySet);
+    KeyEntity result = hcKeyVault.retrieve("key-id");
 
-            hcKeyVault.store(key);
+    assertThat(result.getPrivateKey()).isEqualTo("enriched-key");
+    verify(hashiClient).getSecret(ownPath);
+  }
 
-            @SuppressWarnings("unchecked")
-            var dataCaptor = org.mockito.ArgumentCaptor.forClass(Map.class);
-            verify(hashiClient).storeSecret(anyString(), dataCaptor.capture());
-            Map<String, Object> capturedData = dataCaptor.getValue();
-            assertThat(capturedData).containsKey("private_key");
-            assertThat(capturedData.get("private_key")).isEqualTo("my-private-key");
-            assertThat(capturedData).containsKey("created_at");
-        }
+  @Test
+  void retrieve_refusesAVaultPathBelongingToAnotherKey() {
+    // The M-13 read path: the vault_path column is writable through POST /vault/key, so a row
+    // pointed at another mint's key must not enrich from it. The old shape-only check passed
+    // this, because it contains "/keys/".
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+    key.setVaultPath("cashu/keys/99999999-9999-9999-9999-999999999999/other-keyset/1");
+    when(dbClient.retrieve("key-id")).thenReturn(key);
+
+    assertThatThrownBy(() -> hcKeyVault.retrieve("key-id"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("does not belong to this key");
+    verifyNoInteractions(hashiClient);
+  }
+
+  @Test
+  void retrieve_throwsWhenEntityNotFound() {
+    when(dbClient.retrieve("missing-id")).thenReturn(null);
+
+    assertThatThrownBy(() -> hcKeyVault.retrieve("missing-id"))
+        .isInstanceOf(CashuErrorException.class)
+        .hasMessage("Key not found");
+  }
+
+  @Test
+  void retrieve_leavesPrivateKeyNullWhenVaultReturnsNull() throws CashuErrorException {
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+    String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
+    key.setVaultPath(ownPath);
+    when(dbClient.retrieve("key-id")).thenReturn(key);
+    when(hashiClient.getSecret(ownPath)).thenReturn(null);
+
+    KeyEntity result = hcKeyVault.retrieve("key-id");
+
+    assertThat(result.getPrivateKey()).isNull();
+  }
+
+  @Test
+  void retrieveByAmount_returnsMatchingKeyEnrichedWithSecret() throws CashuErrorException {
+    KeyEntity key1 = createKeyEntity(null, BigInteger.ONE);
+    key1.setVaultPath("cashu/keys/" + key1.getKeySet().getMint().getId() + "/ks-001/1");
+    KeyEntity key2 = createKeyEntity(null, BigInteger.valueOf(2));
+    String key2Path = "cashu/keys/" + key2.getKeySet().getMint().getId() + "/ks-001/2";
+    key2.setVaultPath(key2Path);
+
+    KeyVaultClient keyVaultClient = mock(KeyVaultClient.class);
+    when(keyVaultClient.getKeysByKeySetId("ks-001")).thenReturn(Set.of(key1, key2));
+    when(hashiClient.getSecret(key2Path)).thenReturn(Map.of("private_key", "key-for-2"));
+
+    try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+      factory.when(VaultClientFactory::keyClient).thenReturn(keyVaultClient);
+
+      KeyEntity result = hcKeyVault.retrieveByAmount(BigInteger.valueOf(2), "ks-001");
+
+      assertThat(result.getAmount()).isEqualTo(BigInteger.valueOf(2));
+      assertThat(result.getPrivateKey()).isEqualTo("key-for-2");
     }
+  }
 
-    @Test
-    void retrieve_enrichesEntityWithVaultSecret() throws CashuErrorException {
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        // The key's own path. A read is now refused unless the stored path is the one this key
-        // would have been written to, so the fixture has to be a real path rather than a
-        // placeholder.
-        String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
-        key.setVaultPath(ownPath);
-        when(dbClient.retrieve("key-id")).thenReturn(key);
-        when(hashiClient.getSecret(ownPath)).thenReturn(Map.of("private_key", "enriched-key"));
+  @Test
+  void retrieveByAmount_throwsWhenNoMatchingAmount() {
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+    key.setVaultPath("cashu/keys/path/1");
 
-        KeyEntity result = hcKeyVault.retrieve("key-id");
+    KeyVaultClient keyVaultClient = mock(KeyVaultClient.class);
+    when(keyVaultClient.getKeysByKeySetId("ks-001")).thenReturn(Set.of(key));
 
-        assertThat(result.getPrivateKey()).isEqualTo("enriched-key");
-        verify(hashiClient).getSecret(ownPath);
+    try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
+      factory.when(VaultClientFactory::keyClient).thenReturn(keyVaultClient);
+
+      assertThatThrownBy(() -> hcKeyVault.retrieveByAmount(BigInteger.valueOf(999), "ks-001"))
+          .isInstanceOf(CashuErrorException.class)
+          .hasMessageContaining("Key not found for amount: 999");
     }
+  }
 
-    @Test
-    void retrieve_refusesAVaultPathBelongingToAnotherKey() {
-        // The M-13 read path: the vault_path column is writable through POST /vault/key, so a row
-        // pointed at another mint's key must not enrich from it. The old shape-only check passed
-        // this, because it contains "/keys/".
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        key.setVaultPath("cashu/keys/99999999-9999-9999-9999-999999999999/other-keyset/1");
-        when(dbClient.retrieve("key-id")).thenReturn(key);
+  @Test
+  void store_throwsWhenPrivateKeyIsNull() {
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
 
-        assertThatThrownBy(() -> hcKeyVault.retrieve("key-id"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("does not belong to this key");
-        verifyNoInteractions(hashiClient);
-    }
+    assertThatThrownBy(() -> hcKeyVault.store(key))
+        .isInstanceOf(CashuErrorException.class)
+        .hasMessage("Private key must not be null");
+  }
 
-    @Test
-    void retrieve_throwsWhenEntityNotFound() {
-        when(dbClient.retrieve("missing-id")).thenReturn(null);
+  @Test
+  void retrieve_handlesNullVaultPathGracefully() throws CashuErrorException {
+    KeyEntity key = createKeyEntity(null, BigInteger.ONE);
+    key.setVaultPath(null);
+    when(dbClient.retrieve("key-id")).thenReturn(key);
 
-        assertThatThrownBy(() -> hcKeyVault.retrieve("missing-id"))
-                .isInstanceOf(CashuErrorException.class)
-                .hasMessage("Key not found");
-    }
+    KeyEntity result = hcKeyVault.retrieve("key-id");
 
-    @Test
-    void retrieve_leavesPrivateKeyNullWhenVaultReturnsNull() throws CashuErrorException {
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        String ownPath = "cashu/keys/" + key.getKeySet().getMint().getId() + "/ks-001/1";
-        key.setVaultPath(ownPath);
-        when(dbClient.retrieve("key-id")).thenReturn(key);
-        when(hashiClient.getSecret(ownPath)).thenReturn(null);
+    assertThat(result.getPrivateKey()).isNull();
+    verifyNoInteractions(hashiClient);
+  }
 
-        KeyEntity result = hcKeyVault.retrieve("key-id");
+  @Test
+  void archive_delegatesToDbClient() throws CashuErrorException {
+    KeyEntity archived = createKeyEntity(null, BigInteger.ONE);
+    archived.setArchived(true);
+    when(dbClient.archive("key-id")).thenReturn(archived);
 
-        assertThat(result.getPrivateKey()).isNull();
-    }
+    KeyEntity result = hcKeyVault.archive("key-id");
 
-    @Test
-    void retrieveByAmount_returnsMatchingKeyEnrichedWithSecret() throws CashuErrorException {
-        KeyEntity key1 = createKeyEntity(null, BigInteger.ONE);
-        key1.setVaultPath("cashu/keys/" + key1.getKeySet().getMint().getId() + "/ks-001/1");
-        KeyEntity key2 = createKeyEntity(null, BigInteger.valueOf(2));
-        String key2Path = "cashu/keys/" + key2.getKeySet().getMint().getId() + "/ks-001/2";
-        key2.setVaultPath(key2Path);
+    verify(dbClient).archive("key-id");
+    assertThat(result.isArchived()).isTrue();
+  }
 
-        KeyVaultClient keyVaultClient = mock(KeyVaultClient.class);
-        when(keyVaultClient.getKeysByKeySetId("ks-001")).thenReturn(Set.of(key1, key2));
-        when(hashiClient.getSecret(key2Path)).thenReturn(Map.of("private_key", "key-for-2"));
+  @Test
+  void delete_delegatesToDbClient() throws CashuErrorException {
+    hcKeyVault.delete("key-id");
 
-        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(VaultClientFactory::keyClient).thenReturn(keyVaultClient);
+    verify(dbClient).delete("key-id");
+  }
 
-            KeyEntity result = hcKeyVault.retrieveByAmount(BigInteger.valueOf(2), "ks-001");
-
-            assertThat(result.getAmount()).isEqualTo(BigInteger.valueOf(2));
-            assertThat(result.getPrivateKey()).isEqualTo("key-for-2");
-        }
-    }
-
-    @Test
-    void retrieveByAmount_throwsWhenNoMatchingAmount() {
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        key.setVaultPath("cashu/keys/path/1");
-
-        KeyVaultClient keyVaultClient = mock(KeyVaultClient.class);
-        when(keyVaultClient.getKeysByKeySetId("ks-001")).thenReturn(Set.of(key));
-
-        try (MockedStatic<VaultClientFactory> factory = mockStatic(VaultClientFactory.class)) {
-            factory.when(VaultClientFactory::keyClient).thenReturn(keyVaultClient);
-
-            assertThatThrownBy(() -> hcKeyVault.retrieveByAmount(BigInteger.valueOf(999), "ks-001"))
-                    .isInstanceOf(CashuErrorException.class)
-                    .hasMessageContaining("Key not found for amount: 999");
-        }
-    }
-
-    @Test
-    void store_throwsWhenPrivateKeyIsNull() {
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-
-        assertThatThrownBy(() -> hcKeyVault.store(key))
-                .isInstanceOf(CashuErrorException.class)
-                .hasMessage("Private key must not be null");
-    }
-
-    @Test
-    void retrieve_handlesNullVaultPathGracefully() throws CashuErrorException {
-        KeyEntity key = createKeyEntity(null, BigInteger.ONE);
-        key.setVaultPath(null);
-        when(dbClient.retrieve("key-id")).thenReturn(key);
-
-        KeyEntity result = hcKeyVault.retrieve("key-id");
-
-        assertThat(result.getPrivateKey()).isNull();
-        verifyNoInteractions(hashiClient);
-    }
-
-    @Test
-    void archive_delegatesToDbClient() throws CashuErrorException {
-        KeyEntity archived = createKeyEntity(null, BigInteger.ONE);
-        archived.setArchived(true);
-        when(dbClient.archive("key-id")).thenReturn(archived);
-
-        KeyEntity result = hcKeyVault.archive("key-id");
-
-        verify(dbClient).archive("key-id");
-        assertThat(result.isArchived()).isTrue();
-    }
-
-    @Test
-    void delete_delegatesToDbClient() throws CashuErrorException {
-        hcKeyVault.delete("key-id");
-
-        verify(dbClient).delete("key-id");
-    }
-
-    private KeyEntity createKeyEntity(String privateKey, BigInteger amount) {
-        KeyEntity key = new KeyEntity();
-        key.setAmount(amount);
-        key.setPrivateKey(privateKey);
-        key.setKeySet(keySet);
-        return key;
-    }
+  private KeyEntity createKeyEntity(String privateKey, BigInteger amount) {
+    KeyEntity key = new KeyEntity();
+    key.setAmount(amount);
+    key.setPrivateKey(privateKey);
+    key.setKeySet(keySet);
+    return key;
+  }
 }

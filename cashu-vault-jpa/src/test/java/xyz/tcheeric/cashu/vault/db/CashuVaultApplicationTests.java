@@ -6,8 +6,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(classes = CashuVaultApplication.class)
 public class CashuVaultApplicationTests {
 
-	@Test
-	void contextLoads() {
-		// Test logic here
-	}
+  @Test
+  void contextLoads() {
+    // Test logic here
+  }
 }

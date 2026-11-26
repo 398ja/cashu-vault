@@ -13,8 +13,8 @@ import xyz.tcheeric.cashu.vault.hashi.impl.HCKeySetVault;
 import xyz.tcheeric.cashu.vault.hashi.impl.HCKeyVault;
 
 /**
- * Registers HashiCorp Vault implementations with the VaultClientFactory
- * and sets the active backend to HashiCorp Vault on startup.
+ * Registers HashiCorp Vault implementations with the VaultClientFactory and sets the active backend
+ * to HashiCorp Vault on startup.
  */
 @Component
 @ConditionalOnProperty(prefix = "vault.hashi", name = "enabled", havingValue = "true")
@@ -22,18 +22,18 @@ import xyz.tcheeric.cashu.vault.hashi.impl.HCKeyVault;
 @Slf4j
 public class HashiVaultRegistrar {
 
-    private final HashiVaultClient hashiClient;
+  private final HashiVaultClient hashiClient;
 
-    @PostConstruct
-    public void register() {
-        log.info("Registering HashiCorp Vault implementations");
+  @PostConstruct
+  public void register() {
+    log.info("Registering HashiCorp Vault implementations");
 
-        VaultClientFactory.registerHCVault(KeyEntity.class,
-                client -> new HCKeyVault(client, hashiClient));
-        VaultClientFactory.registerHCVault(KeySetEntity.class,
-                client -> new HCKeySetVault(client, hashiClient));
+    VaultClientFactory.registerHCVault(
+        KeyEntity.class, client -> new HCKeyVault(client, hashiClient));
+    VaultClientFactory.registerHCVault(
+        KeySetEntity.class, client -> new HCKeySetVault(client, hashiClient));
 
-        VaultClientFactory.setBackend(VaultClientFactory.Backend.HASHICORP);
-        log.info("Active secrets backend set to HASHICORP");
-    }
+    VaultClientFactory.setBackend(VaultClientFactory.Backend.HASHICORP);
+    log.info("Active secrets backend set to HASHICORP");
+  }
 }

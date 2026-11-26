@@ -23,9 +23,9 @@ import xyz.tcheeric.cashu.vault.db.books.MintBooks;
 /**
  * cashu-vault#156: the books of a mint with 1M proofs answer in under 2s on PostgreSQL.
  *
- * <p>Seeds 1M rows with {@code generate_series} (900k SPENT across four keysets, the rest
- * UNSPENT or PENDING), plus a second mint so the index has to discriminate, then times the books
- * query the endpoint runs.
+ * <p>Seeds 1M rows with {@code generate_series} (900k SPENT across four keysets, the rest UNSPENT
+ * or PENDING), plus a second mint so the index has to discriminate, then times the books query the
+ * endpoint runs.
  */
 @Testcontainers
 @SpringBootTest
@@ -49,8 +49,7 @@ class BooksPerformanceIT {
     registry.add("spring.datasource.password", POSTGRES::getPassword);
     registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
     registry.add(
-        "spring.jpa.properties.hibernate.dialect",
-        () -> "org.hibernate.dialect.PostgreSQLDialect");
+        "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
   }
 
   @Autowired private DataSource dataSource;
@@ -65,13 +64,21 @@ class BooksPerformanceIT {
     Timestamp now = Timestamp.from(Instant.now());
     for (UUID mint : new UUID[] {mintId, otherMintId}) {
       jdbc.update(
-          "INSERT INTO t_mint (id, archived, created_at, updated_at, version) VALUES (?, false, ?, ?, 0)",
-          mint, now, now);
+          "INSERT INTO t_mint (id, archived, created_at, updated_at, version) VALUES (?, false, ?,"
+              + " ?, 0)",
+          mint,
+          now,
+          now);
       for (int k = 0; k < 4; k++) {
         jdbc.update(
-            "INSERT INTO t_keyset (id, archived, created_at, updated_at, version, key_set_id, unit, "
-                + "mint_id, input_fee_ppk) VALUES (?, ?, ?, ?, 0, ?, 'sat', ?, 0)",
-            UUID.randomUUID(), k != 0, now, now, keyset(mint, k), mint);
+            "INSERT INTO t_keyset (id, archived, created_at, updated_at, version, key_set_id, unit,"
+                + " mint_id, input_fee_ppk) VALUES (?, ?, ?, ?, 0, ?, 'sat', ?, 0)",
+            UUID.randomUUID(),
+            k != 0,
+            now,
+            now,
+            keyset(mint, k),
+            mint);
       }
     }
     seedProofs(jdbc, mintId, ROWS);
@@ -82,15 +89,12 @@ class BooksPerformanceIT {
   private static void seedProofs(JdbcTemplate jdbc, UUID mint, int rows) {
     // The trigger stamps spent_at = now() on every SPENT insert, which is what production does.
     jdbc.update(
-        "INSERT INTO t_proof (id, archived, created_at, updated_at, version, mint_id, amount, secret, c, "
-            + "state, keyset_id, hold_id, hold_kind) "
-            + "SELECT gen_random_uuid(), false, now(), now(), 0, ?, (1 << (g % 10)), "
-            + "  ? || '-s-' || g, ? || '-c-' || g, "
-            + "  CASE WHEN g % 10 < 9 THEN 'SPENT' WHEN g % 20 = 9 THEN 'PENDING' ELSE 'UNSPENT' END, "
-            + "  ? || (g % 4), "
-            + "  CASE WHEN g % 20 = 9 THEN 'swap-' || (g / 20) END, "
-            + "  CASE WHEN g % 20 = 9 THEN 'SWAP' END "
-            + "FROM generate_series(1, ?) AS g",
+        "INSERT INTO t_proof (id, archived, created_at, updated_at, version, mint_id, amount,"
+            + " secret, c, state, keyset_id, hold_id, hold_kind) SELECT gen_random_uuid(), false,"
+            + " now(), now(), 0, ?, (1 << (g % 10)),   ? || '-s-' || g, ? || '-c-' || g,   CASE"
+            + " WHEN g % 10 < 9 THEN 'SPENT' WHEN g % 20 = 9 THEN 'PENDING' ELSE 'UNSPENT' END,   ?"
+            + " || (g % 4),   CASE WHEN g % 20 = 9 THEN 'swap-' || (g / 20) END,   CASE WHEN g % 20"
+            + " = 9 THEN 'SWAP' END FROM generate_series(1, ?) AS g",
         mint, mint.toString(), mint.toString(), keysetPrefix(mint), rows);
   }
 
@@ -117,7 +121,8 @@ class BooksPerformanceIT {
     assertThat(books.spent().stream().mapToLong(MintBooks.SpentByKeyset::count).sum())
         .isEqualTo(ROWS / 10 * 9);
     assertThat(books.pending().get(0).holds()).isEqualTo(ROWS / 20);
-    assertThat(elapsed).as("books over %d proofs took %s", ROWS, elapsed)
+    assertThat(elapsed)
+        .as("books over %d proofs took %s", ROWS, elapsed)
         .isLessThan(Duration.ofSeconds(2));
   }
 }
