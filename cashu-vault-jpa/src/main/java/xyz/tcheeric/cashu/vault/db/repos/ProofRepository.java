@@ -469,10 +469,13 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
      * Builds a fresh PENDING hold row for the insert path, copying only the
      * caller-meaningful proof fields. Server-managed identity / audit fields
      * (id, version, archived, timestamps) keep their {@code BaseEntity}
-     * defaults so {@code save()} performs an INSERT, never a merge.
+     * defaults so {@code save()} performs an INSERT, never a merge. The version is cleared because
+     * Spring Data treats a versioned entity as new only while its version is null; at the default 0
+     * it would merge, paying a SELECT before every INSERT.
      */
     private static ProofEntity buildHoldRow(ProofEntity src, String holdId) {
         ProofEntity row = new ProofEntity();
+        row.setVersion(null);
         row.setMint(src.getMint());
         row.setAmount(src.getAmount());
         row.setSecret(src.getSecret());
