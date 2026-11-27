@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-27
+
+**Batch proof lookup (#173).** One request for many of a mint's proofs, so cashu-mint can key a
+swap's hold in one round trip. Additive API, no schema or config change.
+
 ### Added
 
 - `POST /vault/proof/mint/{mintId}/lookup` and `ProofClient#lookup` / `DBProofVault.lookup`: the
