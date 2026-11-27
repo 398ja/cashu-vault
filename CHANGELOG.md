@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-11-27
+
+**Spend statements (#171).** markSpent about 8% faster than 0.18.1 (1.078x, 95% CI [1.025, 1.135],
+32 pairs); overall 1.041x [0.990, 1.095]. No API, schema or config change.
+
 ### Changed
 
 - **Spend statements drop the `t_mint` probe.** `markSpent` and `countSpent` are native SQL that
