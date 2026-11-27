@@ -31,8 +31,13 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
    * and the custom plan picks a mint-only index, then filters every proof of the mint. With the
    * subquery the planner always takes {@code uk_proof_mint_secret}, one probe per secret, at no
    * extra round trip. See {@code FreshMintSpendPlanIT}.
+   *
+   * <p>The subquery selects the parameter itself, so the InitPlan is a bare {@code Result} node
+   * with no table access. This needs native SQL: Hibernate cannot type a bare parameter in an HQL
+   * subquery select. A session-wide {@code plan_cache_mode = force_generic_plan} would give the
+   * same plan here but blind every other query to skewed values such as {@code state}.
    */
-  String MINT_ID_HIDDEN_FROM_PLANNER = "(SELECT m.id FROM mint m WHERE m.id = :mintId)";
+  String MINT_ID_HIDDEN_FROM_PLANNER = "(SELECT CAST(:mintId AS UUID))";
 
   /**
    * Finds a proof by its secret value.
@@ -332,13 +337,15 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Transactional
   @Query(
-      "UPDATE proof p SET p.state = 'SPENT', p.holdId = NULL, p.holdKind = NULL, "
-          + "p.spentAt = INSTANT "
-          + "WHERE p.mint.id = "
-          + MINT_ID_HIDDEN_FROM_PLANNER
-          + " "
-          + "AND p.secret IN :secrets "
-          + "AND p.state IN ('UNSPENT', 'PENDING')")
+      value =
+          "UPDATE t_proof SET state = 'SPENT', hold_id = NULL, hold_kind = NULL, "
+              + "spent_at = CURRENT_TIMESTAMP "
+              + "WHERE mint_id = "
+              + MINT_ID_HIDDEN_FROM_PLANNER
+              + " "
+              + "AND secret IN (:secrets) "
+              + "AND state IN ('UNSPENT', 'PENDING')",
+      nativeQuery = true)
   int markSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
 
   /**
@@ -347,10 +354,12 @@ public interface ProofRepository extends JpaRepository<ProofEntity, UUID> {
    * earlier attempt already marked.
    */
   @Query(
-      "SELECT COUNT(p) FROM proof p WHERE p.mint.id = "
-          + MINT_ID_HIDDEN_FROM_PLANNER
-          + " "
-          + "AND p.secret IN :secrets AND p.state = 'SPENT'")
+      value =
+          "SELECT COUNT(*) FROM t_proof WHERE mint_id = "
+              + MINT_ID_HIDDEN_FROM_PLANNER
+              + " "
+              + "AND secret IN (:secrets) AND state = 'SPENT'",
+      nativeQuery = true)
   long countSpent(@Param("secrets") Collection<String> secrets, @Param("mintId") UUID mintId);
 
   /**
