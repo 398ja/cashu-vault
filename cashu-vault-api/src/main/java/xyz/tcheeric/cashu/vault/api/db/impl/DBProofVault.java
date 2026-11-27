@@ -187,6 +187,14 @@ public final class DBProofVault extends DBVault<ProofEntity> {
     return VaultClientFactory.proofClient().markSpent(mintId, secrets);
   }
 
+  /**
+   * The mint's recorded rows for any of {@code secrets}, in one request. Secrets with no row are
+   * absent from the result.
+   */
+  public static List<ProofEntity> lookup(String mintId, java.util.Collection<String> secrets) {
+    return VaultClientFactory.proofClient().lookup(mintId, secrets);
+  }
+
   // ---------------------------------------------------------------
   // cashu-mint spec 002 T011 — melt-saga binding pass-through
   // ---------------------------------------------------------------

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `POST /vault/proof/mint/{mintId}/lookup` and `ProofClient#lookup` / `DBProofVault.lookup`: the
+  mint's rows for up to 1000 secrets in one request and one indexed query. Unknown secrets are
+  absent from the result. Lets the mint resolve a swap's inputs in one round trip instead of one
+  or two `GET`s per proof.
+
 ## [0.18.2] - 2026-11-27
 
 **Spend statements (#171).** markSpent about 8% faster than 0.18.1 (1.078x, 95% CI [1.025, 1.135],
