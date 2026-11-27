@@ -180,4 +180,22 @@ public class ProofClient extends VaultClient<ProofEntity> {
             getBaseUrl() + "/vault/proof/mint/" + mintId + "/mark-spent", secrets, Integer.class);
     return spent == null ? 0 : spent;
   }
+
+  /**
+   * The mint's recorded rows for any of {@code secrets}, in one call ({@code POST
+   * /vault/proof/mint/{mintId}/lookup}). Secrets with no row are absent from the result.
+   *
+   * @param mintId mint that owns the proofs
+   * @param secrets Y-normalised proof secrets
+   * @return the matching rows, never null
+   */
+  public java.util.List<ProofEntity> lookup(String mintId, java.util.Collection<String> secrets) {
+    log.debug("POST {}/vault/proof/mint/{}/lookup proofs={}", getBaseUrl(), mintId, secrets.size());
+    ProofEntity[] found =
+        restTemplate.postForObject(
+            getBaseUrl() + "/vault/proof/mint/" + mintId + "/lookup",
+            java.util.List.copyOf(secrets),
+            ProofEntity[].class);
+    return found == null ? java.util.List.of() : java.util.List.of(found);
+  }
 }

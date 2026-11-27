@@ -191,6 +191,42 @@ public class ProofVaultController {
     return value == null || value.isBlank();
   }
 
+  /** Largest batch {@link #lookup} accepts; a swap is bounded far below this by the mint. */
+  static final int MAX_LOOKUP_SECRETS = 1000;
+
+  /**
+   * Batch form of {@code GET /mint/{mintId}/secret/{secret}}: the rows of this mint whose secret
+   * is any of {@code secrets}, in one indexed query. Secrets with no row are simply absent from
+   * the result, so a caller learns "not recorded" without one round trip per proof.
+   *
+   * <p>Scoped to the mint for the same reason as the single lookup: {@code uk_proof_mint_secret
+   * (mint_id, secret)} is the only index over {@code secret}.
+   *
+   * @param mintId mint that owns the proofs
+   * @param secrets Y-normalised proof secrets, at most {@value #MAX_LOOKUP_SECRETS}
+   * @return the matching rows, in no particular order
+   */
+  @PostMapping("/mint/{mintId}/lookup")
+  public ResponseEntity<List<ProofEntity>> lookup(
+      @PathVariable("mintId")
+          @NotBlank
+          @Pattern(regexp = "^[0-9a-fA-F-]{36}$", message = "Invalid UUID format")
+          String mintId,
+      @RequestBody List<String> secrets) {
+    if (secrets == null
+        || secrets.isEmpty()
+        || secrets.size() > MAX_LOOKUP_SECRETS
+        || secrets.stream().anyMatch(s -> isBlank(s) || s.length() > 512)) {
+      log.warn("lookup rejected mint={} reason=empty_blank_or_oversized", mintId);
+      return ResponseEntity.badRequest().build();
+    }
+    List<ProofEntity> found =
+        proofRepository.findByMint_IdAndSecretIn(
+            UUID.fromString(mintId), new java.util.LinkedHashSet<>(secrets));
+    log.debug("lookup mint={} requested={} found={}", mintId, secrets.size(), found.size());
+    return ResponseEntity.ok(found);
+  }
+
   /**
    * Retrieves all proof entities.
    *
