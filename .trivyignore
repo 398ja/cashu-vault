@@ -10,3 +10,15 @@
 # The scan blocks on CRITICAL only. HIGH findings appear in the Security tab rather than failing
 # the build, so they do not need suppressing here to keep CI green; suppress a HIGH only if the
 # noise is actively obscuring something.
+
+# CVE-2026-47884 -- spring-webmvc 6.2.19, XsltView SSRF/RCE via a "/**" mapping with an implicit
+# view name. Not reachable: the vault is a JSON REST API with no ViewResolver and no XsltView
+# (grep over src finds neither). The 6.2.20 fix is Enterprise-only; the open-source fix is
+# Spring Framework 7.0.9, i.e. the Spring Boot 4 migration tracked separately.
+# Review by 2027-02-28, or when the Boot 4 migration lands, whichever is first.
+CVE-2026-47884
+
+# CVE-2026-47890 -- spring-webmvc 6.2.19, Server-Sent Event stream corruption while rendering
+# fragments. Not reachable: the vault serves no SSE and renders no view fragments. Same fix path
+# and review date as CVE-2026-47884.
+CVE-2026-47890
